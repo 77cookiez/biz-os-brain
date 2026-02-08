@@ -57,6 +57,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        brain: {
+          DEFAULT: "hsl(var(--brain-glow))",
+          soft: "hsl(var(--brain-glow-soft))",
+        },
+        "surface-elevated": "hsl(var(--surface-elevated))",
       },
       borderRadius: {
         lg: "var(--radius)",
