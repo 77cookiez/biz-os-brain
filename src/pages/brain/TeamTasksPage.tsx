@@ -266,12 +266,15 @@ export default function TeamTasksPage() {
                   />
                 </div>
                 {businessContext?.has_team && members.length > 0 && (
-                  <Select value={newTask.assignedTo} onValueChange={(v) => setNewTask({ ...newTask, assignedTo: v })}>
+                  <Select 
+                    value={newTask.assignedTo || "unassigned"} 
+                    onValueChange={(v) => setNewTask({ ...newTask, assignedTo: v === "unassigned" ? "" : v })}
+                  >
                     <SelectTrigger className="bg-input border-border text-foreground">
                       <SelectValue placeholder="Assign to (optional)" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {members.map(member => (
                         <SelectItem key={member.id} value={member.user_id}>
                           {member.full_name} ({member.team_role})
