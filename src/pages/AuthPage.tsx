@@ -7,8 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-
 import { lovable } from '@/integrations/lovable';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -52,11 +52,37 @@ export default function AuthPage() {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-      });
-      if (error) {
-        toast.error(error.message);
+      // Detect if we're on a custom domain (not lovable.app or lovableproject.com)
+      const isCustomDomain =
+        !window.location.hostname.includes("lovable.app") &&
+        !window.location.hostname.includes("lovableproject.com");
+
+      if (isCustomDomain) {
+        // For custom domains, bypass the auth-bridge and handle redirect manually
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: window.location.origin,
+            skipBrowserRedirect: true,
+          },
+        });
+
+        if (error) {
+          toast.error(error.message);
+          return;
+        }
+
+        if (data?.url) {
+          window.location.href = data.url;
+        }
+      } else {
+        // For Lovable domains, use the managed auth flow
+        const { error } = await lovable.auth.signInWithOAuth("google", {
+          redirect_uri: window.location.origin,
+        });
+        if (error) {
+          toast.error(error.message);
+        }
       }
     } catch (error) {
       toast.error('Failed to sign in with Google');
