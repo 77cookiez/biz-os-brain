@@ -1,7 +1,7 @@
 import { Brain, LayoutGrid, Settings, Store, FileText, Users, Package, BarChart3, Mail, ShoppingCart, ChevronLeft, ChevronRight, Target, CheckSquare, Calendar, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import logoIcon from "@/assets/logo-icon.png";
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -67,7 +67,6 @@ export function AppSidebar() {
     >
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 px-4 border-b border-border">
-        <img src={logoIcon} alt="AiBizos" className="h-8 w-8 rounded-lg" />
         {!collapsed && (
           <span className="text-sm font-bold text-foreground tracking-tight">
             Ai<span className="text-primary">Bizos</span>
