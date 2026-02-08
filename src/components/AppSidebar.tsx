@@ -1,7 +1,9 @@
-import { Brain, LayoutGrid, Settings, Store, FileText, Users, Package, BarChart3, Mail, ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react";
+import { Brain, LayoutGrid, Settings, Store, FileText, Users, Package, BarChart3, Mail, ShoppingCart, ChevronLeft, ChevronRight, Target, CheckSquare, Calendar, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { useWorkspace } from "@/contexts/WorkspaceContext";
 import logoIcon from "@/assets/logo-icon.png";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppItem {
   title: string;
@@ -11,18 +13,51 @@ interface AppItem {
   isBrain?: boolean;
 }
 
-const apps: AppItem[] = [
-  { title: "AI Brain", icon: Brain, url: "/", active: true, isBrain: true },
-  { title: "Docs", icon: FileText, url: "/apps/docs", active: true },
-  { title: "CRM", icon: Users, url: "/apps/crm", active: false },
-  { title: "Accounting", icon: BarChart3, url: "/apps/accounting", active: false },
-  { title: "Inventory", icon: Package, url: "/apps/inventory", active: false },
-  { title: "E-commerce", icon: ShoppingCart, url: "/apps/ecommerce", active: false },
-  { title: "Marketing", icon: Mail, url: "/apps/marketing", active: false },
-];
+interface AppRegistryItem {
+  id: string;
+  name: string;
+  icon: string;
+  status: string;
+}
+
+const iconMap: Record<string, React.ElementType> = {
+  Brain,
+  FileText,
+  Users,
+  BarChart3,
+  Package,
+  ShoppingCart,
+  Mail,
+};
 
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [apps, setApps] = useState<AppRegistryItem[]>([]);
+  const { installedApps } = useWorkspace();
+
+  useEffect(() => {
+    fetchApps();
+  }, []);
+
+  const fetchApps = async () => {
+    const { data } = await supabase
+      .from('app_registry')
+      .select('id, name, icon, status')
+      .neq('id', 'brain')
+      .order('name');
+    setApps(data || []);
+  };
+
+  const isAppActive = (appId: string) => {
+    return installedApps.some(a => a.app_id === appId && a.is_active);
+  };
+
+  const brainLinks = [
+    { title: "Today", icon: Sparkles, url: "/" },
+    { title: "Goals & Plans", icon: Target, url: "/brain/goals" },
+    { title: "Team Tasks", icon: CheckSquare, url: "/brain/tasks" },
+    { title: "Weekly Check-in", icon: Calendar, url: "/brain/checkin" },
+  ];
 
   return (
     <aside
@@ -50,54 +85,68 @@ export function AppSidebar() {
       <div className="px-3 pt-4 pb-2">
         {!collapsed && (
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground px-2">
-            Assistant
+            AI Brain
           </span>
         )}
-        <div className="mt-2">
-          <NavLink
-            to="/"
-            end
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-primary transition-all hover:bg-brain-soft brain-glow"
-            activeClassName="bg-primary/10 text-primary"
-          >
-            <Brain className="h-5 w-5 shrink-0" />
-            {!collapsed && <span>AI Brain</span>}
-          </NavLink>
-        </div>
+        <nav className="mt-2 flex flex-col gap-1">
+          {brainLinks.map((link) => (
+            <NavLink
+              key={link.url}
+              to={link.url}
+              end={link.url === "/"}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              activeClassName="bg-primary/10 text-primary"
+            >
+              <link.icon className="h-4 w-4 shrink-0" />
+              {!collapsed && <span>{link.title}</span>}
+            </NavLink>
+          ))}
+        </nav>
       </div>
 
       {/* Installed Apps */}
-      <div className="px-3 pt-3 pb-2 flex-1">
+      <div className="px-3 pt-3 pb-2 flex-1 overflow-auto">
         {!collapsed && (
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground px-2">
             Apps
           </span>
         )}
         <nav className="mt-2 flex flex-col gap-1">
-          {apps.filter(a => !a.isBrain).map((app) => (
-            <NavLink
-              key={app.title}
-              to={app.active ? app.url : "#"}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
-                app.active
-                  ? "text-secondary-foreground hover:bg-secondary"
-                  : "text-muted-foreground/50 cursor-not-allowed"
-              }`}
-              activeClassName={app.active ? "bg-secondary text-foreground" : ""}
-            >
-              <app.icon className="h-4 w-4 shrink-0" />
-              {!collapsed && (
-                <>
-                  <span>{app.title}</span>
-                  {!app.active && (
-                    <span className="ml-auto text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                      off
-                    </span>
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
+          {apps.map((app) => {
+            const Icon = iconMap[app.icon] || LayoutGrid;
+            const active = isAppActive(app.id);
+            const available = app.status === 'available' || app.status === 'active';
+
+            return (
+              <NavLink
+                key={app.id}
+                to={active ? `/apps/${app.id}` : "/marketplace"}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
+                  active
+                    ? "text-secondary-foreground hover:bg-secondary"
+                    : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/50"
+                }`}
+                activeClassName={active ? "bg-secondary text-foreground" : ""}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {!collapsed && (
+                  <>
+                    <span>{app.name}</span>
+                    {!active && available && (
+                      <span className="ml-auto text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                        off
+                      </span>
+                    )}
+                    {app.status === 'coming_soon' && (
+                      <span className="ml-auto text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
+                        soon
+                      </span>
+                    )}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 

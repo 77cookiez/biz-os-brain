@@ -1,76 +1,132 @@
-import {
-  FileText, Users, BarChart3, Package, ShoppingCart, Mail,
-  Palette, Calendar, MessageSquare, Truck, CreditCard, Shield
-} from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Search, Package, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-interface MarketplaceApp {
+interface AppItem {
+  id: string;
   name: string;
   description: string;
-  icon: React.ElementType;
-  status: "active" | "available" | "coming_soon";
-  category: string;
+  icon: string;
+  pricing: 'free' | 'paid' | 'subscription';
+  status: 'active' | 'available' | 'coming_soon';
+  capabilities: string[];
 }
 
-const marketplaceApps: MarketplaceApp[] = [
-  { name: "Docs", description: "Invoices, quotations, and business documents", icon: FileText, status: "active", category: "Operations" },
-  { name: "CRM", description: "Customer relationship management", icon: Users, status: "available", category: "Sales" },
-  { name: "Accounting", description: "Financial management and reporting", icon: BarChart3, status: "available", category: "Finance" },
-  { name: "Inventory", description: "Stock and warehouse management", icon: Package, status: "available", category: "Operations" },
-  { name: "E-commerce", description: "Online store and order management", icon: ShoppingCart, status: "available", category: "Sales" },
-  { name: "Marketing", description: "Campaigns, emails, and automation", icon: Mail, status: "available", category: "Marketing" },
-  { name: "Design Studio", description: "Brand assets and templates", icon: Palette, status: "coming_soon", category: "Creative" },
-  { name: "Scheduling", description: "Appointments and calendar management", icon: Calendar, status: "coming_soon", category: "Operations" },
-  { name: "Support", description: "Help desk and ticketing system", icon: MessageSquare, status: "coming_soon", category: "Service" },
-  { name: "Logistics", description: "Shipping and delivery tracking", icon: Truck, status: "coming_soon", category: "Operations" },
-  { name: "Payments", description: "Payment processing and billing", icon: CreditCard, status: "coming_soon", category: "Finance" },
-  { name: "Security", description: "Advanced security and compliance", icon: Shield, status: "coming_soon", category: "Admin" },
-];
-
-const statusStyles = {
-  active: { label: "Active", bg: "bg-primary/10 text-primary" },
-  available: { label: "Activate", bg: "bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground cursor-pointer" },
-  coming_soon: { label: "Coming Soon", bg: "bg-muted text-muted-foreground" },
+const pricingLabels: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
+  free: { label: 'Free', variant: 'secondary' },
+  paid: { label: 'Paid', variant: 'default' },
+  subscription: { label: 'Subscription', variant: 'outline' },
 };
 
 export default function Marketplace() {
+  const [apps, setApps] = useState<AppItem[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedApp, setSelectedApp] = useState<AppItem | null>(null);
+  const [activating, setActivating] = useState(false);
+  const { installedApps, activateApp, deactivateApp } = useWorkspace();
+
+  useEffect(() => {
+    fetchApps();
+  }, []);
+
+  const fetchApps = async () => {
+    const { data } = await supabase
+      .from('app_registry')
+      .select('*')
+      .neq('id', 'brain')
+      .order('name');
+    setApps((data as AppItem[]) || []);
+  };
+
+  const isAppInstalled = (appId: string) => installedApps.some(a => a.app_id === appId && a.is_active);
+
+  const handleActivate = async (app: AppItem) => {
+    setActivating(true);
+    try {
+      await activateApp(app.id);
+      toast.success(`${app.name} activated!`);
+      setSelectedApp(null);
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const filteredApps = apps.filter(app => 
+    app.name.toLowerCase().includes(search.toLowerCase()) ||
+    app.description?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">App Marketplace</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Extend your AI Brain's capabilities by activating business apps
-        </p>
+        <p className="text-muted-foreground">Extend AI Brain with specialized business apps</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {marketplaceApps.map((app) => {
-          const status = statusStyles[app.status];
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search apps..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 bg-input border-border" />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {filteredApps.map(app => {
+          const installed = isAppInstalled(app.id);
           return (
-            <div
-              key={app.name}
-              className={`rounded-xl border border-border bg-card p-5 space-y-4 transition-all hover:border-primary/20 ${
-                app.status === "coming_soon" ? "opacity-60" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <app.icon className="h-5 w-5 text-primary" />
+            <Card key={app.id} className={`border-border bg-card cursor-pointer hover:border-primary/50 ${app.status === 'coming_soon' ? 'opacity-50' : ''}`} onClick={() => setSelectedApp(app)}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Package className="h-5 w-5 text-primary" />
+                  </div>
+                  <Badge variant={pricingLabels[app.pricing].variant}>{pricingLabels[app.pricing].label}</Badge>
                 </div>
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                  {app.category}
-                </span>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-foreground">{app.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{app.description}</p>
-              </div>
-              <button className={`w-full rounded-lg px-3 py-2 text-xs font-medium transition-colors ${status.bg}`}>
-                {status.label}
-              </button>
-            </div>
+                <CardTitle className="text-foreground mt-3">{app.name}</CardTitle>
+                <CardDescription className="line-clamp-2">{app.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                {installed ? (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30"><Check className="h-3 w-3 mr-1" />Installed</Badge>
+                ) : app.status === 'coming_soon' ? (
+                  <Badge variant="secondary">Coming Soon</Badge>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Click to install</span>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
       </div>
+
+      <Dialog open={!!selectedApp} onOpenChange={() => setSelectedApp(null)}>
+        <DialogContent className="bg-card border-border">
+          {selectedApp && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedApp.name}</DialogTitle>
+                <DialogDescription>{selectedApp.description}</DialogDescription>
+              </DialogHeader>
+              <div className="pt-4">
+                {selectedApp.status === 'coming_soon' ? (
+                  <Button disabled className="w-full">Coming Soon</Button>
+                ) : isAppInstalled(selectedApp.id) ? (
+                  <Button variant="secondary" className="w-full" onClick={() => { deactivateApp(selectedApp.id); setSelectedApp(null); toast.success('Deactivated'); }}>Deactivate</Button>
+                ) : (
+                  <Button className="w-full" onClick={() => handleActivate(selectedApp)} disabled={activating}>
+                    {activating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Activate<ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
