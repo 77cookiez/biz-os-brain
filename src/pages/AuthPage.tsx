@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import logoIcon from '@/assets/logo-icon.png';
+
 import { lovable } from '@/integrations/lovable';
 
 export default function AuthPage() {
@@ -70,7 +70,6 @@ export default function AuthPage() {
       <Card className="w-full max-w-md border-border bg-card">
         <CardHeader className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3">
-            <img src={logoIcon} alt="AiBizos" className="h-10 w-10 rounded-lg" />
             <span className="text-xl font-bold text-foreground">
               Ai<span className="text-primary">Bizos</span>
             </span>
