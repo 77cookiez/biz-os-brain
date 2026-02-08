@@ -164,61 +164,36 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (!user) return null;
 
     try {
-      // Create company
-      const { data: company, error: companyError } = await supabase
-        .from('companies')
-        .insert({ name: companyName, created_by: user.id })
-        .select()
-        .single();
-      
-      if (companyError) throw companyError;
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
 
-      // Add user role as owner
-      await supabase.from('user_roles').insert({
-        user_id: user.id,
-        company_id: company.id,
-        role: 'owner'
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('onboarding-create', {
+        body: {
+          companyName,
+          workspaceName,
+        },
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       });
 
-      // Create workspace
-      const { data: workspace, error: workspaceError } = await supabase
-        .from('workspaces')
-        .insert({ 
-          company_id: company.id, 
-          name: workspaceName,
-          default_locale: 'en'
-        })
-        .select()
-        .single();
-      
-      if (workspaceError) throw workspaceError;
+      if (error) throw error;
 
-      // Add user as workspace member
-      await supabase.from('workspace_members').insert({
-        workspace_id: workspace.id,
-        user_id: user.id,
-        team_role: 'owner',
-        invite_status: 'accepted',
-        joined_at: new Date().toISOString()
-      });
+      const company = (data as any)?.company as Company | undefined;
+      const workspace = (data as any)?.workspace as Workspace | undefined;
 
-      // Create empty business context
-      await supabase.from('business_contexts').insert({
-        workspace_id: workspace.id,
-        setup_completed: false
-      });
-
-      // Install Brain app by default
-      await supabase.from('workspace_apps').insert({
-        workspace_id: workspace.id,
-        app_id: 'brain',
-        is_active: true,
-        installed_by: user.id
-      });
+      if (!company || !workspace) {
+        throw new Error('Invalid onboarding response');
+      }
 
       // Update state
-      setCompanies(prev => [...prev, company]);
-      setWorkspaces(prev => [...prev, workspace]);
+      setCompanies((prev) => [...prev, company]);
+      setWorkspaces((prev) => [...prev, workspace]);
       setCurrentCompany(company);
       setCurrentWorkspace(workspace);
 
