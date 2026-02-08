@@ -85,15 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) return { error };
 
-    // Create profile
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        user_id: data.user.id,
-        full_name: fullName,
-        preferred_locale: 'en'
-      });
-    }
-
+    // Profile is now created automatically by database trigger
     return { error: null };
   };
 
