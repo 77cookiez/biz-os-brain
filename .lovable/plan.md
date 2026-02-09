@@ -24,6 +24,6 @@
 
 ## ⬜ Phase 2 — Full Projection (NEXT)
 - All UI reads via meaningId (remove legacy table/id/field paths)
-- Plans module meaning-first
+- ✅ Plans module meaning-first
 - ✅ Brain messages stored with meaning_object_id
 - Background lazy migration for old records
