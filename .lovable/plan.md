@@ -1,82 +1,59 @@
 
 
-# Fix: Draft Response Panel - Full Scrollable Side Sheet
+# خطة التنفيذ: إدارة التطبيقات في الإعدادات + نقل الشاشات إلى Workboard
 
-## The Problem
+## ملخص التغييرات
 
-When the AI responds in the TopBar command bar, the response appears in a small dropdown panel (max 300px height). Long responses get cut off with no visible scrollbar.
+تغييران رئيسيان:
+1. إضافة صفحة "Apps" ضمن الإعدادات لإدارة التطبيقات المثبتة (تفعيل/إلغاء تفعيل)
+2. نقل Goals & Plans و Team Tasks و Weekly Check-in من Business Brain إلى Workboard بالكامل
 
-## Best Practice Decision
+---
 
-After analyzing how top platforms handle this:
+## 1. صفحة إدارة التطبيقات (Settings > Apps)
 
-| Platform | Pattern |
-|----------|---------|
-| ChatGPT | Full-page chat view |
-| Notion AI | Inline expanding panel |
-| Linear | Side sheet / drawer |
-| Slack | Thread panel on the right |
-| Spotlight (macOS) | Expanding dropdown |
+- إنشاء صفحة جديدة `src/pages/settings/AppsSettingsPage.tsx`
+- تعرض جميع التطبيقات المثبتة في الـ workspace الحالي
+- لكل تطبيق: اسمه، حالته (مفعل/معطل)، وزر Activate/Deactivate
+- رابط سريع للذهاب إلى Marketplace لاكتشاف تطبيقات جديدة
+- إضافة الصفحة إلى قائمة Settings وإلى الـ Router
 
-**Recommended approach: Side Sheet (Drawer)**
+## 2. نقل الشاشات من Brain إلى Workboard
 
-A slide-in panel from the right side that:
-- Shows the full AI response with proper scrolling
-- Stays open while the user reads and interacts
-- Has Confirm / Edit buttons at the bottom (sticky)
-- Can be dismissed with Escape or X button
-- Does NOT navigate away from the current page
-- Feels like a conversation, not a page transition
+### ما سيتغير في Business Brain (Sidebar):
+- إزالة "Goals & Plans" و "Team Tasks" و "Weekly Check-in" من قائمة Brain
+- يبقى فقط: **Today** (الصفحة الرئيسية للتفكير والتخطيط)
 
-This is better than opening a new page because:
-- User keeps context of where they are (Today, Goals, etc.)
-- Quick dismiss -- no navigation needed
-- Feels lightweight and fast
-- Matches the "one brain, one input" philosophy
+### ما سيتغير في Workboard:
+- إضافة تبويبين جديدين في Workboard Layout:
+  - **Team Tasks** - نفس الصفحة الحالية مع نقلها
+  - **Check-in** - Weekly Check-in
+- الترتيب النهائي للتبويبات: Today, This Week, Backlog, Goals, Team Tasks, Calendar, Check-in, Brainstorm
 
-## Implementation
+### تحديث الـ Routing:
+- إزالة routes: `/brain/goals`, `/brain/tasks`, `/brain/checkin`
+- إضافة routes جديدة تحت Workboard:
+  - `/apps/workboard/tasks` (Team Tasks)
+  - `/apps/workboard/checkin` (Weekly Check-in)
+- Goals موجودة بالفعل في `/apps/workboard/goals`
 
-### Changes to `src/components/brain/BrainCommandBar.tsx`
+---
 
-Replace the `absolute` dropdown panel with a `Sheet` component (from Radix/shadcn) that slides from the right:
+## التفاصيل التقنية
 
-1. Remove the absolute positioned dropdown div (lines 96-141)
-2. Use the existing `Sheet` component from `src/components/ui/sheet.tsx`
-3. Sheet opens when `showDraft` is true
-4. Content inside the sheet:
-   - Header: "Draft Preview" with close button
-   - Body: Full `ScrollArea` taking available height with the AI response rendered via ReactMarkdown
-   - Footer (sticky): Confirm and Edit buttons
-5. Increase content area to use `h-full` instead of `max-h-[300px]`
+### الملفات الجديدة:
+- `src/pages/settings/AppsSettingsPage.tsx` - صفحة إدارة التطبيقات
 
-### Sheet Configuration
-- Side: `right`
-- Width: `w-[480px]` on desktop, full width on mobile
-- The AI response will have unlimited scroll within the sheet body
-- Sticky footer with action buttons always visible
+### الملفات المعدلة:
+- `src/pages/SettingsPage.tsx` - إضافة رابط "Apps" في قائمة الإعدادات
+- `src/App.tsx` - تحديث Routes (إزالة brain routes القديمة، إضافة workboard routes جديدة، إضافة settings/apps route)
+- `src/components/AppSidebar.tsx` - إزالة روابط Goals/Tasks/Check-in من قسم Brain
+- `src/pages/workboard/WorkboardLayout.tsx` - إضافة تبويبات Team Tasks و Check-in
+- `src/pages/brain/TeamTasksPage.tsx` - تعديل بسيط ليعمل ضمن Workboard
+- `src/pages/brain/WeeklyCheckinPage.tsx` - تعديل بسيط ليعمل ضمن Workboard
 
-### Files Modified
-- `src/components/brain/BrainCommandBar.tsx` -- replace dropdown with Sheet
+### ملاحظات:
+- صفحة GoalsPage الموجودة في Brain ستُزال من الـ routing لأن Workboard لديه بالفعل صفحة Goals خاصة به
+- البيانات في قاعدة البيانات (tasks, goals, weekly_checkins) لن تتأثر - فقط الواجهة تتغير
+- لا حاجة لتغييرات في قاعدة البيانات
 
-### No Other Files Needed
-The `Sheet` component already exists in the project at `src/components/ui/sheet.tsx`. No new dependencies required.
-
-## Technical Details
-
-```text
-┌──────────────────────────────────┬────────────────────┐
-│                                  │  DRAFT PREVIEW   X │
-│     Current Page                 │                    │
-│     (Today / Goals / etc.)       │  AI Response here  │
-│                                  │  with full scroll  │
-│                                  │  ...               │
-│                                  │  ...               │
-│                                  │  ...               │
-│                                  ├────────────────────┤
-│                                  │ [Confirm]  [Edit]  │
-└──────────────────────────────────┴────────────────────┘
-```
-
-- The Sheet is controlled by `showDraft` state (already exists in BrainCommandContext)
-- Escape key already handled -- Sheet component handles it natively
-- The input bar stays in the TopBar -- only the response moves to the Sheet
