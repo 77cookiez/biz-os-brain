@@ -14,6 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 
 interface Goal {
   id: string;
@@ -92,7 +93,7 @@ export default function GoalsPage() {
       }),
     });
     
-    const { error } = await supabase.from('goals').insert({
+    const goalPayload = {
       workspace_id: currentWorkspace.id,
       title: newGoal.title,
       description: newGoal.description || null,
@@ -102,7 +103,9 @@ export default function GoalsPage() {
       created_by: user.id,
       source_lang: currentLanguage.code,
       meaning_object_id: meaningId,
-    } as any);
+    };
+    guardMeaningInsert('goals', goalPayload);
+    const { error } = await supabase.from('goals').insert(goalPayload as any);
 
     if (error) {
       toast.error('Failed to create goal');
@@ -129,7 +132,7 @@ export default function GoalsPage() {
       }),
     });
     
-    const { error } = await supabase.from('plans').insert({
+    const planPayload = {
       workspace_id: currentWorkspace.id,
       goal_id: newPlan.goalId || null,
       title: newPlan.title,
@@ -138,7 +141,9 @@ export default function GoalsPage() {
       created_by: user.id,
       source_lang: currentLanguage.code,
       meaning_object_id: meaningId,
-    } as any);
+    };
+    guardMeaningInsert('plans', planPayload);
+    const { error } = await supabase.from('plans').insert(planPayload as any);
 
     if (error) {
       toast.error('Failed to create plan');

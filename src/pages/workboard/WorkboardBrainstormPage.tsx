@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 
 interface Idea {
   id: string;
@@ -65,7 +66,7 @@ export default function WorkboardBrainstormPage() {
       }),
     });
 
-    const { error } = await supabase.from('ideas').insert({
+    const insertPayload = {
       workspace_id: currentWorkspace.id,
       created_by: user.id,
       title,
@@ -73,7 +74,9 @@ export default function WorkboardBrainstormPage() {
       source: 'manual',
       source_lang: currentLanguage.code,
       meaning_object_id: meaningId,
-    } as any);
+    };
+    guardMeaningInsert('ideas', insertPayload);
+    const { error } = await supabase.from('ideas').insert(insertPayload as any);
     if (error) { toast.error('Failed to save idea'); return; }
     toast.success('Idea saved');
     setTitle('');
@@ -124,7 +127,7 @@ export default function WorkboardBrainstormPage() {
               createdFrom: 'brain',
             }),
           });
-          await supabase.from('ideas').insert({
+          const aiPayload = {
             workspace_id: currentWorkspace.id,
             created_by: user.id,
             title: item.title,
@@ -132,7 +135,9 @@ export default function WorkboardBrainstormPage() {
             source: 'brainstorm',
             source_lang: currentLanguage.code,
             meaning_object_id: mId,
-          } as any);
+          };
+          guardMeaningInsert('ideas', aiPayload);
+          await supabase.from('ideas').insert(aiPayload as any);
         }
         toast.success(`${items.length} items captured from brainstorm`);
         fetchIdeas();
@@ -150,7 +155,7 @@ export default function WorkboardBrainstormPage() {
             createdFrom: 'brain',
           }),
         });
-        await supabase.from('ideas').insert({
+        const fallbackPayload = {
           workspace_id: currentWorkspace.id,
           created_by: user.id,
           title: aiInput.slice(0, 100),
@@ -158,7 +163,9 @@ export default function WorkboardBrainstormPage() {
           source: 'brainstorm',
           source_lang: currentLanguage.code,
           meaning_object_id: fallbackMId,
-        } as any);
+        };
+        guardMeaningInsert('ideas', fallbackPayload);
+        await supabase.from('ideas').insert(fallbackPayload as any);
         toast.success('Brainstorm captured');
         fetchIdeas();
       }

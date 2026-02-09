@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 
 interface Goal {
   id: string;
@@ -60,7 +61,7 @@ export default function WorkboardGoalsPage() {
       }),
     });
 
-    const { error } = await supabase.from('goals').insert({
+    const insertPayload = {
       workspace_id: currentWorkspace.id,
       created_by: user.id,
       title: form.title,
@@ -70,7 +71,9 @@ export default function WorkboardGoalsPage() {
       due_date: form.dueDate || null,
       source_lang: currentLanguage.code,
       meaning_object_id: meaningId,
-    } as any);
+    };
+    guardMeaningInsert('goals', insertPayload);
+    const { error } = await supabase.from('goals').insert(insertPayload as any);
     if (error) { toast.error('Failed to create goal'); return; }
     toast.success('Goal created');
     setShowDialog(false);

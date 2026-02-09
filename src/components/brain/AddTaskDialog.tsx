@@ -11,6 +11,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -45,7 +46,7 @@ export function AddTaskDialog({ open, onOpenChange, onTaskCreated }: AddTaskDial
       }),
     });
 
-    const { error } = await supabase.from('tasks').insert({
+    const insertPayload = {
       title: title.trim(),
       description: description.trim() || null,
       due_date: dueDate || null,
@@ -55,7 +56,9 @@ export function AddTaskDialog({ open, onOpenChange, onTaskCreated }: AddTaskDial
       is_priority: false,
       source_lang: currentLanguage.code,
       meaning_object_id: meaningId,
-    } as any);
+    };
+    guardMeaningInsert('tasks', insertPayload);
+    const { error } = await supabase.from('tasks').insert(insertPayload as any);
     setSaving(false);
     if (error) {
       toast.error(t('common.error'));
