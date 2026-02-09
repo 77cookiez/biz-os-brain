@@ -20,7 +20,8 @@
     "evening": "مساء الخير"
   },
   "navigation": {
-    "aiBrain": "الذكاء الاصطناعي",
+    "businessBrain": "عقل الأعمال",
+    "aiBrain": "عقل الأعمال",
     "today": "اليوم",
     "goalsPlans": "الأهداف والخطط",
     "teamTasks": "مهام الفريق",
@@ -30,12 +31,19 @@
     "settings": "الإعدادات"
   },
   "topbar": {
-    "askAi": "اسأل الذكاء الاصطناعي أي شيء...",
+    "askBrain": "اسأل عقل الأعمال أي شيء...",
+    "askAi": "اسأل عقل الأعمال أي شيء...",
     "companies": "الشركات",
     "workspaces": "مساحات العمل",
     "newWorkspace": "مساحة عمل جديدة",
     "signOut": "تسجيل الخروج",
-    "businessSetup": "إعداد العمل"
+    "businessSetup": "إعداد العمل",
+    "teamRoles": "الفريق والأدوار"
+  },
+  "brain": {
+    "confirm": "تأكيد",
+    "editDraft": "تعديل",
+    "draftTitle": "معاينة المسودة"
   },
   "account": {
     "title": "الحساب",
@@ -163,8 +171,18 @@
     "reviewPerformance": "مراجعة أداء الأسبوع الماضي",
     "marketingPlan": "ساعدني في إنشاء خطة تسويقية",
     "activateApps": "أي التطبيقات يجب أن أفعّلها؟",
-    "noTasks": "لا توجد مهام بعد. اطلب من الذكاء الاصطناعي المساعدة!",
-    "priorityTasks": "المهام ذات الأولوية"
+    "noTasks": "لا توجد مهام بعد. اطلب من عقل الأعمال المساعدة!",
+    "priorityTasks": "أهم 3 أولويات",
+    "overdue": "متأخرة",
+    "thisWeek": "هذا الأسبوع",
+    "quickActions": "إجراءات سريعة",
+    "addTask": "إضافة مهمة",
+    "askBrainToPlan": "اطلب من العقل التخطيط",
+    "taskTitle": "عنوان المهمة",
+    "taskTitlePlaceholder": "ما الذي يجب إنجازه؟",
+    "taskDescription": "الوصف",
+    "taskDescriptionPlaceholder": "تفاصيل اختيارية...",
+    "dueDate": "تاريخ الاستحقاق"
   },
   "auth": {
     "signIn": "تسجيل الدخول",

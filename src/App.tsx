@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider, useWorkspace } from "@/contexts/WorkspaceContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { BrainCommandProvider } from "@/contexts/BrainCommandContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import "@/i18n";
 import { OSLayout } from "@/components/OSLayout";
@@ -153,7 +154,9 @@ const App = () => (
           <AuthProvider>
             <WorkspaceProvider>
               <LanguageProvider>
-                <AppRoutes />
+                <BrainCommandProvider>
+                  <AppRoutes />
+                </BrainCommandProvider>
               </LanguageProvider>
             </WorkspaceProvider>
           </AuthProvider>

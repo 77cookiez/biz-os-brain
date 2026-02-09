@@ -20,7 +20,8 @@
     "evening": "Bonsoir"
   },
   "navigation": {
-    "aiBrain": "IA CERVEAU",
+    "businessBrain": "CERVEAU D'AFFAIRES",
+    "aiBrain": "CERVEAU D'AFFAIRES",
     "today": "Aujourd'hui",
     "goalsPlans": "Objectifs & Plans",
     "teamTasks": "Tâches d'équipe",
@@ -30,12 +31,19 @@
     "settings": "Paramètres"
   },
   "topbar": {
-    "askAi": "Demandez n'importe quoi à l'IA...",
+    "askBrain": "Demandez au Cerveau d'Affaires...",
+    "askAi": "Demandez au Cerveau d'Affaires...",
     "companies": "Entreprises",
     "workspaces": "Espaces de travail",
     "newWorkspace": "Nouvel espace de travail",
     "signOut": "Déconnexion",
-    "businessSetup": "Configuration entreprise"
+    "businessSetup": "Configuration entreprise",
+    "teamRoles": "Équipe & Rôles"
+  },
+  "brain": {
+    "confirm": "Confirmer",
+    "editDraft": "Modifier",
+    "draftTitle": "Aperçu du brouillon"
   },
   "account": {
     "title": "Compte",
@@ -163,8 +171,18 @@
     "reviewPerformance": "Examiner les performances de la semaine dernière",
     "marketingPlan": "Aidez-moi à créer un plan marketing",
     "activateApps": "Quelles applications dois-je activer?",
-    "noTasks": "Pas encore de tâches. Demandez à l'IA de vous aider!",
-    "priorityTasks": "Tâches prioritaires"
+    "noTasks": "Pas encore de tâches. Demandez au Cerveau d'Affaires!",
+    "priorityTasks": "Top 3 Priorités",
+    "overdue": "En retard",
+    "thisWeek": "Cette semaine",
+    "quickActions": "Actions rapides",
+    "addTask": "Ajouter une tâche",
+    "askBrainToPlan": "Demander au Cerveau",
+    "taskTitle": "Titre de la tâche",
+    "taskTitlePlaceholder": "Que faut-il faire?",
+    "taskDescription": "Description",
+    "taskDescriptionPlaceholder": "Détails optionnels...",
+    "dueDate": "Date d'échéance"
   },
   "auth": {
     "signIn": "Connexion",
