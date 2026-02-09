@@ -9,8 +9,12 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { lovable } from '@/integrations/lovable';
 import { supabase } from '@/integrations/supabase/client';
+import { useTheme } from '@/contexts/ThemeContext';
+import logoPrimary from '@/assets/logo-primary.png';
+import logoLight from '@/assets/logo-light.png';
 
 export default function AuthPage() {
+  const { resolvedTheme } = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -95,10 +99,12 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md border-border bg-card">
         <CardHeader className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <span className="text-xl font-bold text-foreground">
-              Ai<span className="text-primary">Bizos</span>
-            </span>
+          <div className="flex items-center justify-center">
+            <img 
+              src={resolvedTheme === 'dark' ? logoLight : logoPrimary} 
+              alt="AiBizos" 
+              className="h-10 w-auto object-contain" 
+            />
           </div>
           <CardTitle className="text-2xl text-foreground">
             {isLogin ? 'Welcome back' : 'Create your account'}
