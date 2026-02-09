@@ -2,6 +2,7 @@ import { LayoutGrid, Settings, Store, ChevronLeft, ChevronRight, Target, CheckSq
 import { NavLink } from "@/components/NavLink";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useTranslation } from "react-i18next";
+import logoPrimary from "@/assets/logo-primary.png";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,9 +51,7 @@ export function AppSidebar() {
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 px-4 border-b border-border">
         {!collapsed && (
-          <span className="text-sm font-bold text-foreground tracking-tight">
-            Ai<span className="text-primary">Bizos</span>
-          </span>
+          <img src={logoPrimary} alt="AiBizos" className="h-6 object-contain" />
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
