@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { CalendarDays, CheckSquare, Inbox, Target, Calendar, Lightbulb } from 'lucide-react';
+import { CalendarDays, CheckSquare, Inbox, Target, Calendar, Lightbulb, Users, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
@@ -7,7 +7,9 @@ const tabs = [
   { label: 'This Week', icon: CalendarDays, path: '/apps/workboard/week' },
   { label: 'Backlog', icon: Inbox, path: '/apps/workboard/backlog' },
   { label: 'Goals', icon: Target, path: '/apps/workboard/goals' },
+  { label: 'Team Tasks', icon: Users, path: '/apps/workboard/tasks' },
   { label: 'Calendar', icon: Calendar, path: '/apps/workboard/calendar' },
+  { label: 'Check-in', icon: ClipboardCheck, path: '/apps/workboard/checkin' },
   { label: 'Brainstorm', icon: Lightbulb, path: '/apps/workboard/brainstorm' },
 ];
 
