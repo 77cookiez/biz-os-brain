@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 export type TaskStatus = 'backlog' | 'planned' | 'in_progress' | 'blocked' | 'done';
@@ -26,6 +27,7 @@ export function useWorkboardTasks() {
   const [loading, setLoading] = useState(true);
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
 
   const fetchTasks = useCallback(async () => {
     if (!currentWorkspace) return;
@@ -62,7 +64,8 @@ export function useWorkboardTasks() {
       due_date: task.due_date || null,
       is_priority: task.is_priority || false,
       goal_id: task.goal_id || null,
-    });
+      source_lang: currentLanguage.code,
+    } as any);
     if (error) {
       toast.error('Failed to create task');
     } else {

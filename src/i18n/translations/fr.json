@@ -209,5 +209,20 @@
     "themeChanged": "Thème changé en {{theme}}",
     "notificationUpdated": "Paramètres de notification mis à jour",
     "signedOut": "Déconnexion réussie"
+  },
+  "workboard": {
+    "status": {
+      "backlog": "En attente",
+      "planned": "Planifié",
+      "inProgress": "En cours",
+      "blocked": "Bloqué",
+      "done": "Terminé"
+    },
+    "priority": "Priorité",
+    "newTask": "Nouvelle tâche",
+    "taskTitle": "Titre de la tâche",
+    "description": "Description (optionnel)",
+    "markAsPriority": "Marquer comme prioritaire",
+    "createTask": "Créer la tâche"
   }
 }

@@ -209,5 +209,20 @@
     "themeChanged": "تم تغيير السمة إلى {{theme}}",
     "notificationUpdated": "تم تحديث إعدادات الإشعارات",
     "signedOut": "تم تسجيل الخروج بنجاح"
+  },
+  "workboard": {
+    "status": {
+      "backlog": "قائمة الانتظار",
+      "planned": "مخطط",
+      "inProgress": "قيد التنفيذ",
+      "blocked": "محظور",
+      "done": "مكتمل"
+    },
+    "priority": "أولوية",
+    "newTask": "مهمة جديدة",
+    "taskTitle": "عنوان المهمة",
+    "description": "الوصف (اختياري)",
+    "markAsPriority": "تحديد كأولوية",
+    "createTask": "إنشاء مهمة"
   }
 }

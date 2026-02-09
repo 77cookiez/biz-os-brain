@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 
 interface Message {
@@ -13,6 +14,7 @@ export function useBrainChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { businessContext, installedApps } = useWorkspace();
+  const { currentLanguage } = useLanguage();
 
   const sendMessage = useCallback(async (input: string, action?: string) => {
     const userMsg: Message = { role: 'user', content: input };
@@ -51,6 +53,7 @@ export function useBrainChat() {
           } : undefined,
           installedApps: installedApps.filter(a => a.is_active).map(a => a.app_id),
           action,
+          userLang: currentLanguage.code,
         }),
       });
 
@@ -127,7 +130,7 @@ export function useBrainChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, businessContext, installedApps]);
+  }, [messages, businessContext, installedApps, currentLanguage.code]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
