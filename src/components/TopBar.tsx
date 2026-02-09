@@ -1,4 +1,5 @@
 import { Search, Globe, ChevronDown, LogOut, Building2, Plus } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -138,8 +139,15 @@ export function TopBar() {
       {/* User */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center hover:bg-primary/30 transition-colors text-xs font-medium text-primary">
-            {initials}
+          <button className="focus:outline-none">
+            <Avatar className="h-8 w-8 hover:ring-2 hover:ring-primary/50 transition-all">
+              {profile?.avatar_url ? (
+                <AvatarImage src={profile.avatar_url} alt={displayName} />
+              ) : null}
+              <AvatarFallback className="bg-primary/20 text-primary text-xs font-medium">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
