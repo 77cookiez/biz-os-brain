@@ -102,8 +102,10 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          meaning_object_id: string | null
           metadata: Json | null
           role: string
+          source_lang: string | null
           user_id: string
           workspace_id: string
         }
@@ -111,8 +113,10 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          meaning_object_id?: string | null
           metadata?: Json | null
           role: string
+          source_lang?: string | null
           user_id: string
           workspace_id: string
         }
@@ -120,12 +124,21 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          meaning_object_id?: string | null
           metadata?: Json | null
           role?: string
+          source_lang?: string | null
           user_id?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "brain_messages_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "brain_messages_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -215,6 +228,41 @@ export type Database = {
         }
         Relationships: []
       }
+      content_translations: {
+        Row: {
+          created_at: string
+          field: string
+          id: string
+          meaning_object_id: string
+          target_lang: string
+          translated_text: string
+        }
+        Insert: {
+          created_at?: string
+          field?: string
+          id?: string
+          meaning_object_id: string
+          target_lang: string
+          translated_text: string
+        }
+        Update: {
+          created_at?: string
+          field?: string
+          id?: string
+          meaning_object_id?: string
+          target_lang?: string
+          translated_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_translations_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
@@ -225,6 +273,8 @@ export type Database = {
           kpi_current: number | null
           kpi_name: string | null
           kpi_target: number | null
+          meaning_object_id: string | null
+          source_lang: string | null
           status: string
           title: string
           updated_at: string
@@ -239,6 +289,8 @@ export type Database = {
           kpi_current?: number | null
           kpi_name?: string | null
           kpi_target?: number | null
+          meaning_object_id?: string | null
+          source_lang?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -253,12 +305,21 @@ export type Database = {
           kpi_current?: number | null
           kpi_name?: string | null
           kpi_target?: number | null
+          meaning_object_id?: string | null
+          source_lang?: string | null
           status?: string
           title?: string
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "goals_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goals_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -274,7 +335,9 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
+          meaning_object_id: string | null
           source: string
+          source_lang: string | null
           status: string
           title: string
           updated_at: string
@@ -285,7 +348,9 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
+          meaning_object_id?: string | null
           source?: string
+          source_lang?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -296,7 +361,9 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
+          meaning_object_id?: string | null
           source?: string
+          source_lang?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -304,7 +371,52 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "ideas_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ideas_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meaning_objects: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          meaning_json: Json
+          source_lang: string
+          type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          meaning_json?: Json
+          source_lang?: string
+          type?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          meaning_json?: Json
+          source_lang?: string
+          type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meaning_objects_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -320,7 +432,9 @@ export type Database = {
           description: string | null
           goal_id: string | null
           id: string
+          meaning_object_id: string | null
           plan_type: Database["public"]["Enums"]["plan_type"]
+          source_lang: string | null
           title: string
           updated_at: string
           weekly_breakdown: Json | null
@@ -333,7 +447,9 @@ export type Database = {
           description?: string | null
           goal_id?: string | null
           id?: string
+          meaning_object_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"]
+          source_lang?: string | null
           title: string
           updated_at?: string
           weekly_breakdown?: Json | null
@@ -346,7 +462,9 @@ export type Database = {
           description?: string | null
           goal_id?: string | null
           id?: string
+          meaning_object_id?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"]
+          source_lang?: string | null
           title?: string
           updated_at?: string
           weekly_breakdown?: Json | null
@@ -358,6 +476,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plans_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
             referencedColumns: ["id"]
           },
           {
@@ -412,8 +537,10 @@ export type Database = {
           goal_id: string | null
           id: string
           is_priority: boolean | null
+          meaning_object_id: string | null
           plan_id: string | null
           priority: number | null
+          source_lang: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
@@ -432,8 +559,10 @@ export type Database = {
           goal_id?: string | null
           id?: string
           is_priority?: boolean | null
+          meaning_object_id?: string | null
           plan_id?: string | null
           priority?: number | null
+          source_lang?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
@@ -452,8 +581,10 @@ export type Database = {
           goal_id?: string | null
           id?: string
           is_priority?: boolean | null
+          meaning_object_id?: string | null
           plan_id?: string | null
           priority?: number | null
+          source_lang?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
@@ -466,6 +597,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
             referencedColumns: ["id"]
           },
           {

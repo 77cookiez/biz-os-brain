@@ -2,3 +2,6 @@ project_id = "rsyzalwcrccuctnpwudi"
 
 [functions.brain-chat]
 verify_jwt = false
+
+[functions.ull-translate]
+verify_jwt = false

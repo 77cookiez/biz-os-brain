@@ -209,5 +209,20 @@
     "themeChanged": "Theme changed to {{theme}}",
     "notificationUpdated": "Notification settings updated",
     "signedOut": "Signed out successfully"
+  },
+  "workboard": {
+    "status": {
+      "backlog": "Backlog",
+      "planned": "Planned",
+      "inProgress": "In Progress",
+      "blocked": "Blocked",
+      "done": "Done"
+    },
+    "priority": "Priority",
+    "newTask": "New Task",
+    "taskTitle": "Task title",
+    "description": "Description (optional)",
+    "markAsPriority": "Mark as priority",
+    "createTask": "Create Task"
   }
 }

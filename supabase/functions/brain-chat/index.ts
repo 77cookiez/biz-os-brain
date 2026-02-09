@@ -22,6 +22,7 @@ interface ChatRequest {
   };
   installedApps?: string[];
   action?: string;
+  userLang?: string;
 }
 
 serve(async (req) => {
@@ -30,7 +31,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, businessContext, installedApps, action } = await req.json() as ChatRequest;
+    const { messages, businessContext, installedApps, action, userLang } = await req.json() as ChatRequest;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -49,7 +50,7 @@ CORE PRINCIPLES:
 5. Always reference the business context in your responses
 6. Keep responses concise, actionable, and business-focused
 
-LANGUAGE: Always respond in English. You can understand Arabic but respond in English unless the user explicitly requests Arabic.
+LANGUAGE: Always respond in ${userLang === 'ar' ? 'Arabic (العربية)' : userLang === 'fr' ? 'French (Français)' : userLang === 'es' ? 'Spanish (Español)' : userLang === 'de' ? 'German (Deutsch)' : 'English'}. Match the user's language naturally.
 
 YOUR CAPABILITIES (Advisory Only):
 - Strategic analysis and gap detection
