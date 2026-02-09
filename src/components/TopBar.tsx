@@ -1,8 +1,8 @@
-import { Search, Globe, ChevronDown, User, LogOut, Building2 } from "lucide-react";
-import { useState } from "react";
+import { Search, Globe, ChevronDown, LogOut, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -11,10 +11,12 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 export function TopBar() {
   const { user, profile, signOut } = useAuth();
   const { currentCompany, currentWorkspace, companies, workspaces, setCurrentCompany, setCurrentWorkspace } = useWorkspace();
+  const { currentLanguage, enabledLanguages, cycleLanguage, setCurrentLanguage } = useLanguage();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -83,10 +85,40 @@ export function TopBar() {
       </DropdownMenu>
 
       {/* Language */}
-      <button className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors">
-        <Globe className="h-4 w-4" />
-        <span className="hidden sm:inline text-xs">EN</span>
-      </button>
+      {enabledLanguages.length > 1 ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors">
+              <Globe className="h-4 w-4" />
+              <span className="hidden sm:inline text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40 bg-popover border-border">
+            {enabledLanguages.map((lang) => (
+              <DropdownMenuItem
+                key={lang.code}
+                onClick={() => setCurrentLanguage(lang)}
+                className={cn(
+                  "flex items-center justify-between",
+                  currentLanguage.code === lang.code && "bg-secondary"
+                )}
+              >
+                <span>{lang.nativeName}</span>
+                <span className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <button 
+          onClick={() => navigate('/settings/language')}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors"
+        >
+          <Globe className="h-4 w-4" />
+          <span className="hidden sm:inline text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
+        </button>
+      )}
 
       {/* User */}
       <DropdownMenu>

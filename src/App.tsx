@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { WorkspaceProvider, useWorkspace } from "@/contexts/WorkspaceContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { OSLayout } from "@/components/OSLayout";
 import AuthPage from "@/pages/AuthPage";
 import OnboardingPage from "@/pages/OnboardingPage";
@@ -15,6 +16,11 @@ import TeamTasksPage from "@/pages/brain/TeamTasksPage";
 import WeeklyCheckinPage from "@/pages/brain/WeeklyCheckinPage";
 import Marketplace from "@/pages/Marketplace";
 import SettingsPage from "@/pages/SettingsPage";
+import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
+import TeamRolesSettingsPage from "@/pages/settings/TeamRolesSettingsPage";
+import LanguageSettingsPage from "@/pages/settings/LanguageSettingsPage";
+import NotificationsSettingsPage from "@/pages/settings/NotificationsSettingsPage";
+import AppearanceSettingsPage from "@/pages/settings/AppearanceSettingsPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -121,6 +127,11 @@ const AppRoutes = () => (
       <Route path="/brain/checkin" element={<WeeklyCheckinPage />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/settings/company" element={<CompanySettingsPage />} />
+      <Route path="/settings/team" element={<TeamRolesSettingsPage />} />
+      <Route path="/settings/language" element={<LanguageSettingsPage />} />
+      <Route path="/settings/notifications" element={<NotificationsSettingsPage />} />
+      <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
@@ -134,7 +145,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <WorkspaceProvider>
-            <AppRoutes />
+            <LanguageProvider>
+              <AppRoutes />
+            </LanguageProvider>
           </WorkspaceProvider>
         </AuthProvider>
       </BrowserRouter>
