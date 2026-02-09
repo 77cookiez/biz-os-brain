@@ -123,10 +123,10 @@ export default function GoalsPage() {
     const meaningId = await createMeaningObject({
       workspaceId: currentWorkspace.id,
       createdBy: user.id,
-      type: 'GOAL',
+      type: 'PLAN',
       sourceLang: currentLanguage.code,
       meaningJson: buildMeaningFromText({
-        type: 'GOAL',
+        type: 'PLAN',
         title: newPlan.title,
         description: newPlan.description || undefined,
       }),

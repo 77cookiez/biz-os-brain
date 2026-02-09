@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const MeaningJsonV1Schema = z.object({
   version: z.literal('v1'),
-  type: z.enum(['TASK', 'GOAL', 'IDEA', 'BRAIN_MESSAGE']),
+  type: z.enum(['TASK', 'GOAL', 'IDEA', 'BRAIN_MESSAGE', 'PLAN']),
   intent: z.string().min(1),
   subject: z.string().min(1),
   description: z.string().optional(),
@@ -32,6 +32,7 @@ export function buildMeaningFromText(params: {
     type: params.type,
     intent: params.type === 'TASK' ? 'create' :
             params.type === 'GOAL' ? 'plan' :
+            params.type === 'PLAN' ? 'plan' :
             params.type === 'IDEA' ? 'discuss' : 'discuss',
     subject: params.title,
     description: params.description,
