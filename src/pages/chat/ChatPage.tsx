@@ -4,10 +4,12 @@ import { ThreadList } from '@/components/chat/ThreadList';
 import { MessageView } from '@/components/chat/MessageView';
 import { MessageComposer } from '@/components/chat/MessageComposer';
 import { NewThreadDialog } from '@/components/chat/NewThreadDialog';
+import { ChatThreadHeader } from '@/components/chat/ChatThreadHeader';
 import { useChatThreads } from '@/hooks/useChatThreads';
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts, useChatAudit } from '@/hooks/useChatUtils';
+import { useChatToWork } from '@/hooks/useChatToWork';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
@@ -39,7 +41,9 @@ export default function ChatPage() {
   const { typingUsers, broadcastTyping } = useTypingIndicator(selectedThreadId);
   const { markAsRead } = useReadReceipts(selectedThreadId);
   const { logAction } = useChatAudit();
+  const { createTaskFromMessage, createGoalFromThread } = useChatToWork();
   const [showWelcome, setShowWelcome] = useState(false);
+  const [creatingGoal, setCreatingGoal] = useState(false);
 
   // Determine if welcome should show
   useEffect(() => {
@@ -52,7 +56,6 @@ export default function ChatPage() {
   useEffect(() => {
     if (showWelcome && currentWorkspace && threads.length > 0) {
       markWelcomeSeen(currentWorkspace.id);
-      // Keep showing until they navigate to a thread
     }
   }, [threads.length, showWelcome, currentWorkspace?.id]);
 
@@ -63,8 +66,10 @@ export default function ChatPage() {
     }
   }, [selectedThreadId, messages.length, markAsRead]);
 
-  // Workspace admin check (owner or admin role)
-  const isAdmin = true; // For now, allow message/thread owners + workspace owners. RLS enforces actual permission.
+  const isAdmin = true;
+
+  const selectedThread = threads.find(t => t.id === selectedThreadId);
+  const threadTitle = selectedThread?.title || (selectedThread?.type === 'direct' ? 'Direct Message' : 'Group Chat');
 
   const handleDeleteThread = useCallback(async (threadId: string) => {
     const ok = await deleteThread(threadId);
@@ -93,11 +98,17 @@ export default function ChatPage() {
         markWelcomeSeen(currentWorkspace.id);
         setShowWelcome(false);
       }
-      // Refresh thread list to update last message preview
       refreshThreads();
     }
     return ok;
   }, [sendMessage, showWelcome, currentWorkspace?.id, refreshThreads]);
+
+  const handleCreateGoal = useCallback(async () => {
+    if (!selectedThreadId) return;
+    setCreatingGoal(true);
+    await createGoalFromThread(selectedThreadId);
+    setCreatingGoal(false);
+  }, [selectedThreadId, createGoalFromThread]);
 
   return (
     <div className="flex h-full bg-background rounded-lg border border-border overflow-hidden">
@@ -124,11 +135,17 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col min-w-0 bg-background">
         {selectedThreadId ? (
           <>
+            <ChatThreadHeader
+              threadTitle={threadTitle}
+              onCreateGoal={handleCreateGoal}
+              creatingGoal={creatingGoal}
+            />
             <MessageView
               messages={messages}
               loading={messagesLoading}
               typingUsers={typingUsers}
               onDeleteMessage={handleDeleteMessage}
+              onCreateTaskFromMessage={createTaskFromMessage}
               isAdmin={isAdmin}
               showWelcome={showWelcome}
             />
