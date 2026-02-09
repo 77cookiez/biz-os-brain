@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 
 interface AddTaskDialogProps {
   open: boolean;
@@ -25,9 +27,24 @@ export function AddTaskDialog({ open, onOpenChange, onTaskCreated }: AddTaskDial
   const [dueDate, setDueDate] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const { currentLanguage } = useLanguage();
+
   const handleSave = async () => {
     if (!title.trim() || !currentWorkspace || !user) return;
     setSaving(true);
+
+    const meaningId = await createMeaningObject({
+      workspaceId: currentWorkspace.id,
+      createdBy: user.id,
+      type: 'TASK',
+      sourceLang: currentLanguage.code,
+      meaningJson: buildMeaningFromText({
+        type: 'TASK',
+        title: title.trim(),
+        description: description.trim() || undefined,
+      }),
+    });
+
     const { error } = await supabase.from('tasks').insert({
       title: title.trim(),
       description: description.trim() || null,
@@ -36,7 +53,9 @@ export function AddTaskDialog({ open, onOpenChange, onTaskCreated }: AddTaskDial
       created_by: user.id,
       status: 'planned',
       is_priority: false,
-    });
+      source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
+    } as any);
     setSaving(false);
     if (error) {
       toast.error(t('common.error'));

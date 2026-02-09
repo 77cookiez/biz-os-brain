@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 
 type TaskStatus = 'backlog' | 'planned' | 'in_progress' | 'blocked' | 'done';
 
@@ -60,6 +62,7 @@ export default function TeamTasksPage() {
   const [inviteRole, setInviteRole] = useState('member');
   const { currentWorkspace, businessContext } = useWorkspace();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -104,6 +107,18 @@ export default function TeamTasksPage() {
 
   const createTask = async () => {
     if (!currentWorkspace || !user) return;
+
+    const meaningId = await createMeaningObject({
+      workspaceId: currentWorkspace.id,
+      createdBy: user.id,
+      type: 'TASK',
+      sourceLang: currentLanguage.code,
+      meaningJson: buildMeaningFromText({
+        type: 'TASK',
+        title: newTask.title,
+        description: newTask.description || undefined,
+      }),
+    });
     
     const { error } = await supabase.from('tasks').insert({
       workspace_id: currentWorkspace.id,
@@ -114,7 +129,9 @@ export default function TeamTasksPage() {
       due_date: newTask.dueDate || null,
       assigned_to: newTask.assignedTo || null,
       created_by: user.id,
-    });
+      source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
+    } as any);
 
     if (error) {
       toast.error('Failed to create task');
