@@ -14,6 +14,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 
 type TaskStatus = 'backlog' | 'planned' | 'in_progress' | 'blocked' | 'done';
 
@@ -120,7 +121,7 @@ export default function TeamTasksPage() {
       }),
     });
     
-    const { error } = await supabase.from('tasks').insert({
+    const insertPayload = {
       workspace_id: currentWorkspace.id,
       title: newTask.title,
       description: newTask.description || null,
@@ -131,7 +132,9 @@ export default function TeamTasksPage() {
       created_by: user.id,
       source_lang: currentLanguage.code,
       meaning_object_id: meaningId,
-    } as any);
+    };
+    guardMeaningInsert('tasks', insertPayload);
+    const { error } = await supabase.from('tasks').insert(insertPayload as any);
 
     if (error) {
       toast.error('Failed to create task');
