@@ -23,6 +23,7 @@
     "businessBrain": "BUSINESS BRAIN",
     "aiBrain": "BUSINESS BRAIN",
     "today": "Today",
+    "brain": "Brain",
     "goalsPlans": "Goals & Plans",
     "teamTasks": "Team Tasks",
     "weeklyCheckin": "Weekly Check-in",
@@ -49,6 +50,53 @@
     "draftsSentToBacklog": "{{count}} draft(s) sent to Workboard Backlog. Review and schedule them in Workboard.",
     "editDraft": "Edit",
     "draftTitle": "Draft Preview"
+  },
+  "brainPage": {
+    "title": "AI Business Brain",
+    "subtitle": "Strategic advisor — thinks, analyzes, never executes",
+    "thinking": "Thinking...",
+    "inputPlaceholder": "Ask the Business Brain anything about your business…",
+    "context": {
+      "status": "Context Ready",
+      "appsConnected": "apps connected",
+      "dataFresh": "Data fresh"
+    },
+    "empty": {
+      "title": "Your Strategic Business Advisor",
+      "subtitle": "I analyze, advise, and draft plans — all execution happens in your apps after your approval."
+    },
+    "capability": {
+      "advisor": "Strategic Advisor",
+      "advisorDesc": "Analyze risks, detect gaps, and get strategic recommendations",
+      "planning": "Business Planning",
+      "planningDesc": "Draft plans, break down goals, and create actionable roadmaps",
+      "coaching": "Business Coaching",
+      "coachingDesc": "Get insights on performance, team dynamics, and growth"
+    },
+    "suggestion": {
+      "setupBusiness": "Help me set up my business context",
+      "reprioritize": "I have overdue tasks — help me reprioritize",
+      "unblock": "Help me resolve blocked tasks",
+      "setGoals": "Set strategic goals for this quarter",
+      "planDay": "Help me plan my day effectively",
+      "reviewProgress": "Review my progress and suggest improvements",
+      "strategize": "Help me think through my business strategy"
+    },
+    "decisionPanel": {
+      "title": "Decision & Draft",
+      "saveAsDraft": "Save as Draft",
+      "dryRun": "Dry-Run Preview",
+      "sendToWorkboard": "Send to Workboard",
+      "dismiss": "Dismiss"
+    },
+    "voice": {
+      "listening": "Listening...",
+      "confidence": {
+        "high": "High confidence",
+        "medium": "Medium confidence",
+        "low": "Low confidence"
+      }
+    }
   },
   "account": {
     "title": "Account",
