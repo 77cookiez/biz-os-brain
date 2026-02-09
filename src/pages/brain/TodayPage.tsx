@@ -110,7 +110,8 @@ export default function TodayPage() {
   ];
 
   const priorityTasks = tasks.filter(t => t.is_priority).slice(0, 3);
-  const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'done');
+  const today = new Date().toISOString().split('T')[0];
+  const overdueTasks = tasks.filter(t => t.due_date && t.due_date < today && t.status !== 'done');
   const upcomingTasks = tasks.filter(t => !t.is_priority && (!t.due_date || new Date(t.due_date) >= new Date())).slice(0, 5);
 
   const completionRate = insights.totalThisWeek > 0
