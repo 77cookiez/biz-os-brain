@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface TeamMember {
   id: string;
@@ -14,6 +15,7 @@ interface TeamMember {
 
 export default function TeamRolesSettingsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [inviteEmail, setInviteEmail] = useState('');
   
   // Mock team members
@@ -26,7 +28,7 @@ export default function TeamRolesSettingsPage() {
       toast.error('Please enter an email address');
       return;
     }
-    toast.success(`Invitation sent to ${inviteEmail}`);
+    toast.success(t('toast.inviteSent', { email: inviteEmail }));
     setInviteEmail('');
   };
 
@@ -42,8 +44,8 @@ export default function TeamRolesSettingsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Team & Roles</h1>
-          <p className="text-muted-foreground text-sm">Invite members and assign permissions</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('settings.team.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('settings.team.description')}</p>
         </div>
       </div>
 
@@ -51,11 +53,11 @@ export default function TeamRolesSettingsPage() {
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
           <UserPlus className="h-4 w-4" />
-          Invite Team Member
+          {t('settings.team.inviteMember')}
         </h3>
         <div className="flex gap-2">
           <Input
-            placeholder="Enter email address"
+            placeholder={t('settings.team.enterEmail')}
             type="email"
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
@@ -63,7 +65,7 @@ export default function TeamRolesSettingsPage() {
           />
           <Button onClick={handleInvite}>
             <Mail className="h-4 w-4 mr-2" />
-            Send Invite
+            {t('settings.team.sendInvite')}
           </Button>
         </div>
       </div>
@@ -72,7 +74,7 @@ export default function TeamRolesSettingsPage() {
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
         <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
           <Users className="h-4 w-4" />
-          Team Members
+          {t('settings.team.teamMembers')}
         </h3>
         <div className="space-y-3">
           {members.map((member) => (

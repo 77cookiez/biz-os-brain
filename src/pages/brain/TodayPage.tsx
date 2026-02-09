@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChatPanel } from '@/components/brain/ChatPanel';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 
 interface Task {
   id: string;
@@ -21,14 +22,8 @@ interface Task {
   is_priority: boolean;
 }
 
-const suggestions = [
-  { icon: Target, text: "Set business goals for this quarter", action: "create_plan" },
-  { icon: TrendingUp, text: "Review last week's performance", action: "weekly_checkin" },
-  { icon: Lightbulb, text: "Help me create a marketing plan", action: "create_plan" },
-  { icon: Sparkles, text: "Which apps should I activate?", action: undefined },
-];
-
 export default function TodayPage() {
+  const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showChat, setShowChat] = useState(false);
@@ -36,6 +31,20 @@ export default function TodayPage() {
   const { user } = useAuth();
   const { messages, isLoading, sendMessage, clearMessages } = useBrainChat();
   const navigate = useNavigate();
+
+  const suggestions = [
+    { icon: Target, text: t('today.setGoals'), action: "create_plan" },
+    { icon: TrendingUp, text: t('today.reviewPerformance'), action: "weekly_checkin" },
+    { icon: Lightbulb, text: t('today.marketingPlan'), action: "create_plan" },
+    { icon: Sparkles, text: t('today.activateApps'), action: undefined },
+  ];
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t('greeting.morning');
+    if (hour < 18) return t('greeting.afternoon');
+    return t('greeting.evening');
+  };
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -111,10 +120,10 @@ export default function TodayPage() {
           <Brain className="h-7 w-7 text-primary" />
         </div>
         <h1 className="text-2xl font-bold text-foreground tracking-tight">
-          Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
+          {getGreeting()}
         </h1>
         <p className="text-muted-foreground">
-          What would you like to work on today?
+          {t('today.whatToWorkOn')}
         </p>
       </div>
 
@@ -127,7 +136,7 @@ export default function TodayPage() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="Ask me anything about your business..."
+              placeholder={t('today.askAnything')}
               className="flex-1 bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
             />
             <Button size="icon" className="h-8 w-8 shrink-0" onClick={handleSend} disabled={isLoading}>
@@ -160,7 +169,7 @@ export default function TodayPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Target className="h-4 w-4 text-primary" />
-              Top Priorities
+              {t('today.priorityTasks')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -227,7 +236,7 @@ export default function TodayPage() {
         <Card className="border-border bg-card">
           <CardContent className="py-8 text-center">
             <CheckCircle2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No tasks yet. Ask AI Brain to help you plan!</p>
+            <p className="text-muted-foreground">{t('today.noTasks')}</p>
           </CardContent>
         </Card>
       )}

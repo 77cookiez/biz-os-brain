@@ -1,28 +1,30 @@
 import { Building, Globe, Users, Bell, Palette, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
-const settingSections = [
-  { icon: Building, title: "Company", description: "Manage company details and branding", path: "/settings/company" },
-  { icon: Users, title: "Team & Roles", description: "Invite members and assign permissions", path: "/settings/team" },
-  { icon: Globe, title: "Language & Region", description: "Set language, timezone, and direction", path: "/settings/language" },
-  { icon: Bell, title: "Notifications", description: "Configure alert preferences", path: "/settings/notifications" },
-  { icon: Palette, title: "Appearance", description: "Theme and display settings", path: "/settings/appearance" },
-];
+import { useTranslation } from "react-i18next";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const settingSections = [
+    { icon: Building, titleKey: "settings.company.title", descKey: "settings.company.description", path: "/settings/company" },
+    { icon: Users, titleKey: "settings.team.title", descKey: "settings.team.description", path: "/settings/team" },
+    { icon: Globe, titleKey: "settings.language.title", descKey: "settings.language.description", path: "/settings/language" },
+    { icon: Bell, titleKey: "settings.notifications.title", descKey: "settings.notifications.description", path: "/settings/notifications" },
+    { icon: Palette, titleKey: "settings.appearance.title", descKey: "settings.appearance.description", path: "/settings/appearance" },
+  ];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage your workspace and preferences</p>
+        <h1 className="text-2xl font-bold text-foreground">{t('settings.title')}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{t('settings.subtitle')}</p>
       </div>
 
       <div className="space-y-2">
         {settingSections.map((s) => (
           <button
-            key={s.title}
+            key={s.titleKey}
             onClick={() => navigate(s.path)}
             className="flex w-full items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-all hover:bg-secondary hover:border-primary/20"
           >
@@ -30,8 +32,8 @@ export default function SettingsPage() {
               <s.icon className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">{s.title}</p>
-              <p className="text-xs text-muted-foreground">{s.description}</p>
+              <p className="text-sm font-medium text-foreground">{t(s.titleKey)}</p>
+              <p className="text-xs text-muted-foreground">{t(s.descKey)}</p>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>
