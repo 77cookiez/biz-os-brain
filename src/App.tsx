@@ -19,6 +19,8 @@ import WeeklyCheckinPage from "@/pages/brain/WeeklyCheckinPage";
 import Marketplace from "@/pages/Marketplace";
 import SettingsPage from "@/pages/SettingsPage";
 import CompanySettingsPage from "@/pages/settings/CompanySettingsPage";
+import AccountSettingsPage from "@/pages/settings/AccountSettingsPage";
+import WorkspacesSettingsPage from "@/pages/settings/WorkspacesSettingsPage";
 import TeamRolesSettingsPage from "@/pages/settings/TeamRolesSettingsPage";
 import LanguageSettingsPage from "@/pages/settings/LanguageSettingsPage";
 import NotificationsSettingsPage from "@/pages/settings/NotificationsSettingsPage";
@@ -129,7 +131,9 @@ const AppRoutes = () => (
       <Route path="/brain/checkin" element={<WeeklyCheckinPage />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/settings/account" element={<AccountSettingsPage />} />
       <Route path="/settings/company" element={<CompanySettingsPage />} />
+      <Route path="/settings/workspaces" element={<WorkspacesSettingsPage />} />
       <Route path="/settings/team" element={<TeamRolesSettingsPage />} />
       <Route path="/settings/language" element={<LanguageSettingsPage />} />
       <Route path="/settings/notifications" element={<NotificationsSettingsPage />} />

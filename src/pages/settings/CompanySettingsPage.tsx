@@ -1,4 +1,4 @@
-import { ArrowLeft, Building, Camera, Upload, X } from "lucide-react";
+import { ArrowLeft, Building, Camera, Upload, X, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,12 @@ import { useTranslation } from "react-i18next";
 
 export default function CompanySettingsPage() {
   const navigate = useNavigate();
-  const { currentCompany } = useWorkspace();
+  const { currentCompany, updateCompany } = useWorkspace();
   const { t } = useTranslation();
   const [companyName, setCompanyName] = useState(currentCompany?.name || '');
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(currentCompany?.logo_url || null);
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoClick = () => {
@@ -24,48 +25,90 @@ export default function CompanySettingsPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !currentCompany) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      toast.error(t('settings.company.invalidFileType'));
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Image size should be less than 2MB');
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('settings.company.fileTooLarge'));
       return;
     }
 
     setUploading(true);
 
     try {
-      // Create a local preview immediately
-      const localUrl = URL.createObjectURL(file);
-      setLogoUrl(localUrl);
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${currentCompany.id}/logo.${fileExt}`;
 
-      // For now, we just show the preview
-      // Full storage upload would require Supabase Storage bucket setup
-      toast.success('Logo updated! (Preview only - storage integration pending)');
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('company-assets')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('company-assets')
+        .getPublicUrl(filePath);
+
+      // Add cache buster
+      const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`;
+      setLogoUrl(urlWithCacheBuster);
+      
+      toast.success(t('settings.company.logoUpdated'));
     } catch (error) {
       console.error('Error uploading logo:', error);
-      toast.error('Failed to upload logo');
+      toast.error(t('settings.company.logoUploadFailed'));
     } finally {
       setUploading(false);
     }
   };
 
-  const removeLogo = () => {
-    setLogoUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const removeLogo = async () => {
+    if (!currentCompany) return;
+
+    setUploading(true);
+    try {
+      // List and remove files
+      const { data: files } = await supabase.storage
+        .from('company-assets')
+        .list(currentCompany.id);
+
+      if (files && files.length > 0) {
+        const filesToRemove = files.map(f => `${currentCompany.id}/${f.name}`);
+        await supabase.storage.from('company-assets').remove(filesToRemove);
+      }
+
+      setLogoUrl(null);
+      toast.success(t('settings.company.logoRemoved'));
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      toast.error(t('settings.company.logoRemoveFailed'));
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleSave = () => {
-    // TODO: Implement company update with logo
-    toast.success(t('toast.settingsSaved'));
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateCompany({ 
+        name: companyName,
+        logo_url: logoUrl 
+      });
+      toast.success(t('toast.settingsSaved'));
+    } catch (error) {
+      console.error('Error saving company:', error);
+      toast.error(t('settings.company.saveFailed'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -94,18 +137,25 @@ export default function CompanySettingsPage() {
                 <img 
                   src={logoUrl} 
                   alt="Company logo" 
-                  className="h-16 w-16 rounded-xl object-cover"
+                  className="h-16 w-16 rounded-xl object-cover ring-2 ring-border"
                 />
-                <button
-                  onClick={removeLogo}
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                {!uploading && (
+                  <button
+                    onClick={removeLogo}
+                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="h-16 w-16 rounded-xl bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary">
+              <div className="h-16 w-16 rounded-xl bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary ring-2 ring-border">
                 {currentCompany?.name?.[0]?.toUpperCase() || 'C'}
+              </div>
+            )}
+            {uploading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-xl">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             )}
           </div>
@@ -126,7 +176,7 @@ export default function CompanySettingsPage() {
               {uploading ? (
                 <>
                   <Upload className="h-4 w-4 mr-2 animate-pulse" />
-                  Uploading...
+                  {t('account.uploading')}
                 </>
               ) : (
                 <>
@@ -135,7 +185,7 @@ export default function CompanySettingsPage() {
                 </>
               )}
             </Button>
-            <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB</p>
+            <p className="text-xs text-muted-foreground">{t('settings.company.logoHint')}</p>
           </div>
         </div>
 
@@ -146,13 +196,16 @@ export default function CompanySettingsPage() {
             id="company-name"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            placeholder="Enter company name"
+            placeholder={t('settings.company.namePlaceholder')}
           />
         </div>
 
         {/* Save Button */}
         <div className="flex justify-end pt-4">
-          <Button onClick={handleSave}>{t('settings.company.saveChanges')}</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {t('settings.company.saveChanges')}
+          </Button>
         </div>
       </div>
     </div>
