@@ -22,6 +22,17 @@
 - `BrainCommandBar` extracts meaning blocks → creates meaning objects → tasks
 - Unique constraint on `content_translations(meaning_object_id, target_lang, field)`
 
+## ✅ Phase 1.5 — ULL as Core System App (DONE)
+- ULL manifest: `src/apps/ull/manifest.ts`
+- Registered in `app_registry` (id=ull, system, required)
+- Auto-installed on all workspaces, non-removable
+- Settings UI: User language (persisted to profiles.preferred_locale)
+- Settings UI: Workspace default locale (admin only)
+- ULL Status panel (provider, cache, locale info)
+- Developer Contract docs page (`/docs/system/ull`)
+- System app hidden from sidebar nav, visible in Marketplace/Settings with Shield badge
+- LanguageContext loads preferred_locale from DB on init
+
 ## ⬜ Phase 2 — Full Projection (NEXT)
 - All UI reads via meaningId (remove legacy table/id/field paths)
 - ✅ Plans module meaning-first

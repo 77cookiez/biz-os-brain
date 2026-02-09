@@ -26,6 +26,8 @@ import LanguageSettingsPage from "@/pages/settings/LanguageSettingsPage";
 import NotificationsSettingsPage from "@/pages/settings/NotificationsSettingsPage";
 import AppearanceSettingsPage from "@/pages/settings/AppearanceSettingsPage";
 import AppsSettingsPage from "@/pages/settings/AppsSettingsPage";
+import WorkspaceLanguageSettingsPage from "@/pages/settings/WorkspaceLanguageSettingsPage";
+import ULLDeveloperContractPage from "@/pages/docs/ULLDeveloperContractPage";
 import NotFound from "./pages/NotFound";
 import WorkboardLayout from "@/pages/workboard/WorkboardLayout";
 import WorkboardTodayPage from "@/pages/workboard/WorkboardTodayPage";
@@ -144,6 +146,8 @@ const AppRoutes = () => (
       <Route path="/settings/notifications" element={<NotificationsSettingsPage />} />
       <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />
       <Route path="/settings/apps" element={<AppsSettingsPage />} />
+      <Route path="/settings/workspace/language" element={<WorkspaceLanguageSettingsPage />} />
+      <Route path="/docs/system/ull" element={<ULLDeveloperContractPage />} />
       <Route path="/apps/workboard" element={<WorkboardLayout />}>
         <Route index element={<WorkboardTodayPage />} />
         <Route path="week" element={<WorkboardWeekPage />} />

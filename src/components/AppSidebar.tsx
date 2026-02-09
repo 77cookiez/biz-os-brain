@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import logoPrimary from "@/assets/logo-primary.png";
 import logoLight from "@/assets/logo-light.png";
 import { useTheme } from "@/contexts/ThemeContext";
+import { isSystemApp } from "@/lib/systemApps";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +37,7 @@ export function AppSidebar() {
       });
   }, [installedApps]);
 
-  const activeApps = installedApps.filter(a => a.is_active);
+  const activeApps = installedApps.filter(a => a.is_active && !isSystemApp(a.app_id));
 
   const brainLinks = [
     { title: t('navigation.today'), icon: Sparkles, url: "/" },

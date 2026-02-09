@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Language {
   code: string;
@@ -35,31 +36,49 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [currentLanguage, setCurrentLanguageState] = useState<Language>(AVAILABLE_LANGUAGES[0]);
   const [enabledLanguages, setEnabledLanguagesState] = useState<Language[]>([AVAILABLE_LANGUAGES[0]]);
 
-  // Load from localStorage on mount
+  // Load from DB profile first, then localStorage fallback
   useEffect(() => {
-    const storedCurrent = localStorage.getItem(STORAGE_KEY_CURRENT);
-    const storedEnabled = localStorage.getItem(STORAGE_KEY_ENABLED);
-
-    if (storedEnabled) {
-      try {
-        const parsed = JSON.parse(storedEnabled);
-        const enabled = AVAILABLE_LANGUAGES.filter(lang => 
-          parsed.includes(lang.code)
-        );
-        if (enabled.length > 0) {
-          setEnabledLanguagesState(enabled);
+    const loadPreferences = async () => {
+      // Load enabled languages from localStorage
+      const storedEnabled = localStorage.getItem(STORAGE_KEY_ENABLED);
+      if (storedEnabled) {
+        try {
+          const parsed = JSON.parse(storedEnabled);
+          const enabled = AVAILABLE_LANGUAGES.filter(lang => parsed.includes(lang.code));
+          if (enabled.length > 0) setEnabledLanguagesState(enabled);
+        } catch (e) {
+          console.error('Failed to parse enabled languages', e);
         }
-      } catch (e) {
-        console.error('Failed to parse enabled languages', e);
       }
-    }
 
-    if (storedCurrent) {
-      const found = AVAILABLE_LANGUAGES.find(l => l.code === storedCurrent);
-      if (found) {
-        setCurrentLanguageState(found);
+      // Try loading preferred_locale from profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('preferred_locale')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile?.preferred_locale) {
+          const found = AVAILABLE_LANGUAGES.find(l => l.code === profile.preferred_locale);
+          if (found) {
+            setCurrentLanguageState(found);
+            localStorage.setItem(STORAGE_KEY_CURRENT, found.code);
+            return;
+          }
+        }
       }
-    }
+
+      // Fallback to localStorage
+      const storedCurrent = localStorage.getItem(STORAGE_KEY_CURRENT);
+      if (storedCurrent) {
+        const found = AVAILABLE_LANGUAGES.find(l => l.code === storedCurrent);
+        if (found) setCurrentLanguageState(found);
+      }
+    };
+
+    loadPreferences();
   }, []);
 
   // Update document direction and i18n when language changes
