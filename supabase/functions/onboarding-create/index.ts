@@ -117,12 +117,12 @@ serve(async (req) => {
 
     if (contextError) throw contextError;
 
-    const { error: appError } = await admin.from("workspace_apps").insert({
-      workspace_id: workspace.id,
-      app_id: "brain",
-      is_active: true,
-      installed_by: user.id,
-    });
+    // Install default apps: Brain (core) + ULL (system)
+    const defaultApps = [
+      { workspace_id: workspace.id, app_id: "brain", is_active: true, installed_by: user.id },
+      { workspace_id: workspace.id, app_id: "ull", is_active: true, installed_by: user.id },
+    ];
+    const { error: appError } = await admin.from("workspace_apps").insert(defaultApps);
 
     if (appError) throw appError;
 

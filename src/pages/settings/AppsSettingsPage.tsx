@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Package, Store, Trash2 } from 'lucide-react';
+import { Package, Store, Trash2, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { isSystemApp } from '@/lib/systemApps';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -137,57 +138,69 @@ export default function AppsSettingsPage() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {apps.map(app => (
-            <div
-              key={app.id}
-              className="flex items-center gap-4 rounded-xl border border-border bg-card p-4"
-            >
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Package className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-foreground">{app.name}</p>
-                  <Badge variant={app.is_active ? 'default' : 'secondary'} className="text-[10px]">
-                    {app.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
+          {apps.map(app => {
+            const systemApp = isSystemApp(app.id);
+            return (
+              <div
+                key={app.id}
+                className="flex items-center gap-4 rounded-xl border border-border bg-card p-4"
+              >
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  {systemApp ? <Shield className="h-5 w-5 text-primary" /> : <Package className="h-5 w-5 text-primary" />}
                 </div>
-                {app.description && (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">{app.description}</p>
-                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-foreground">{app.name}</p>
+                    {systemApp && (
+                      <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">System</Badge>
+                    )}
+                    <Badge variant={app.is_active ? 'default' : 'secondary'} className="text-[10px]">
+                      {app.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  {app.description && (
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{app.description}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {systemApp ? (
+                    <span className="text-[10px] text-muted-foreground">Required</span>
+                  ) : (
+                    <>
+                      <Switch
+                        checked={app.is_active}
+                        onCheckedChange={() => handleToggle(app.id, app.is_active)}
+                      />
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-card border-border">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-foreground">Uninstall {app.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove the app from your workspace. You can reinstall it later from the Marketplace.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleUninstall(app.id, app.name)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Uninstall
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={app.is_active}
-                  onCheckedChange={() => handleToggle(app.id, app.is_active)}
-                />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-card border-border">
-                    <AlertDialogHeader>
-                      <AlertDialogTitle className="text-foreground">Uninstall {app.name}?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will remove the app from your workspace. You can reinstall it later from the Marketplace.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleUninstall(app.id, app.name)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Uninstall
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
