@@ -34,7 +34,7 @@ export function useBrainWorkboardIntegration() {
           await createTask({
             title: item.title,
             description: item.description,
-            status: item.status || 'planned',
+            status: item.status || 'backlog',
             due_date: item.due_date,
             is_priority: item.is_priority,
           });
@@ -42,7 +42,7 @@ export function useBrainWorkboardIntegration() {
         }
       }
       if (created > 0) {
-        toast.success(`${created} task${created > 1 ? 's' : ''} created in Workboard`);
+        toast.success(`${created} draft${created > 1 ? 's' : ''} sent to Workboard Backlog. Review and schedule them in Workboard.`);
       }
       return created;
     },
