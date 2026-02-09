@@ -2,6 +2,7 @@ import { Circle, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { TaskActions } from '@/components/workboard/TaskActions';
 import type { WorkboardTask, TaskStatus } from '@/hooks/useWorkboardTasks';
 
 const statusConfig: Record<TaskStatus, { label: string; icon: React.ElementType; color: string }> = {
@@ -64,6 +65,7 @@ export function TaskCard({ task, onStatusChange, onTogglePriority }: TaskCardPro
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onTogglePriority(task.id, task.is_priority)}>
           <span className={task.is_priority ? 'text-primary' : 'text-muted-foreground'}>★</span>
         </Button>
+        <TaskActions title={task.title} description={task.description} id={task.id} type="task" />
       </div>
     </div>
   );
