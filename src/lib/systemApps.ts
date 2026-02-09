@@ -2,7 +2,7 @@
  * System Apps — always installed, cannot be deactivated or uninstalled.
  * These are core OS modules that other apps depend on.
  */
-export const SYSTEM_APP_IDS = ['ull'] as const;
+export const SYSTEM_APP_IDS = ['ull', 'brain'] as const;
 
 export type SystemAppId = typeof SYSTEM_APP_IDS[number];
 
