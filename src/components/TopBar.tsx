@@ -1,4 +1,4 @@
-import { Globe, ChevronDown, LogOut, Building2, Plus, Users } from "lucide-react";
+import { Globe, ChevronDown, LogOut, Building2, Plus, Users, Sun, Moon, Monitor } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,12 +15,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function TopBar() {
   const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const { currentCompany, currentWorkspace, companies, workspaces, setCurrentCompany, setCurrentWorkspace } = useWorkspace();
   const { currentLanguage, enabledLanguages, setCurrentLanguage } = useLanguage();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -156,6 +158,40 @@ export function TopBar() {
           <DropdownMenuItem onClick={() => navigate('/brain/setup')}>
             {t('topbar.businessSetup')}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{t('settings.appearance.title')}</div>
+          <div className="flex items-center gap-1 px-2 pb-2">
+            <button
+              onClick={() => setTheme('light')}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors",
+                theme === 'light' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              <Sun className="h-3.5 w-3.5" />
+              {t('settings.appearance.light')}
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors",
+                theme === 'dark' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              <Moon className="h-3.5 w-3.5" />
+              {t('settings.appearance.dark')}
+            </button>
+            <button
+              onClick={() => setTheme('system')}
+              className={cn(
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs transition-colors",
+                theme === 'system' ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+              )}
+            >
+              <Monitor className="h-3.5 w-3.5" />
+              {t('settings.appearance.system')}
+            </button>
+          </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
             <LogOut className="h-4 w-4 mr-2" />

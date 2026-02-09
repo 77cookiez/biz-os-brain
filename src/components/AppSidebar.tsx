@@ -52,9 +52,9 @@ export function AppSidebar() {
       }`}
     >
       {/* Logo */}
-      <div className="flex h-14 items-center gap-2 px-4 border-b border-border">
+      <div className="flex h-14 items-center gap-2 px-3 border-b border-border overflow-hidden">
         {!collapsed && (
-          <img src={resolvedTheme === 'dark' ? logoLight : logoPrimary} alt="AiBizos" className="h-7 w-auto object-contain" />
+          <img src={resolvedTheme === 'dark' ? logoLight : logoPrimary} alt="AiBizos" className="h-7 max-w-[130px] object-contain object-left shrink-0" />
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
