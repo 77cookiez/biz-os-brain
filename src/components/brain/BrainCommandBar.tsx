@@ -85,14 +85,14 @@ export function BrainCommandBar() {
     if (tasks.length === 0) {
       setShowDraft(false);
       clearMessages();
-      toast.success('Noted');
+      toast.success(t('brain.noted'));
       return;
     }
 
     // Dedup: check if we already sent this exact set of drafts
     const fingerprint = generateFingerprint(tasks);
     if (fingerprint === sentDraftFingerprint) {
-      toast.info('These drafts have already been sent to Workboard.');
+      toast.info(t('brain.draftsAlreadySent'));
       return;
     }
 
