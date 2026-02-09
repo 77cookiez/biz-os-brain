@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useLanguage, AVAILABLE_LANGUAGES, Language } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export default function LanguageSettingsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { currentLanguage, enabledLanguages, setCurrentLanguage, toggleLanguage } = useLanguage();
 
   const isEnabled = (lang: Language) => 
@@ -26,8 +28,8 @@ export default function LanguageSettingsPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Language & Region</h1>
-          <p className="text-muted-foreground text-sm">Set language, timezone, and direction</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('settings.language.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('settings.language.description')}</p>
         </div>
       </div>
 
@@ -36,12 +38,12 @@ export default function LanguageSettingsPage() {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            Languages
+            {t('settings.language.languages')}
           </h3>
           <p className="text-xs text-muted-foreground">
             {enabledLanguages.length === 1 
-              ? 'Single language mode' 
-              : `${enabledLanguages.length} languages enabled - click language button in toolbar to switch`}
+              ? t('settings.language.singleMode')
+              : t('settings.language.multiMode', { count: enabledLanguages.length })}
           </p>
         </div>
         
@@ -87,15 +89,14 @@ export default function LanguageSettingsPage() {
         </div>
 
         <p className="text-xs text-muted-foreground pt-2">
-          Enable multiple languages to switch between them using the language button in the toolbar. 
-          Click on any enabled language below to make it active.
+          {t('settings.language.enableHint')}
         </p>
       </div>
 
       {/* Active Language Selection */}
       {enabledLanguages.length > 1 && (
         <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Set Active Language</h3>
+          <h3 className="text-sm font-medium text-foreground">{t('settings.language.setActive')}</h3>
           <div className="flex flex-wrap gap-2">
             {enabledLanguages.map((lang) => (
               <Button

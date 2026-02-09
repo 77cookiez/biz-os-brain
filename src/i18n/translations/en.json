@@ -1,0 +1,114 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "search": "Search",
+    "settings": "Settings"
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "navigation": {
+    "aiBrain": "AI BRAIN",
+    "today": "Today",
+    "goalsPlans": "Goals & Plans",
+    "teamTasks": "Team Tasks",
+    "weeklyCheckin": "Weekly Check-in",
+    "apps": "APPS",
+    "marketplace": "Marketplace",
+    "settings": "Settings"
+  },
+  "topbar": {
+    "askAi": "Ask AI Brain anything...",
+    "companies": "Companies",
+    "workspaces": "Workspaces",
+    "signOut": "Sign Out",
+    "businessSetup": "Business Setup"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your workspace and preferences",
+    "company": {
+      "title": "Company",
+      "description": "Manage company details and branding",
+      "name": "Company Name",
+      "changeLogo": "Change Logo",
+      "saveChanges": "Save Changes"
+    },
+    "team": {
+      "title": "Team & Roles",
+      "description": "Invite members and assign permissions",
+      "inviteMember": "Invite Team Member",
+      "sendInvite": "Send Invite",
+      "teamMembers": "Team Members",
+      "enterEmail": "Enter email address"
+    },
+    "language": {
+      "title": "Language & Region",
+      "description": "Set language, timezone, and direction",
+      "languages": "Languages",
+      "singleMode": "Single language mode",
+      "multiMode": "{{count}} languages enabled - click language button in toolbar to switch",
+      "setActive": "Set Active Language",
+      "enableHint": "Enable multiple languages to switch between them using the language button in the toolbar."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Configure alert preferences",
+      "channels": "Notification Channels",
+      "email": "Email Notifications",
+      "emailDesc": "Receive updates via email",
+      "push": "Push Notifications",
+      "pushDesc": "Get browser push notifications",
+      "inApp": "In-App Notifications",
+      "inAppDesc": "Show notifications in the app"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Theme and display settings",
+      "theme": "Theme",
+      "dark": "Dark",
+      "light": "Light",
+      "system": "System"
+    }
+  },
+  "today": {
+    "whatToWorkOn": "What would you like to work on today?",
+    "askAnything": "Ask me anything about your business...",
+    "setGoals": "Set business goals for this quarter",
+    "reviewPerformance": "Review last week's performance",
+    "marketingPlan": "Help me create a marketing plan",
+    "activateApps": "Which apps should I activate?",
+    "noTasks": "No tasks yet. Ask AI Brain to help you plan!",
+    "priorityTasks": "Priority Tasks"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "email": "Email",
+    "password": "Password",
+    "fullName": "Full Name",
+    "continueWithGoogle": "Continue with Google",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "tagline": "Your AI-powered business operating system"
+  },
+  "toast": {
+    "settingsSaved": "Settings saved",
+    "inviteSent": "Invitation sent to {{email}}",
+    "themeChanged": "Theme changed to {{theme}}",
+    "notificationUpdated": "Notification settings updated",
+    "signedOut": "Signed out successfully"
+  }
+}

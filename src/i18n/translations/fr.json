@@ -1,0 +1,114 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "close": "Fermer",
+    "search": "Rechercher",
+    "settings": "Paramètres"
+  },
+  "greeting": {
+    "morning": "Bonjour",
+    "afternoon": "Bon après-midi",
+    "evening": "Bonsoir"
+  },
+  "navigation": {
+    "aiBrain": "IA CERVEAU",
+    "today": "Aujourd'hui",
+    "goalsPlans": "Objectifs & Plans",
+    "teamTasks": "Tâches d'équipe",
+    "weeklyCheckin": "Bilan hebdomadaire",
+    "apps": "APPLICATIONS",
+    "marketplace": "Marketplace",
+    "settings": "Paramètres"
+  },
+  "topbar": {
+    "askAi": "Demandez n'importe quoi à l'IA...",
+    "companies": "Entreprises",
+    "workspaces": "Espaces de travail",
+    "signOut": "Déconnexion",
+    "businessSetup": "Configuration entreprise"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérer votre espace de travail et préférences",
+    "company": {
+      "title": "Entreprise",
+      "description": "Gérer les détails et la marque de l'entreprise",
+      "name": "Nom de l'entreprise",
+      "changeLogo": "Changer le logo",
+      "saveChanges": "Enregistrer les modifications"
+    },
+    "team": {
+      "title": "Équipe & Rôles",
+      "description": "Inviter des membres et attribuer des permissions",
+      "inviteMember": "Inviter un membre",
+      "sendInvite": "Envoyer l'invitation",
+      "teamMembers": "Membres de l'équipe",
+      "enterEmail": "Entrez l'adresse email"
+    },
+    "language": {
+      "title": "Langue & Région",
+      "description": "Définir la langue, le fuseau horaire et la direction",
+      "languages": "Langues",
+      "singleMode": "Mode langue unique",
+      "multiMode": "{{count}} langues activées - cliquez sur le bouton langue dans la barre d'outils pour changer",
+      "setActive": "Définir la langue active",
+      "enableHint": "Activez plusieurs langues pour basculer entre elles en utilisant le bouton langue."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Configurer les préférences d'alerte",
+      "channels": "Canaux de notification",
+      "email": "Notifications par email",
+      "emailDesc": "Recevoir les mises à jour par email",
+      "push": "Notifications push",
+      "pushDesc": "Recevoir les notifications du navigateur",
+      "inApp": "Notifications dans l'application",
+      "inAppDesc": "Afficher les notifications dans l'application"
+    },
+    "appearance": {
+      "title": "Apparence",
+      "description": "Paramètres de thème et d'affichage",
+      "theme": "Thème",
+      "dark": "Sombre",
+      "light": "Clair",
+      "system": "Système"
+    }
+  },
+  "today": {
+    "whatToWorkOn": "Sur quoi aimeriez-vous travailler aujourd'hui?",
+    "askAnything": "Demandez-moi n'importe quoi sur votre entreprise...",
+    "setGoals": "Définir les objectifs commerciaux pour ce trimestre",
+    "reviewPerformance": "Examiner les performances de la semaine dernière",
+    "marketingPlan": "Aidez-moi à créer un plan marketing",
+    "activateApps": "Quelles applications dois-je activer?",
+    "noTasks": "Pas encore de tâches. Demandez à l'IA de vous aider!",
+    "priorityTasks": "Tâches prioritaires"
+  },
+  "auth": {
+    "signIn": "Connexion",
+    "signUp": "Inscription",
+    "email": "Email",
+    "password": "Mot de passe",
+    "fullName": "Nom complet",
+    "continueWithGoogle": "Continuer avec Google",
+    "noAccount": "Vous n'avez pas de compte?",
+    "hasAccount": "Vous avez déjà un compte?",
+    "tagline": "Votre système d'exploitation d'entreprise propulsé par l'IA"
+  },
+  "toast": {
+    "settingsSaved": "Paramètres enregistrés",
+    "inviteSent": "Invitation envoyée à {{email}}",
+    "themeChanged": "Thème changé en {{theme}}",
+    "notificationUpdated": "Paramètres de notification mis à jour",
+    "signedOut": "Déconnexion réussie"
+  }
+}

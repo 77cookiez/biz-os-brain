@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export function TopBar() {
+  const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const { currentCompany, currentWorkspace, companies, workspaces, setCurrentCompany, setCurrentWorkspace } = useWorkspace();
   const { currentLanguage, enabledLanguages, cycleLanguage, setCurrentLanguage } = useLanguage();
@@ -21,7 +23,7 @@ export function TopBar() {
 
   const handleSignOut = async () => {
     await signOut();
-    toast.success('Signed out successfully');
+    toast.success(t('toast.signedOut'));
     navigate('/auth');
   };
 
@@ -37,7 +39,7 @@ export function TopBar() {
           className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground cursor-pointer hover:bg-secondary transition-colors"
         >
           <Search className="h-4 w-4 shrink-0 text-primary" />
-          <span>Ask AI Brain anything...</span>
+          <span>{t('topbar.askAi')}</span>
           <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
             ⌘K
           </kbd>
@@ -59,7 +61,7 @@ export function TopBar() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56 bg-popover border-border">
-          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Companies</div>
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{t('topbar.companies')}</div>
           {companies.map(company => (
             <DropdownMenuItem
               key={company.id}
@@ -71,7 +73,7 @@ export function TopBar() {
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Workspaces</div>
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{t('topbar.workspaces')}</div>
           {workspaces.filter(w => w.company_id === currentCompany?.id).map(workspace => (
             <DropdownMenuItem
               key={workspace.id}
@@ -134,15 +136,15 @@ export function TopBar() {
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => navigate('/settings')}>
-            Settings
+            {t('common.settings')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/brain/setup')}>
-            Business Setup
+            {t('topbar.businessSetup')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
             <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
+            {t('topbar.signOut')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

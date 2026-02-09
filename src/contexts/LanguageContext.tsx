@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import i18n from '@/i18n';
 
 export interface Language {
   code: string;
@@ -60,10 +61,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Update document direction when language changes
+  // Update document direction and i18n when language changes
   useEffect(() => {
     document.documentElement.dir = currentLanguage.dir;
     document.documentElement.lang = currentLanguage.code;
+    // Sync with i18next
+    i18n.changeLanguage(currentLanguage.code);
   }, [currentLanguage]);
 
   const setCurrentLanguage = (lang: Language) => {

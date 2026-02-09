@@ -1,6 +1,7 @@
 import { Brain, LayoutGrid, Settings, Store, FileText, Users, Package, BarChart3, Mail, ShoppingCart, ChevronLeft, ChevronRight, Target, CheckSquare, Calendar, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
+import { useTranslation } from "react-i18next";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,7 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 export function AppSidebar() {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [apps, setApps] = useState<AppRegistryItem[]>([]);
   const { installedApps } = useWorkspace();
@@ -53,10 +55,10 @@ export function AppSidebar() {
   };
 
   const brainLinks = [
-    { title: "Today", icon: Sparkles, url: "/" },
-    { title: "Goals & Plans", icon: Target, url: "/brain/goals" },
-    { title: "Team Tasks", icon: CheckSquare, url: "/brain/tasks" },
-    { title: "Weekly Check-in", icon: Calendar, url: "/brain/checkin" },
+    { title: t('navigation.today'), icon: Sparkles, url: "/" },
+    { title: t('navigation.goalsPlans'), icon: Target, url: "/brain/goals" },
+    { title: t('navigation.teamTasks'), icon: CheckSquare, url: "/brain/tasks" },
+    { title: t('navigation.weeklyCheckin'), icon: Calendar, url: "/brain/checkin" },
   ];
 
   return (
@@ -84,7 +86,7 @@ export function AppSidebar() {
       <div className="px-3 pt-4 pb-2">
         {!collapsed && (
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground px-2">
-            AI Brain
+            {t('navigation.aiBrain')}
           </span>
         )}
         <nav className="mt-2 flex flex-col gap-1">
@@ -107,7 +109,7 @@ export function AppSidebar() {
       <div className="px-3 pt-3 pb-2 flex-1 overflow-auto">
         {!collapsed && (
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground px-2">
-            Apps
+            {t('navigation.apps')}
           </span>
         )}
         <nav className="mt-2 flex flex-col gap-1">
@@ -157,7 +159,7 @@ export function AppSidebar() {
           activeClassName="bg-secondary text-foreground"
         >
           <Store className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Marketplace</span>}
+          {!collapsed && <span>{t('navigation.marketplace')}</span>}
         </NavLink>
         <NavLink
           to="/settings"
@@ -165,7 +167,7 @@ export function AppSidebar() {
           activeClassName="bg-secondary text-foreground"
         >
           <Settings className="h-4 w-4 shrink-0" />
-          {!collapsed && <span>Settings</span>}
+          {!collapsed && <span>{t('navigation.settings')}</span>}
         </NavLink>
       </div>
     </aside>
