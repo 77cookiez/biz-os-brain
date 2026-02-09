@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
+import i18next from 'i18next';
 
 export interface PlanItem {
   type: 'task' | 'goal';
@@ -14,7 +14,7 @@ export interface PlanItem {
 }
 
 export function useBrainWorkboardIntegration() {
-  const { t } = useTranslation();
+  const t = i18next.t.bind(i18next);
   const { installedApps, activateApp, refreshInstalledApps } = useWorkspace();
   const { createTask } = useWorkboardTasks();
 
