@@ -15,7 +15,10 @@ interface TranslateItem {
 }
 
 interface TranslateRequest {
-  items: TranslateItem[];
+  // Phase 0 legacy
+  items?: TranslateItem[];
+  // Phase 1 meaning-based
+  meaning_object_ids?: string[];
   target_lang: string;
 }
 
@@ -25,10 +28,11 @@ serve(async (req) => {
   }
 
   try {
-    const { items, target_lang } = await req.json() as TranslateRequest;
+    const body = await req.json() as TranslateRequest;
+    const { target_lang } = body;
 
-    if (!items?.length || !target_lang) {
-      return new Response(JSON.stringify({ error: "Missing items or target_lang" }), {
+    if (!target_lang) {
+      return new Response(JSON.stringify({ error: "Missing target_lang" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -43,119 +47,22 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Check cache first — build lookup keys
-    const results: Record<string, string> = {};
-    const cacheMisses: TranslateItem[] = [];
-
-    // Try to find existing translations in content_translations
-    // We use source_table + source_id + source_field + target_lang as cache key
-    for (const item of items) {
-      // Skip if source and target are the same
-      if (item.source_lang === target_lang) {
-        results[`${item.table}:${item.id}:${item.field}`] = item.text;
-        continue;
-      }
-
-      // Check if there's a meaning_object linked, and if so check content_translations
-      // For Phase 0, we do a direct lookup using a custom approach:
-      // Look for cached translations by composite key
-      const { data: cached } = await supabase
-        .from("content_translations")
-        .select("translated_text")
-        .eq("field", item.field)
-        .eq("target_lang", target_lang)
-        .limit(1)
-        .maybeSingle();
-
-      // For Phase 0 we skip full meaning_object lookup and translate directly
-      // Cache hits would come from meaning_object_id based lookups in later phases
-      cacheMisses.push(item);
+    // ─── Phase 1: Meaning-based translation ───
+    if (body.meaning_object_ids && body.meaning_object_ids.length > 0) {
+      return await handleMeaningTranslation(
+        supabase, body.meaning_object_ids, target_lang, LOVABLE_API_KEY
+      );
     }
 
-    if (cacheMisses.length === 0) {
-      return new Response(JSON.stringify({ translations: results }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // ─── Phase 0: Legacy text-based translation ───
+    if (body.items && body.items.length > 0) {
+      return await handleLegacyTranslation(
+        supabase, body.items, target_lang, LOVABLE_API_KEY
+      );
     }
 
-    // Batch translate via AI
-    const textsToTranslate = cacheMisses.map((item, i) => 
-      `[${i}] ${item.text}`
-    ).join("\n");
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          {
-            role: "system",
-            content: `You are a precise business content translator. Translate the following numbered texts into ${target_lang}. 
-Preserve business meaning, intent, and terminology exactly.
-Return ONLY a JSON array of strings in the same order as the input.
-Do not add explanations. Do not change meaning. Do not interpret.
-Example input:
-[0] Create marketing plan
-[1] Review Q3 budget
-
-Example output:
-["إنشاء خطة تسويقية", "مراجعة ميزانية الربع الثالث"]`,
-          },
-          { role: "user", content: textsToTranslate },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error("Translation service error");
-    }
-
-    const aiResult = await response.json();
-    const rawContent = aiResult.choices?.[0]?.message?.content || "[]";
-    
-    // Parse the JSON array from AI response
-    let translations: string[];
-    try {
-      // Extract JSON array from response (handle markdown code blocks)
-      const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
-      translations = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-    } catch {
-      console.error("Failed to parse AI translation response:", rawContent);
-      // Fallback: return original texts
-      for (const item of cacheMisses) {
-        results[`${item.table}:${item.id}:${item.field}`] = item.text;
-      }
-      return new Response(JSON.stringify({ translations: results }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Map translations back to results
-    for (let i = 0; i < cacheMisses.length; i++) {
-      const item = cacheMisses[i];
-      const key = `${item.table}:${item.id}:${item.field}`;
-      results[key] = translations[i] || item.text;
-    }
-
-    return new Response(JSON.stringify({ translations: results }), {
+    return new Response(JSON.stringify({ error: "No items or meaning_object_ids provided" }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
@@ -168,3 +75,233 @@ Example output:
     });
   }
 });
+
+// ─── Phase 1: Meaning → Language Projection ───
+async function handleMeaningTranslation(
+  supabase: any,
+  meaningIds: string[],
+  targetLang: string,
+  apiKey: string
+) {
+  const results: Record<string, string> = {};
+  const cacheMisses: { id: string; meaningJson: any; sourceLang: string }[] = [];
+
+  // Check cache first
+  for (const mId of meaningIds) {
+    const { data: cached } = await supabase
+      .from("content_translations")
+      .select("translated_text")
+      .eq("meaning_object_id", mId)
+      .eq("target_lang", targetLang)
+      .eq("field", "content")
+      .maybeSingle();
+
+    if (cached?.translated_text) {
+      results[mId] = cached.translated_text;
+    } else {
+      // Fetch meaning_json
+      const { data: mo } = await supabase
+        .from("meaning_objects")
+        .select("meaning_json, source_lang")
+        .eq("id", mId)
+        .single();
+
+      if (mo) {
+        if (mo.source_lang === targetLang) {
+          // Same language — use subject as-is
+          results[mId] = mo.meaning_json?.subject || "";
+        } else {
+          cacheMisses.push({ id: mId, meaningJson: mo.meaning_json, sourceLang: mo.source_lang });
+        }
+      }
+    }
+  }
+
+  if (cacheMisses.length === 0) {
+    return new Response(JSON.stringify({ translations: results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Project meaning → language via AI
+  const textsToTranslate = cacheMisses.map((item, i) => {
+    const mj = item.meaningJson;
+    return `[${i}] Intent: ${mj.intent || 'create'} | Subject: ${mj.subject || ''} | Description: ${mj.description || ''}`;
+  }).join("\n");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-lite",
+      messages: [
+        {
+          role: "system",
+          content: `You are a precise business content renderer. You receive structured canonical meaning objects and must render them as natural, concise text in ${targetLang}.
+Each input has an intent, subject, and optional description. Render each as a single clear sentence or phrase that a business user would naturally say.
+Return ONLY a JSON array of strings in the same order as the input.
+Do not add explanations. Preserve business meaning exactly.
+Example input:
+[0] Intent: create | Subject: marketing plan | Description: Q1 marketing strategy
+[1] Intent: complete | Subject: report | Description: Finish Q3 budget report
+
+Example output:
+["خطة تسويقية للربع الأول", "إنهاء تقرير ميزانية الربع الثالث"]`,
+        },
+        { role: "user", content: textsToTranslate },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (response.status === 402) {
+      return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    throw new Error("Translation service error");
+  }
+
+  const aiResult = await response.json();
+  const rawContent = aiResult.choices?.[0]?.message?.content || "[]";
+
+  let translations: string[];
+  try {
+    const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
+    translations = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+  } catch {
+    console.error("Failed to parse AI meaning projection:", rawContent);
+    for (const item of cacheMisses) {
+      results[item.id] = item.meaningJson?.subject || "";
+    }
+    return new Response(JSON.stringify({ translations: results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Store in cache and results
+  for (let i = 0; i < cacheMisses.length; i++) {
+    const item = cacheMisses[i];
+    const translatedText = translations[i] || item.meaningJson?.subject || "";
+    results[item.id] = translatedText;
+
+    // Cache in content_translations
+    await supabase.from("content_translations").upsert({
+      meaning_object_id: item.id,
+      target_lang: targetLang,
+      field: "content",
+      translated_text: translatedText,
+    }, { onConflict: "meaning_object_id,target_lang,field" }).catch(() => {
+      // Best-effort cache — ignore conflicts
+    });
+  }
+
+  return new Response(JSON.stringify({ translations: results }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// ─── Phase 0: Legacy text-based translation ───
+async function handleLegacyTranslation(
+  supabase: any,
+  items: TranslateItem[],
+  targetLang: string,
+  apiKey: string
+) {
+  const results: Record<string, string> = {};
+  const cacheMisses: TranslateItem[] = [];
+
+  for (const item of items) {
+    if (item.source_lang === targetLang) {
+      results[`${item.table}:${item.id}:${item.field}`] = item.text;
+      continue;
+    }
+    cacheMisses.push(item);
+  }
+
+  if (cacheMisses.length === 0) {
+    return new Response(JSON.stringify({ translations: results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const textsToTranslate = cacheMisses.map((item, i) =>
+    `[${i}] ${item.text}`
+  ).join("\n");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.5-flash-lite",
+      messages: [
+        {
+          role: "system",
+          content: `You are a precise business content translator. Translate the following numbered texts into ${targetLang}. 
+Preserve business meaning, intent, and terminology exactly.
+Return ONLY a JSON array of strings in the same order as the input.
+Do not add explanations. Do not change meaning. Do not interpret.
+Example input:
+[0] Create marketing plan
+[1] Review Q3 budget
+
+Example output:
+["إنشاء خطة تسويقية", "مراجعة ميزانية الربع الثالث"]`,
+        },
+        { role: "user", content: textsToTranslate },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (response.status === 402) {
+      return new Response(JSON.stringify({ error: "AI credits exhausted" }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    throw new Error("Translation service error");
+  }
+
+  const aiResult = await response.json();
+  const rawContent = aiResult.choices?.[0]?.message?.content || "[]";
+
+  let translations: string[];
+  try {
+    const jsonMatch = rawContent.match(/\[[\s\S]*\]/);
+    translations = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+  } catch {
+    console.error("Failed to parse AI translation response:", rawContent);
+    for (const item of cacheMisses) {
+      results[`${item.table}:${item.id}:${item.field}`] = item.text;
+    }
+    return new Response(JSON.stringify({ translations: results }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  for (let i = 0; i < cacheMisses.length; i++) {
+    const item = cacheMisses[i];
+    const key = `${item.table}:${item.id}:${item.field}`;
+    results[key] = translations[i] || item.text;
+  }
+
+  return new Response(JSON.stringify({ translations: results }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}

@@ -69,7 +69,25 @@ WHAT YOU DO NOT DO:
 
 DRAFT-ONLY OUTPUT:
 All your suggestions are drafts. When proposing tasks or plans, clearly label them as drafts.
-The user will review and approve them before they are sent to Workboard for execution.`;
+The user will review and approve them before they are sent to Workboard for execution.
+
+MEANING-FIRST OUTPUT CONTRACT:
+When you propose tasks, goals, or action items, you MUST include a structured meaning block at the end of your response.
+This block is machine-readable and will be extracted by the system. Format:
+
+\`\`\`ULL_MEANING_V1
+[
+  {"version":"v1","type":"TASK","intent":"create","subject":"...","description":"...","constraints":{},"metadata":{"created_from":"brain","confidence":0.85}}
+]
+\`\`\`
+
+Rules for meaning blocks:
+- The block must be valid JSON
+- Must NOT include language-specific phrasing — use English for intent/subject/description
+- type must be one of: TASK, GOAL, IDEA, BRAIN_MESSAGE
+- intent should be: create, complete, plan, discuss, review
+- The natural language response remains user-facing in the user's language
+- The meaning block is for structured extraction only — it is NOT shown to the user`;
 
     if (businessContext) {
       systemPrompt += `\n\nBUSINESS CONTEXT:
