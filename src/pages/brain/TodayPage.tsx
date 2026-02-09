@@ -121,14 +121,10 @@ export default function TodayPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="pt-2">
         <h1 className="text-xl font-bold text-foreground">
           {getGreeting()}{displayName ? `, ${displayName}` : ''}
         </h1>
-        <Button size="sm" onClick={() => prefillAndFocus(t('today.setGoals'))} className="gap-1.5">
-          <Sparkles className="h-3.5 w-3.5" />
-          {t('today.askBrainToPlan')}
-        </Button>
       </div>
 
       {/* Read-Only Insights */}
