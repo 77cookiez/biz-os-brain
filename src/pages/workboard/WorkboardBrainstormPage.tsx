@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
+import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 
 interface Idea {
   id: string;
@@ -31,6 +33,7 @@ export default function WorkboardBrainstormPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
   const { createTask } = useWorkboardTasks();
 
   useEffect(() => {
@@ -49,13 +52,28 @@ export default function WorkboardBrainstormPage() {
 
   const addIdea = async () => {
     if (!currentWorkspace || !user || !title.trim()) return;
+
+    const meaningId = await createMeaningObject({
+      workspaceId: currentWorkspace.id,
+      createdBy: user.id,
+      type: 'IDEA',
+      sourceLang: currentLanguage.code,
+      meaningJson: buildMeaningFromText({
+        type: 'IDEA',
+        title,
+        description: description || undefined,
+      }),
+    });
+
     const { error } = await supabase.from('ideas').insert({
       workspace_id: currentWorkspace.id,
       created_by: user.id,
       title,
       description: description || null,
       source: 'manual',
-    });
+      source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
+    } as any);
     if (error) { toast.error('Failed to save idea'); return; }
     toast.success('Idea saved');
     setTitle('');
@@ -94,25 +112,53 @@ export default function WorkboardBrainstormPage() {
       if (jsonMatch) {
         const items = JSON.parse(jsonMatch[0]);
         for (const item of items) {
+          const mId = await createMeaningObject({
+            workspaceId: currentWorkspace.id,
+            createdBy: user.id,
+            type: 'IDEA',
+            sourceLang: currentLanguage.code,
+            meaningJson: buildMeaningFromText({
+              type: 'IDEA',
+              title: item.title,
+              description: item.description,
+              createdFrom: 'brain',
+            }),
+          });
           await supabase.from('ideas').insert({
             workspace_id: currentWorkspace.id,
             created_by: user.id,
             title: item.title,
             description: `[${item.type}] ${item.description || ''}`,
             source: 'brainstorm',
-          });
+            source_lang: currentLanguage.code,
+            meaning_object_id: mId,
+          } as any);
         }
         toast.success(`${items.length} items captured from brainstorm`);
         fetchIdeas();
       } else {
         // Save as single idea
+        const fallbackMId = await createMeaningObject({
+          workspaceId: currentWorkspace.id,
+          createdBy: user.id,
+          type: 'IDEA',
+          sourceLang: currentLanguage.code,
+          meaningJson: buildMeaningFromText({
+            type: 'IDEA',
+            title: aiInput.slice(0, 100),
+            description: content,
+            createdFrom: 'brain',
+          }),
+        });
         await supabase.from('ideas').insert({
           workspace_id: currentWorkspace.id,
           created_by: user.id,
           title: aiInput.slice(0, 100),
           description: content,
           source: 'brainstorm',
-        });
+          source_lang: currentLanguage.code,
+          meaning_object_id: fallbackMId,
+        } as any);
         toast.success('Brainstorm captured');
         fetchIdeas();
       }

@@ -53,6 +53,7 @@ export function TaskCard({ task, onStatusChange, onTogglePriority }: TaskCardPro
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <ULLText
+            meaningId={(task as any).meaning_object_id}
             table="tasks"
             id={task.id}
             field="title"
@@ -64,6 +65,7 @@ export function TaskCard({ task, onStatusChange, onTogglePriority }: TaskCardPro
         </div>
         {task.description && (
           <ULLText
+            meaningId={(task as any).meaning_object_id}
             table="tasks"
             id={task.id}
             field="description"

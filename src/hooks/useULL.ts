@@ -13,17 +13,27 @@ interface TranslateItem {
 
 // In-memory translation cache (shared across all hook instances)
 const translationCache = new Map<string, string>();
-const pendingRequests = new Map<string, Promise<void>>();
+// Meaning-based cache: meaning_object_id:target_lang → text
+const meaningCache = new Map<string, string>();
 
 function cacheKey(table: string, id: string, field: string, targetLang: string) {
   return `${table}:${id}:${field}:${targetLang}`;
 }
+
+function meaningCacheKey(meaningId: string, targetLang: string) {
+  return `meaning:${meaningId}:${targetLang}`;
+}
+
+// Pending meaning translation requests
+const pendingMeaningRequests = new Set<string>();
 
 export function useULL() {
   const { currentLanguage } = useLanguage();
   const [, forceUpdate] = useState(0);
   const batchQueue = useRef<TranslateItem[]>([]);
   const batchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const meaningQueue = useRef<string[]>([]);
+  const meaningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flushBatch = useCallback(async () => {
     const items = [...batchQueue.current];
@@ -51,33 +61,74 @@ export function useULL() {
         }),
       });
 
-      if (!resp.ok) return; // Fallback to original text silently
+      if (!resp.ok) return;
 
       const data = await resp.json();
       const translations = data.translations as Record<string, string>;
 
-      // Store in cache
       for (const [compositeKey, translatedText] of Object.entries(translations)) {
         const fullKey = `${compositeKey}:${targetLang}`;
         translationCache.set(fullKey, translatedText);
       }
 
-      // Trigger re-render for all consumers
       forceUpdate(n => n + 1);
     } catch {
       // Silent failure — original text will be shown
     }
   }, [currentLanguage.code]);
 
+  const flushMeaningBatch = useCallback(async () => {
+    const ids = [...meaningQueue.current];
+    meaningQueue.current = [];
+    if (ids.length === 0) return;
+
+    const targetLang = currentLanguage.code;
+
+    try {
+      const resp = await fetch(ULL_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          meaning_object_ids: ids,
+          target_lang: targetLang,
+        }),
+      });
+
+      if (!resp.ok) return;
+
+      const data = await resp.json();
+      const translations = data.translations as Record<string, string>;
+
+      for (const [mId, translatedText] of Object.entries(translations)) {
+        meaningCache.set(meaningCacheKey(mId, targetLang), translatedText);
+        pendingMeaningRequests.delete(mId);
+      }
+
+      forceUpdate(n => n + 1);
+    } catch {
+      for (const id of ids) pendingMeaningRequests.delete(id);
+    }
+  }, [currentLanguage.code]);
+
   const scheduleBatch = useCallback((item: TranslateItem) => {
     batchQueue.current.push(item);
     if (batchTimer.current) clearTimeout(batchTimer.current);
-    batchTimer.current = setTimeout(flushBatch, 50); // 50ms debounce
+    batchTimer.current = setTimeout(flushBatch, 50);
   }, [flushBatch]);
 
+  const scheduleMeaning = useCallback((meaningId: string) => {
+    if (pendingMeaningRequests.has(meaningId)) return;
+    pendingMeaningRequests.add(meaningId);
+    meaningQueue.current.push(meaningId);
+    if (meaningTimer.current) clearTimeout(meaningTimer.current);
+    meaningTimer.current = setTimeout(flushMeaningBatch, 50);
+  }, [flushMeaningBatch]);
+
   /**
-   * Get the translated text for a piece of content.
-   * Returns the original text immediately, schedules translation if needed.
+   * Legacy Phase 0: Get translated text by table/id/field.
    */
   const getText = useCallback((
     table: string,
@@ -87,23 +138,35 @@ export function useULL() {
     sourceLang: string = 'en'
   ): string => {
     const targetLang = currentLanguage.code;
-
-    // Same language — no translation needed
     if (sourceLang === targetLang) return originalText;
 
-    // Check cache
     const key = cacheKey(table, id, field, targetLang);
     const cached = translationCache.get(key);
     if (cached) return cached;
 
-    // Schedule translation
     scheduleBatch({ table, id, field, text: originalText, sourceLang });
-
-    // Return original while waiting
     return originalText;
   }, [currentLanguage.code, scheduleBatch]);
 
-  return { getText };
+  /**
+   * Phase 1: Get translated text by meaning_object_id.
+   */
+  const getTextByMeaning = useCallback((
+    meaningId: string | null | undefined,
+    fallback: string
+  ): string => {
+    if (!meaningId) return fallback;
+
+    const targetLang = currentLanguage.code;
+    const key = meaningCacheKey(meaningId, targetLang);
+    const cached = meaningCache.get(key);
+    if (cached) return cached;
+
+    scheduleMeaning(meaningId);
+    return fallback;
+  }, [currentLanguage.code, scheduleMeaning]);
+
+  return { getText, getTextByMeaning };
 }
 
 /**
@@ -111,4 +174,5 @@ export function useULL() {
  */
 export function clearULLCache() {
   translationCache.clear();
+  meaningCache.clear();
 }

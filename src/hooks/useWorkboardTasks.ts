@@ -4,6 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { createMeaningObject, updateMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 
 export type TaskStatus = 'backlog' | 'planned' | 'in_progress' | 'blocked' | 'done';
 
@@ -53,8 +54,27 @@ export function useWorkboardTasks() {
     due_date?: string;
     is_priority?: boolean;
     goal_id?: string;
+    meaning_object_id?: string; // allow pre-created meaning (e.g. from Brain)
   }) => {
     if (!currentWorkspace || !user) return;
+
+    // Meaning-first: create meaning object before task
+    let meaningId = task.meaning_object_id || null;
+    if (!meaningId) {
+      meaningId = await createMeaningObject({
+        workspaceId: currentWorkspace.id,
+        createdBy: user.id,
+        type: 'TASK',
+        sourceLang: currentLanguage.code,
+        meaningJson: buildMeaningFromText({
+          type: 'TASK',
+          title: task.title,
+          description: task.description,
+          createdFrom: 'user',
+        }),
+      });
+    }
+
     const { error } = await supabase.from('tasks').insert({
       workspace_id: currentWorkspace.id,
       created_by: user.id,
@@ -65,6 +85,7 @@ export function useWorkboardTasks() {
       is_priority: task.is_priority || false,
       goal_id: task.goal_id || null,
       source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
     } as any);
     if (error) {
       toast.error('Failed to create task');
@@ -78,6 +99,38 @@ export function useWorkboardTasks() {
     if (updates.status === 'done') {
       updates.completed_at = new Date().toISOString();
     }
+
+    // Lazy migration: if task has no meaning_object_id and title/description changed, create one
+    if (updates.title || updates.description) {
+      const existingTask = tasks.find(t => t.id === taskId);
+      if (existingTask && !(existingTask as any).meaning_object_id && currentWorkspace && user) {
+        const meaningId = await createMeaningObject({
+          workspaceId: currentWorkspace.id,
+          createdBy: user.id,
+          type: 'TASK',
+          sourceLang: currentLanguage.code,
+          meaningJson: buildMeaningFromText({
+            type: 'TASK',
+            title: updates.title || existingTask.title,
+            description: updates.description || existingTask.description || undefined,
+          }),
+        });
+        if (meaningId) {
+          (updates as any).meaning_object_id = meaningId;
+        }
+      } else if (existingTask && (existingTask as any).meaning_object_id) {
+        // Update existing meaning object
+        await updateMeaningObject({
+          meaningObjectId: (existingTask as any).meaning_object_id,
+          meaningJson: buildMeaningFromText({
+            type: 'TASK',
+            title: updates.title || existingTask.title,
+            description: updates.description || existingTask.description || undefined,
+          }),
+        });
+      }
+    }
+
     await supabase.from('tasks').update(updates as any).eq('id', taskId);
     fetchTasks();
   };

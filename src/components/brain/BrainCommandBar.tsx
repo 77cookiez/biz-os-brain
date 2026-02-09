@@ -11,6 +11,11 @@ import { useBrainWorkboardIntegration } from '@/hooks/useBrainWorkboardIntegrati
 import { WorkboardInstallPrompt } from '@/components/brain/WorkboardInstallPrompt';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { createMeaningObject, MeaningJsonV1Schema } from '@/lib/meaningObject';
+import type { MeaningJsonV1 } from '@/lib/meaningObject';
 
 export function BrainCommandBar() {
   const { t } = useTranslation();
@@ -20,6 +25,9 @@ export function BrainCommandBar() {
     showDraft, setShowDraft,
   } = useBrainCommand();
   const { isWorkboardInstalled, installWorkboard, createTasksFromPlan } = useBrainWorkboardIntegration();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
   const navigate = useNavigate();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [pendingPlanContent, setPendingPlanContent] = useState<string | null>(null);
@@ -48,12 +56,33 @@ export function BrainCommandBar() {
     await sendMessage(text);
   }, [input, isLoading, setInput, setShowDraft, sendMessage]);
 
-  // Parse AI response to extract actionable tasks
+  // Extract structured ULL_MEANING_V1 blocks from AI response
+  const extractMeaningBlocks = useCallback((content: string): MeaningJsonV1[] => {
+    const regex = /```ULL_MEANING_V1\s*([\s\S]*?)```/g;
+    const blocks: MeaningJsonV1[] = [];
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      try {
+        const parsed = JSON.parse(match[1].trim());
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of items) {
+          const validated = MeaningJsonV1Schema.safeParse(item);
+          if (validated.success) {
+            blocks.push(validated.data);
+          }
+        }
+      } catch {
+        // Invalid JSON — skip
+      }
+    }
+    return blocks;
+  }, []);
+
+  // Fallback: Parse AI response to extract actionable tasks (legacy regex)
   const extractTasksFromResponse = useCallback((content: string) => {
     const lines = content.split('\n');
     const tasks: { title: string; description?: string }[] = [];
     for (const line of lines) {
-      // Match numbered or bulleted task-like lines
       const match = line.match(/^[\s]*[-•*]\s+(.+)|^[\s]*\d+[.)]\s+(.+)/);
       if (match) {
         const title = (match[1] || match[2]).replace(/\*\*/g, '').trim();
@@ -80,6 +109,58 @@ export function BrainCommandBar() {
       return;
     }
 
+    // Phase 1: Try structured meaning blocks first
+    const meaningBlocks = extractMeaningBlocks(lastAssistant.content);
+
+    if (meaningBlocks.length > 0 && currentWorkspace && user) {
+      if (!isWorkboardInstalled) {
+        setPendingPlanContent(lastAssistant.content);
+        setShowInstallPrompt(true);
+        return;
+      }
+
+      const fingerprint = meaningBlocks.map(m => `${m.type}:${m.subject}`).sort().join('|');
+      if (fingerprint === sentDraftFingerprint) {
+        toast.info(t('brain.draftsAlreadySent'));
+        return;
+      }
+
+      setIsSending(true);
+      try {
+        // Create meaning objects and then tasks
+        const items = [];
+        for (const meaning of meaningBlocks) {
+          const meaningId = await createMeaningObject({
+            workspaceId: currentWorkspace.id,
+            createdBy: user.id,
+            type: meaning.type as any,
+            sourceLang: 'en', // Brain meaning blocks are always in English
+            meaningJson: meaning,
+          });
+          if (meaning.type === 'TASK') {
+            items.push({
+              type: 'task' as const,
+              title: meaning.subject,
+              description: meaning.description,
+              status: 'backlog' as const,
+              meaning_object_id: meaningId,
+            });
+          }
+        }
+        if (items.length > 0) {
+          await createTasksFromPlan(items as any);
+        }
+        setSentDraftFingerprint(fingerprint);
+        setShowDraft(false);
+        clearMessages();
+        navigate('/apps/workboard/today');
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
+    // Phase 0 fallback: regex extraction
     const tasks = extractTasksFromResponse(lastAssistant.content);
     
     if (tasks.length === 0) {
@@ -89,7 +170,6 @@ export function BrainCommandBar() {
       return;
     }
 
-    // Dedup: check if we already sent this exact set of drafts
     const fingerprint = generateFingerprint(tasks);
     if (fingerprint === sentDraftFingerprint) {
       toast.info(t('brain.draftsAlreadySent'));
@@ -118,7 +198,7 @@ export function BrainCommandBar() {
     } finally {
       setIsSending(false);
     }
-  }, [messages, isWorkboardInstalled, createTasksFromPlan, clearMessages, setShowDraft, navigate, extractTasksFromResponse, isSending, sentDraftFingerprint, generateFingerprint]);
+  }, [messages, isWorkboardInstalled, createTasksFromPlan, clearMessages, setShowDraft, navigate, extractTasksFromResponse, extractMeaningBlocks, isSending, sentDraftFingerprint, generateFingerprint, currentWorkspace, user, currentLanguage]);
 
   const handleInstallAndResume = useCallback(async () => {
     await installWorkboard();

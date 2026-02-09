@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 
 interface Goal {
   id: string;
@@ -46,6 +48,7 @@ export default function GoalsPage() {
   const [newPlan, setNewPlan] = useState({ title: '', description: '', planType: 'custom' as string, goalId: '' });
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -76,6 +79,18 @@ export default function GoalsPage() {
 
   const createGoal = async () => {
     if (!currentWorkspace || !user) return;
+
+    const meaningId = await createMeaningObject({
+      workspaceId: currentWorkspace.id,
+      createdBy: user.id,
+      type: 'GOAL',
+      sourceLang: currentLanguage.code,
+      meaningJson: buildMeaningFromText({
+        type: 'GOAL',
+        title: newGoal.title,
+        description: newGoal.description || undefined,
+      }),
+    });
     
     const { error } = await supabase.from('goals').insert({
       workspace_id: currentWorkspace.id,
@@ -85,7 +100,9 @@ export default function GoalsPage() {
       kpi_target: newGoal.kpiTarget ? parseFloat(newGoal.kpiTarget) : null,
       due_date: newGoal.dueDate || null,
       created_by: user.id,
-    });
+      source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
+    } as any);
 
     if (error) {
       toast.error('Failed to create goal');

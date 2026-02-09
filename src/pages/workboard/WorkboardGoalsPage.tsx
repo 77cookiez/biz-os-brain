@@ -9,9 +9,11 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
+import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 
 interface Goal {
   id: string;
@@ -30,6 +32,7 @@ export default function WorkboardGoalsPage() {
   const [form, setForm] = useState({ title: '', description: '', kpiName: '', kpiTarget: '', dueDate: '' });
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
   const { tasks } = useWorkboardTasks();
 
   useEffect(() => {
@@ -44,6 +47,19 @@ export default function WorkboardGoalsPage() {
 
   const createGoal = async () => {
     if (!currentWorkspace || !user || !form.title.trim()) return;
+
+    const meaningId = await createMeaningObject({
+      workspaceId: currentWorkspace.id,
+      createdBy: user.id,
+      type: 'GOAL',
+      sourceLang: currentLanguage.code,
+      meaningJson: buildMeaningFromText({
+        type: 'GOAL',
+        title: form.title,
+        description: form.description || undefined,
+      }),
+    });
+
     const { error } = await supabase.from('goals').insert({
       workspace_id: currentWorkspace.id,
       created_by: user.id,
@@ -52,7 +68,9 @@ export default function WorkboardGoalsPage() {
       kpi_name: form.kpiName || null,
       kpi_target: form.kpiTarget ? parseFloat(form.kpiTarget) : null,
       due_date: form.dueDate || null,
-    });
+      source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
+    } as any);
     if (error) { toast.error('Failed to create goal'); return; }
     toast.success('Goal created');
     setShowDialog(false);
