@@ -14,8 +14,8 @@ export interface ChatMessage {
   meaning_object_id: string;
   source_lang: string;
   created_at: string;
-  // Joined data
   meaning_json?: Record<string, unknown>;
+  sender_name?: string;
 }
 
 export function useChatMessages(threadId: string | null) {
@@ -36,9 +36,22 @@ export function useChatMessages(threadId: string | null) {
       .order('created_at', { ascending: true });
 
     if (!error && data) {
+      // Collect unique sender IDs
+      const senderIds = [...new Set(data.map((m: any) => m.sender_user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', senderIds);
+
+      const nameMap = new Map<string, string>();
+      profiles?.forEach((p: any) => {
+        if (p.full_name) nameMap.set(p.user_id, p.full_name);
+      });
+
       setMessages(data.map((m: any) => ({
         ...m,
         meaning_json: m.meaning_objects?.meaning_json,
+        sender_name: nameMap.get(m.sender_user_id) || undefined,
       })));
     }
     setLoading(false);
@@ -63,7 +76,6 @@ export function useChatMessages(threadId: string | null) {
           filter: `thread_id=eq.${threadId}`,
         },
         async (payload) => {
-          // Fetch the full message with meaning_json
           const { data } = await supabase
             .from('chat_messages')
             .select('*, meaning_objects(meaning_json)')
@@ -71,11 +83,30 @@ export function useChatMessages(threadId: string | null) {
             .single();
 
           if (data) {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('user_id', (data as any).sender_user_id)
+              .single();
+
             setMessages(prev => [...prev, {
               ...data,
               meaning_json: (data as any).meaning_objects?.meaning_json,
+              sender_name: profile?.full_name || undefined,
             } as ChatMessage]);
           }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `thread_id=eq.${threadId}`,
+        },
+        (payload) => {
+          setMessages(prev => prev.filter(m => m.id !== (payload.old as any).id));
         }
       )
       .subscribe();
@@ -90,16 +121,13 @@ export function useChatMessages(threadId: string | null) {
 
     const sourceLang = currentLanguage.code;
 
-    // 1. Create meaning object
     const meaningJson: MeaningJsonV1 = {
       version: 'v1',
       type: 'MESSAGE',
       intent: 'communicate',
       subject: 'chat_message',
       description: text.trim(),
-      metadata: {
-        created_from: 'user',
-      },
+      metadata: { created_from: 'user' },
     };
 
     const meaningId = await createMeaningObject({
@@ -110,12 +138,8 @@ export function useChatMessages(threadId: string | null) {
       meaningJson,
     });
 
-    if (!meaningId) {
-      console.error('[Chat] Failed to create meaning object');
-      return false;
-    }
+    if (!meaningId) return false;
 
-    // 2. Insert chat message
     const { error } = await supabase
       .from('chat_messages')
       .insert({
@@ -134,5 +158,20 @@ export function useChatMessages(threadId: string | null) {
     return true;
   }, [threadId, currentWorkspace?.id, user?.id, currentLanguage.code]);
 
-  return { messages, loading, sendMessage, refreshMessages: fetchMessages };
+  const deleteMessage = useCallback(async (messageId: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('chat_messages')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) {
+      console.error('[Chat] Failed to delete message:', error.message);
+      return false;
+    }
+
+    setMessages(prev => prev.filter(m => m.id !== messageId));
+    return true;
+  }, []);
+
+  return { messages, loading, sendMessage, deleteMessage, refreshMessages: fetchMessages };
 }

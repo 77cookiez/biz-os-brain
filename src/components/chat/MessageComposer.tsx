@@ -5,10 +5,11 @@ import { Textarea } from '@/components/ui/textarea';
 
 interface MessageComposerProps {
   onSend: (text: string) => Promise<boolean>;
+  onTyping?: () => void;
   disabled?: boolean;
 }
 
-export function MessageComposer({ onSend, disabled }: MessageComposerProps) {
+export function MessageComposer({ onSend, onTyping, disabled }: MessageComposerProps) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -27,12 +28,17 @@ export function MessageComposer({ onSend, disabled }: MessageComposerProps) {
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setText(e.target.value);
+    onTyping?.();
+  };
+
   return (
     <div className="border-t border-border p-3 bg-card">
       <div className="flex items-end gap-2 max-w-2xl mx-auto">
         <Textarea
           value={text}
-          onChange={e => setText(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Type a message…"
           disabled={disabled || sending}

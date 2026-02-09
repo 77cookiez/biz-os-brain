@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import { ThreadList } from '@/components/chat/ThreadList';
 import { MessageView } from '@/components/chat/MessageView';
@@ -6,12 +6,98 @@ import { MessageComposer } from '@/components/chat/MessageComposer';
 import { NewThreadDialog } from '@/components/chat/NewThreadDialog';
 import { useChatThreads } from '@/hooks/useChatThreads';
 import { useChatMessages } from '@/hooks/useChatMessages';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { useReadReceipts, useChatAudit } from '@/hooks/useChatUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { toast } from 'sonner';
+
+const WELCOME_KEY = 'chat_welcome_seen';
+
+function hasSeenWelcome(workspaceId: string): boolean {
+  try {
+    const seen = JSON.parse(localStorage.getItem(WELCOME_KEY) || '{}');
+    return !!seen[workspaceId];
+  } catch { return false; }
+}
+
+function markWelcomeSeen(workspaceId: string) {
+  try {
+    const seen = JSON.parse(localStorage.getItem(WELCOME_KEY) || '{}');
+    seen[workspaceId] = true;
+    localStorage.setItem(WELCOME_KEY, JSON.stringify(seen));
+  } catch {}
+}
 
 export default function ChatPage() {
-  const { threads, loading: threadsLoading, createThread } = useChatThreads();
+  const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
+  const { threads, loading: threadsLoading, createThread, deleteThread, refreshThreads } = useChatThreads();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [newThreadOpen, setNewThreadOpen] = useState(false);
-  const { messages, loading: messagesLoading, sendMessage } = useChatMessages(selectedThreadId);
+  const { messages, loading: messagesLoading, sendMessage, deleteMessage } = useChatMessages(selectedThreadId);
+  const { typingUsers, broadcastTyping } = useTypingIndicator(selectedThreadId);
+  const { markAsRead } = useReadReceipts(selectedThreadId);
+  const { logAction } = useChatAudit();
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  // Determine if welcome should show
+  useEffect(() => {
+    if (currentWorkspace && !hasSeenWelcome(currentWorkspace.id)) {
+      setShowWelcome(true);
+    }
+  }, [currentWorkspace?.id]);
+
+  // Mark welcome as seen once user sends a message or has threads
+  useEffect(() => {
+    if (showWelcome && currentWorkspace && threads.length > 0) {
+      markWelcomeSeen(currentWorkspace.id);
+      // Keep showing until they navigate to a thread
+    }
+  }, [threads.length, showWelcome, currentWorkspace?.id]);
+
+  // Mark as read when viewing thread
+  useEffect(() => {
+    if (selectedThreadId && messages.length > 0) {
+      markAsRead();
+    }
+  }, [selectedThreadId, messages.length, markAsRead]);
+
+  // Workspace admin check (owner or admin role)
+  const isAdmin = true; // For now, allow message/thread owners + workspace owners. RLS enforces actual permission.
+
+  const handleDeleteThread = useCallback(async (threadId: string) => {
+    const ok = await deleteThread(threadId);
+    if (ok) {
+      logAction('chat_thread.deleted', threadId);
+      toast.success('Thread deleted');
+      if (selectedThreadId === threadId) setSelectedThreadId(null);
+    } else {
+      toast.error('Failed to delete thread');
+    }
+  }, [deleteThread, logAction, selectedThreadId]);
+
+  const handleDeleteMessage = useCallback(async (messageId: string) => {
+    const ok = await deleteMessage(messageId);
+    if (ok) {
+      logAction('chat_message.deleted', messageId);
+    } else {
+      toast.error('Failed to delete message');
+    }
+  }, [deleteMessage, logAction]);
+
+  const handleSend = useCallback(async (text: string) => {
+    const ok = await sendMessage(text);
+    if (ok) {
+      if (showWelcome && currentWorkspace) {
+        markWelcomeSeen(currentWorkspace.id);
+        setShowWelcome(false);
+      }
+      // Refresh thread list to update last message preview
+      refreshThreads();
+    }
+    return ok;
+  }, [sendMessage, showWelcome, currentWorkspace?.id, refreshThreads]);
 
   return (
     <div className="flex h-full bg-background rounded-lg border border-border overflow-hidden">
@@ -20,9 +106,17 @@ export default function ChatPage() {
         <ThreadList
           threads={threads}
           selectedThreadId={selectedThreadId}
-          onSelectThread={setSelectedThreadId}
+          onSelectThread={(id) => {
+            setSelectedThreadId(id);
+            if (showWelcome && currentWorkspace) {
+              markWelcomeSeen(currentWorkspace.id);
+              setShowWelcome(false);
+            }
+          }}
           onNewThread={() => setNewThreadOpen(true)}
+          onDeleteThread={handleDeleteThread}
           loading={threadsLoading}
+          isAdmin={isAdmin}
         />
       </div>
 
@@ -30,8 +124,15 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col min-w-0">
         {selectedThreadId ? (
           <>
-            <MessageView messages={messages} loading={messagesLoading} />
-            <MessageComposer onSend={sendMessage} />
+            <MessageView
+              messages={messages}
+              loading={messagesLoading}
+              typingUsers={typingUsers}
+              onDeleteMessage={handleDeleteMessage}
+              isAdmin={isAdmin}
+              showWelcome={showWelcome}
+            />
+            <MessageComposer onSend={handleSend} onTyping={broadcastTyping} />
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-4 px-6">
@@ -56,6 +157,7 @@ export default function ChatPage() {
         onCreated={(id) => {
           setNewThreadOpen(false);
           setSelectedThreadId(id);
+          logAction('chat_thread.created', id);
         }}
         createThread={createThread}
       />
