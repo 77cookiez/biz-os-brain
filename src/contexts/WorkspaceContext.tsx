@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { isSystemApp } from '@/lib/systemApps';
 
 interface Company {
   id: string;
@@ -343,6 +344,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
   const deactivateApp = async (appId: string) => {
     if (!currentWorkspace) return;
+    if (isSystemApp(appId)) {
+      console.warn(`[OS] Cannot deactivate system app: ${appId}`);
+      return;
+    }
 
     await supabase
       .from('workspace_apps')

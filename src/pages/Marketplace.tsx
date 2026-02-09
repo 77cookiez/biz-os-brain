@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Package, ArrowRight, Check, Loader2 } from 'lucide-react';
+import { Search, Package, ArrowRight, Check, Loader2, Shield } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isSystemApp, HIDDEN_FROM_MARKETPLACE } from '@/lib/systemApps';
 
 interface AppItem {
   id: string;
@@ -40,7 +41,7 @@ export default function Marketplace() {
     const { data } = await supabase
       .from('app_registry')
       .select('*')
-      .neq('id', 'brain')
+      .not('id', 'in', `(${HIDDEN_FROM_MARKETPLACE.join(',')})`)
       .order('name');
     setApps((data as AppItem[]) || []);
   };
@@ -78,21 +79,25 @@ export default function Marketplace() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredApps.map(app => {
           const installed = isAppInstalled(app.id);
+          const systemApp = isSystemApp(app.id);
           return (
             <Card key={app.id} className={`border-border bg-card cursor-pointer hover:border-primary/50 ${app.status === 'coming_soon' ? 'opacity-50' : ''}`} onClick={() => setSelectedApp(app)}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Package className="h-5 w-5 text-primary" />
+                    {systemApp ? <Shield className="h-5 w-5 text-primary" /> : <Package className="h-5 w-5 text-primary" />}
                   </div>
-                  <Badge variant={pricingLabels[app.pricing].variant}>{pricingLabels[app.pricing].label}</Badge>
+                  <div className="flex items-center gap-1.5">
+                    {systemApp && <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">System</Badge>}
+                    <Badge variant={pricingLabels[app.pricing].variant}>{pricingLabels[app.pricing].label}</Badge>
+                  </div>
                 </div>
                 <CardTitle className="text-foreground mt-3">{app.name}</CardTitle>
                 <CardDescription className="line-clamp-2">{app.description}</CardDescription>
               </CardHeader>
               <CardContent className="pt-0">
                 {installed ? (
-                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30"><Check className="h-3 w-3 mr-1" />Installed</Badge>
+                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/30"><Check className="h-3 w-3 mr-1" />{systemApp ? 'Always Active' : 'Installed'}</Badge>
                 ) : app.status === 'coming_soon' ? (
                   <Badge variant="secondary">Coming Soon</Badge>
                 ) : (
@@ -113,7 +118,12 @@ export default function Marketplace() {
                 <DialogDescription>{selectedApp.description}</DialogDescription>
               </DialogHeader>
               <div className="pt-4">
-                {selectedApp.status === 'coming_soon' ? (
+                {isSystemApp(selectedApp.id) ? (
+                  <div className="text-center space-y-2">
+                    <Badge variant="outline" className="border-primary/30 text-primary">System App — Always Active</Badge>
+                    <p className="text-xs text-muted-foreground">This is a core OS module required by other apps. It cannot be deactivated or removed.</p>
+                  </div>
+                ) : selectedApp.status === 'coming_soon' ? (
                   <Button disabled className="w-full">Coming Soon</Button>
                 ) : isAppInstalled(selectedApp.id) ? (
                   <Button variant="secondary" className="w-full" onClick={() => { deactivateApp(selectedApp.id); setSelectedApp(null); toast.success('Deactivated'); }}>Deactivate</Button>
