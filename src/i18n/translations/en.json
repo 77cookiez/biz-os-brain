@@ -20,7 +20,8 @@
     "evening": "Good evening"
   },
   "navigation": {
-    "aiBrain": "AI BRAIN",
+    "businessBrain": "BUSINESS BRAIN",
+    "aiBrain": "BUSINESS BRAIN",
     "today": "Today",
     "goalsPlans": "Goals & Plans",
     "teamTasks": "Team Tasks",
@@ -30,12 +31,19 @@
     "settings": "Settings"
   },
   "topbar": {
-    "askAi": "Ask AI Brain anything...",
+    "askBrain": "Ask Business Brain anything...",
+    "askAi": "Ask Business Brain anything...",
     "companies": "Companies",
     "workspaces": "Workspaces",
     "newWorkspace": "New Workspace",
     "signOut": "Sign Out",
-    "businessSetup": "Business Setup"
+    "businessSetup": "Business Setup",
+    "teamRoles": "Team & Roles"
+  },
+  "brain": {
+    "confirm": "Confirm",
+    "editDraft": "Edit",
+    "draftTitle": "Draft Preview"
   },
   "account": {
     "title": "Account",
@@ -163,8 +171,18 @@
     "reviewPerformance": "Review last week's performance",
     "marketingPlan": "Help me create a marketing plan",
     "activateApps": "Which apps should I activate?",
-    "noTasks": "No tasks yet. Ask AI Brain to help you plan!",
-    "priorityTasks": "Priority Tasks"
+    "noTasks": "No tasks yet. Ask Business Brain to help you plan!",
+    "priorityTasks": "Top 3 Priorities",
+    "overdue": "Overdue",
+    "thisWeek": "This Week",
+    "quickActions": "Quick Actions",
+    "addTask": "Add Task",
+    "askBrainToPlan": "Ask Brain to Plan",
+    "taskTitle": "Task Title",
+    "taskTitlePlaceholder": "What needs to be done?",
+    "taskDescription": "Description",
+    "taskDescriptionPlaceholder": "Optional details...",
+    "dueDate": "Due Date"
   },
   "auth": {
     "signIn": "Sign In",

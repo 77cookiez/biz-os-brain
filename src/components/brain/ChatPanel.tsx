@@ -48,7 +48,7 @@ export function ChatPanel({ messages, isLoading, onSendMessage }: ChatPanelProps
           {messages.length === 0 && (
             <div className="text-center py-12">
               <Sparkles className="h-10 w-10 text-primary mx-auto mb-4" />
-              <h3 className="font-medium text-foreground mb-2">AI Business Brain</h3>
+              <h3 className="font-medium text-foreground mb-2">Business Brain</h3>
               <p className="text-sm text-muted-foreground">
                 Ask me anything about your business, planning, or goals.
               </p>
@@ -110,7 +110,7 @@ export function ChatPanel({ messages, isLoading, onSendMessage }: ChatPanelProps
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask AI Brain anything..."
+            placeholder="Ask Business Brain anything..."
             className="min-h-[44px] max-h-[120px] bg-input border-border text-foreground resize-none"
             rows={1}
           />

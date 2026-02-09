@@ -1,0 +1,98 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+
+interface AddTaskDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onTaskCreated: () => void;
+}
+
+export function AddTaskDialog({ open, onOpenChange, onTaskCreated }: AddTaskDialogProps) {
+  const { t } = useTranslation();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!title.trim() || !currentWorkspace || !user) return;
+    setSaving(true);
+    const { error } = await supabase.from('tasks').insert({
+      title: title.trim(),
+      description: description.trim() || null,
+      due_date: dueDate || null,
+      workspace_id: currentWorkspace.id,
+      created_by: user.id,
+      status: 'planned',
+      is_priority: false,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error(t('common.error'));
+    } else {
+      toast.success(t('common.success'));
+      setTitle('');
+      setDescription('');
+      setDueDate('');
+      onOpenChange(false);
+      onTaskCreated();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t('today.addTask')}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>{t('today.taskTitle')}</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t('today.taskTitlePlaceholder')}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{t('today.taskDescription')}</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('today.taskDescriptionPlaceholder')}
+              rows={3}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{t('today.dueDate')}</Label>
+            <Input
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleSave} disabled={!title.trim() || saving}>
+            {t('common.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

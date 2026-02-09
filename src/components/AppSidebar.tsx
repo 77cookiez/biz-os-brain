@@ -1,4 +1,4 @@
-import { Brain, LayoutGrid, Settings, Store, FileText, Users, Package, BarChart3, Mail, ShoppingCart, ChevronLeft, ChevronRight, Target, CheckSquare, Calendar, Sparkles } from "lucide-react";
+import { LayoutGrid, Settings, Store, ChevronLeft, ChevronRight, Target, CheckSquare, Calendar, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useTranslation } from "react-i18next";
@@ -6,53 +6,33 @@ import { useTranslation } from "react-i18next";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface AppItem {
-  title: string;
-  icon: React.ElementType;
-  url: string;
-  active: boolean;
-  isBrain?: boolean;
-}
-
-interface AppRegistryItem {
-  id: string;
-  name: string;
-  icon: string;
-  status: string;
-}
-
-const iconMap: Record<string, React.ElementType> = {
-  Brain,
-  FileText,
-  Users,
-  BarChart3,
-  Package,
-  ShoppingCart,
-  Mail,
-};
+const iconMap: Record<string, React.ElementType> = {};
 
 export function AppSidebar() {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
-  const [apps, setApps] = useState<AppRegistryItem[]>([]);
   const { installedApps } = useWorkspace();
+  const [appNames, setAppNames] = useState<Record<string, { name: string; icon: string }>>({});
 
+  // Fetch app registry names for installed active apps
   useEffect(() => {
-    fetchApps();
-  }, []);
-
-  const fetchApps = async () => {
-    const { data } = await supabase
+    const activeIds = installedApps.filter(a => a.is_active).map(a => a.app_id);
+    if (activeIds.length === 0) {
+      setAppNames({});
+      return;
+    }
+    supabase
       .from('app_registry')
-      .select('id, name, icon, status')
-      .neq('id', 'brain')
-      .order('name');
-    setApps(data || []);
-  };
+      .select('id, name, icon')
+      .in('id', activeIds)
+      .then(({ data }) => {
+        const map: Record<string, { name: string; icon: string }> = {};
+        data?.forEach(a => { map[a.id] = { name: a.name, icon: a.icon || '' }; });
+        setAppNames(map);
+      });
+  }, [installedApps]);
 
-  const isAppActive = (appId: string) => {
-    return installedApps.some(a => a.app_id === appId && a.is_active);
-  };
+  const activeApps = installedApps.filter(a => a.is_active);
 
   const brainLinks = [
     { title: t('navigation.today'), icon: Sparkles, url: "/" },
@@ -86,7 +66,7 @@ export function AppSidebar() {
       <div className="px-3 pt-4 pb-2">
         {!collapsed && (
           <span className="text-[10px] uppercase tracking-widest text-muted-foreground px-2">
-            {t('navigation.aiBrain')}
+            {t('navigation.businessBrain')}
           </span>
         )}
         <nav className="mt-2 flex flex-col gap-1">
@@ -105,51 +85,36 @@ export function AppSidebar() {
         </nav>
       </div>
 
-      {/* Installed Apps */}
-      <div className="px-3 pt-3 pb-2 flex-1 overflow-auto">
-        {!collapsed && (
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground px-2">
-            {t('navigation.apps')}
-          </span>
-        )}
-        <nav className="mt-2 flex flex-col gap-1">
-          {apps.map((app) => {
-            const Icon = iconMap[app.icon] || LayoutGrid;
-            const active = isAppActive(app.id);
-            const available = app.status === 'available' || app.status === 'active';
+      {/* Installed Active Apps Only */}
+      {activeApps.length > 0 && (
+        <div className="px-3 pt-3 pb-2 flex-1 overflow-auto">
+          {!collapsed && (
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground px-2">
+              {t('navigation.apps')}
+            </span>
+          )}
+          <nav className="mt-2 flex flex-col gap-1">
+            {activeApps.map((app) => {
+              const info = appNames[app.app_id];
+              const Icon = LayoutGrid;
+              return (
+                <NavLink
+                  key={app.app_id}
+                  to={`/apps/${app.app_id}`}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-secondary-foreground hover:bg-secondary transition-all"
+                  activeClassName="bg-secondary text-foreground"
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {!collapsed && <span>{info?.name || app.app_id}</span>}
+                </NavLink>
+              );
+            })}
+          </nav>
+        </div>
+      )}
 
-            return (
-              <NavLink
-                key={app.id}
-                to={active ? `/apps/${app.id}` : "/marketplace"}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all ${
-                  active
-                    ? "text-secondary-foreground hover:bg-secondary"
-                    : "text-muted-foreground/50 hover:text-muted-foreground hover:bg-secondary/50"
-                }`}
-                activeClassName={active ? "bg-secondary text-foreground" : ""}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {!collapsed && (
-                  <>
-                    <span>{app.name}</span>
-                    {!active && available && (
-                      <span className="ml-auto text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                        off
-                      </span>
-                    )}
-                    {app.status === 'coming_soon' && (
-                      <span className="ml-auto text-[10px] rounded-full bg-muted px-2 py-0.5 text-muted-foreground">
-                        soon
-                      </span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
-      </div>
+      {/* Spacer when no apps */}
+      {activeApps.length === 0 && <div className="flex-1" />}
 
       {/* Bottom */}
       <div className="px-3 pb-4 flex flex-col gap-1 border-t border-border pt-3">

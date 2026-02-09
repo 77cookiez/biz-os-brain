@@ -123,7 +123,7 @@ export function useBrainChat() {
       }
     } catch (error) {
       console.error('Chat error:', error);
-      toast.error('Failed to communicate with AI Brain');
+      toast.error('Failed to communicate with Business Brain');
     } finally {
       setIsLoading(false);
     }

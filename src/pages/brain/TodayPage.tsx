@@ -1,18 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Brain, Sparkles, Target, TrendingUp, Lightbulb, ArrowRight, Send, Plus, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Target, Plus, Sparkles, Calendar, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBrainChat } from '@/hooks/useBrainChat';
+import { useBrainCommand } from '@/contexts/BrainCommandContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { ChatPanel } from '@/components/brain/ChatPanel';
-import { toast } from 'sonner';
-import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
+import { AddTaskDialog } from '@/components/brain/AddTaskDialog';
 
 interface Task {
   id: string;
@@ -24,20 +21,12 @@ interface Task {
 
 export default function TodayPage() {
   const { t } = useTranslation();
-  const [input, setInput] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [showChat, setShowChat] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
   const { currentWorkspace, businessContext } = useWorkspace();
   const { user } = useAuth();
-  const { messages, isLoading, sendMessage, clearMessages } = useBrainChat();
+  const { prefillAndFocus } = useBrainCommand();
   const navigate = useNavigate();
-
-  const suggestions = [
-    { icon: Target, text: t('today.setGoals'), action: "create_plan" },
-    { icon: TrendingUp, text: t('today.reviewPerformance'), action: "weekly_checkin" },
-    { icon: Lightbulb, text: t('today.marketingPlan'), action: "create_plan" },
-    { icon: Sparkles, text: t('today.activateApps'), action: undefined },
-  ];
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -46,14 +35,13 @@ export default function TodayPage() {
     return t('greeting.evening');
   };
 
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+
   useEffect(() => {
-    if (currentWorkspace) {
-      fetchTasks();
-    }
+    if (currentWorkspace) fetchTasks();
   }, [currentWorkspace?.id]);
 
   useEffect(() => {
-    // If business setup not completed, redirect
     if (currentWorkspace && businessContext !== null && !businessContext?.setup_completed) {
       navigate('/brain/setup');
     }
@@ -61,10 +49,7 @@ export default function TodayPage() {
 
   const fetchTasks = async () => {
     if (!currentWorkspace) return;
-    
-    const today = new Date().toISOString().split('T')[0];
     const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
     const { data } = await supabase
       .from('tasks')
       .select('id, title, status, due_date, is_priority')
@@ -74,93 +59,37 @@ export default function TodayPage() {
       .order('is_priority', { ascending: false })
       .order('due_date')
       .limit(10);
-
     setTasks(data || []);
   };
 
-  const handleSend = async () => {
-    if (!input.trim()) return;
-    setShowChat(true);
-    await sendMessage(input);
-    setInput('');
-  };
-
-  const handleSuggestion = async (text: string, action?: string) => {
-    setShowChat(true);
-    await sendMessage(text, action);
-  };
+  const suggestions = [
+    { text: t('today.setGoals') },
+    { text: t('today.reviewPerformance') },
+    { text: t('today.marketingPlan') },
+    { text: t('today.activateApps') },
+  ];
 
   const priorityTasks = tasks.filter(t => t.is_priority).slice(0, 3);
   const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'done');
   const upcomingTasks = tasks.filter(t => !t.is_priority && (!t.due_date || new Date(t.due_date) >= new Date())).slice(0, 5);
 
-  if (showChat) {
-    return (
-      <div className="mx-auto max-w-4xl h-full flex flex-col">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-foreground">AI Brain</h1>
-          <Button variant="ghost" size="sm" onClick={() => { setShowChat(false); clearMessages(); }}>
-            Back to Today
-          </Button>
-        </div>
-        <ChatPanel 
-          messages={messages} 
-          isLoading={isLoading} 
-          onSendMessage={sendMessage}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      {/* Hero */}
-      <div className="text-center space-y-2 pt-4">
-        <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 brain-glow mb-3">
-          <Brain className="h-7 w-7 text-primary" />
-        </div>
-        <h1 className="text-2xl font-bold text-foreground tracking-tight">
-          {getGreeting()}
+      {/* Header */}
+      <div className="flex items-center justify-between pt-2">
+        <h1 className="text-xl font-bold text-foreground">
+          {getGreeting()}{displayName ? `, ${displayName}` : ''}
         </h1>
-        <p className="text-muted-foreground">
-          {t('today.whatToWorkOn')}
-        </p>
-      </div>
-
-      {/* Main AI Input */}
-      <div className="relative">
-        <div className="rounded-xl border border-border bg-card p-1 card-shadow focus-within:ring-1 focus-within:ring-primary/50 transition-shadow">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <Sparkles className="h-5 w-5 text-primary shrink-0" />
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={t('today.askAnything')}
-              className="flex-1 bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0"
-            />
-            <Button size="icon" className="h-8 w-8 shrink-0" onClick={handleSend} disabled={isLoading}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowAddTask(true)} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            {t('today.addTask')}
+          </Button>
+          <Button size="sm" onClick={() => prefillAndFocus(t('today.setGoals'))} className="gap-1.5">
+            <Sparkles className="h-3.5 w-3.5" />
+            {t('today.askBrainToPlan')}
+          </Button>
         </div>
-      </div>
-
-      {/* Suggestion Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {suggestions.map((s, i) => (
-          <button
-            key={i}
-            onClick={() => handleSuggestion(s.text, s.action)}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left text-sm transition-all hover:bg-secondary hover:border-primary/30 group"
-          >
-            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <s.icon className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-secondary-foreground flex-1">{s.text}</span>
-            <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-        ))}
       </div>
 
       {/* Priority Tasks */}
@@ -191,7 +120,7 @@ export default function TodayPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-destructive uppercase tracking-wider flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
-              Overdue
+              {t('today.overdue')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -213,7 +142,7 @@ export default function TodayPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              This Week
+              {t('today.thisWeek')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -240,6 +169,30 @@ export default function TodayPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Quick Actions */}
+      <div className="space-y-3">
+        <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
+          {t('today.quickActions')}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {suggestions.map((s, i) => (
+            <button
+              key={i}
+              onClick={() => prefillAndFocus(s.text)}
+              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left text-sm transition-all hover:bg-secondary hover:border-primary/30 group"
+            >
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <span className="text-secondary-foreground flex-1">{s.text}</span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <AddTaskDialog open={showAddTask} onOpenChange={setShowAddTask} onTaskCreated={fetchTasks} />
     </div>
   );
 }

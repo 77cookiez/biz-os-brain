@@ -1,10 +1,11 @@
-import { Search, Globe, ChevronDown, LogOut, Building2, Plus } from "lucide-react";
+import { Globe, ChevronDown, LogOut, Building2, Plus, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
+import { BrainCommandBar } from "@/components/brain/BrainCommandBar";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -19,7 +20,7 @@ export function TopBar() {
   const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const { currentCompany, currentWorkspace, companies, workspaces, setCurrentCompany, setCurrentWorkspace } = useWorkspace();
-  const { currentLanguage, enabledLanguages, cycleLanguage, setCurrentLanguage } = useLanguage();
+  const { currentLanguage, enabledLanguages, setCurrentLanguage } = useLanguage();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -33,19 +34,8 @@ export function TopBar() {
 
   return (
     <header className="flex h-14 items-center border-b border-border bg-card px-4 gap-4">
-      {/* AI Input */}
-      <div className="flex-1 max-w-xl">
-        <div 
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground cursor-pointer hover:bg-secondary transition-colors"
-        >
-          <Search className="h-4 w-4 shrink-0 text-primary" />
-          <span>{t('topbar.askAi')}</span>
-          <kbd className="ml-auto hidden sm:inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
-            ⌘K
-          </kbd>
-        </div>
-      </div>
+      {/* Global Brain Command Bar */}
+      <BrainCommandBar />
 
       {/* Company & Workspace Switcher */}
       <DropdownMenu>
@@ -96,6 +86,10 @@ export function TopBar() {
           <DropdownMenuItem onClick={() => navigate('/settings/workspaces')}>
             <Plus className="h-4 w-4 mr-2" />
             {t('topbar.newWorkspace')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/settings/team')}>
+            <Users className="h-4 w-4 mr-2" />
+            {t('topbar.teamRoles')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
