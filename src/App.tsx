@@ -13,6 +13,7 @@ import { OSLayout } from "@/components/OSLayout";
 import AuthPage from "@/pages/AuthPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import TodayPage from "@/pages/brain/TodayPage";
+import BrainPage from "@/pages/brain/BrainPage";
 import BusinessSetupPage from "@/pages/brain/BusinessSetupPage";
 import TeamTasksPage from "@/pages/brain/TeamTasksPage";
 import WeeklyCheckinPage from "@/pages/brain/WeeklyCheckinPage";
@@ -135,6 +136,7 @@ const AppRoutes = () => (
       }
     >
       <Route path="/" element={<TodayPage />} />
+      <Route path="/brain" element={<BrainPage />} />
       <Route path="/brain/setup" element={<BusinessSetupPage />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/settings" element={<SettingsPage />} />

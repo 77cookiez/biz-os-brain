@@ -23,6 +23,7 @@
     "businessBrain": "CERVEAU D'AFFAIRES",
     "aiBrain": "CERVEAU D'AFFAIRES",
     "today": "Aujourd'hui",
+    "brain": "Cerveau",
     "goalsPlans": "Objectifs & Plans",
     "teamTasks": "Tâches d'équipe",
     "weeklyCheckin": "Bilan hebdomadaire",
@@ -49,6 +50,53 @@
     "draftsSentToBacklog": "{{count}} brouillon(s) envoyé(s) au Backlog du Workboard. Révisez et planifiez-les dans le Workboard.",
     "editDraft": "Modifier",
     "draftTitle": "Aperçu du brouillon"
+  },
+  "brainPage": {
+    "title": "Cerveau d'Affaires IA",
+    "subtitle": "Conseiller stratégique — pense, analyse, n'exécute jamais",
+    "thinking": "Réflexion...",
+    "inputPlaceholder": "Demandez au Cerveau d'Affaires n'importe quoi sur votre entreprise…",
+    "context": {
+      "status": "Contexte prêt",
+      "appsConnected": "apps connectées",
+      "dataFresh": "Données à jour"
+    },
+    "empty": {
+      "title": "Votre Conseiller Stratégique",
+      "subtitle": "J'analyse, conseille et rédige des plans — toute exécution se fait dans vos apps après votre approbation."
+    },
+    "capability": {
+      "advisor": "Conseiller Stratégique",
+      "advisorDesc": "Analyser les risques, détecter les lacunes et obtenir des recommandations",
+      "planning": "Planification d'Affaires",
+      "planningDesc": "Rédiger des plans, décomposer les objectifs et créer des feuilles de route",
+      "coaching": "Coaching d'Affaires",
+      "coachingDesc": "Obtenir des insights sur la performance, la dynamique d'équipe et la croissance"
+    },
+    "suggestion": {
+      "setupBusiness": "Aidez-moi à configurer mon contexte d'entreprise",
+      "reprioritize": "J'ai des tâches en retard — aidez-moi à reprioriser",
+      "unblock": "Aidez-moi à résoudre les tâches bloquées",
+      "setGoals": "Définir des objectifs stratégiques pour ce trimestre",
+      "planDay": "Aidez-moi à planifier ma journée efficacement",
+      "reviewProgress": "Examiner mes progrès et suggérer des améliorations",
+      "strategize": "Aidez-moi à réfléchir à ma stratégie d'entreprise"
+    },
+    "decisionPanel": {
+      "title": "Décision & Brouillon",
+      "saveAsDraft": "Enregistrer comme brouillon",
+      "dryRun": "Aperçu de test",
+      "sendToWorkboard": "Envoyer au Workboard",
+      "dismiss": "Ignorer"
+    },
+    "voice": {
+      "listening": "Écoute...",
+      "confidence": {
+        "high": "Confiance élevée",
+        "medium": "Confiance moyenne",
+        "low": "Confiance faible"
+      }
+    }
   },
   "account": {
     "title": "Compte",
