@@ -1,11 +1,11 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ULLText } from '@/components/ull/ULLText';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Trash2, Check, CheckCheck } from 'lucide-react';
+import { MoreVertical, Trash2, CheckCheck, ListPlus } from 'lucide-react';
 import type { ChatMessage } from '@/hooks/useChatMessages';
 
 interface MessageViewProps {
@@ -13,6 +13,7 @@ interface MessageViewProps {
   loading: boolean;
   typingUsers?: string[];
   onDeleteMessage?: (id: string) => void;
+  onCreateTaskFromMessage?: (message: ChatMessage) => void;
   isAdmin?: boolean;
   showWelcome?: boolean;
 }
@@ -30,13 +31,21 @@ function shouldShowMeta(msg: ChatMessage, prev?: ChatMessage): boolean {
   return gap > 2 * 60 * 1000;
 }
 
-export function MessageView({ messages, loading, typingUsers = [], onDeleteMessage, isAdmin, showWelcome }: MessageViewProps) {
+export function MessageView({ messages, loading, typingUsers = [], onDeleteMessage, onCreateTaskFromMessage, isAdmin, showWelcome }: MessageViewProps) {
   const { user } = useAuth();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [createdTaskMsgIds, setCreatedTaskMsgIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, typingUsers.length]);
+
+  const handleCreateTask = (msg: ChatMessage) => {
+    if (onCreateTaskFromMessage) {
+      onCreateTaskFromMessage(msg);
+      setCreatedTaskMsgIds(prev => new Set(prev).add(msg.id));
+    }
+  };
 
   if (loading) {
     return (
@@ -73,6 +82,8 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
           const showMeta = shouldShowMeta(msg, prev);
           const isFirst = showMeta;
           const isLast = !messages[i + 1] || shouldShowMeta(messages[i + 1], msg);
+          const canCreateTask = isOwn && onCreateTaskFromMessage && !createdTaskMsgIds.has(msg.id);
+          const hasActions = (isAdmin || isOwn) && onDeleteMessage;
 
           return (
             <div
@@ -128,8 +139,8 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
                   </span>
                 </div>
 
-                {/* Admin/owner delete action */}
-                {(isAdmin || isOwn) && onDeleteMessage && (
+                {/* Action menu — hover to reveal */}
+                {(hasActions || canCreateTask) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -144,13 +155,24 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align={isOwn ? 'start' : 'end'} className="min-w-[140px]">
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive text-xs"
-                        onClick={() => onDeleteMessage(msg.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
+                      {canCreateTask && (
+                        <DropdownMenuItem
+                          className="text-xs"
+                          onClick={() => handleCreateTask(msg)}
+                        >
+                          <ListPlus className="h-3.5 w-3.5 mr-2" />
+                          Create Task
+                        </DropdownMenuItem>
+                      )}
+                      {hasActions && onDeleteMessage && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive text-xs"
+                          onClick={() => onDeleteMessage(msg.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
