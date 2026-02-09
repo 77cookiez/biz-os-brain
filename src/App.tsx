@@ -37,6 +37,7 @@ import WorkboardBacklogPage from "@/pages/workboard/WorkboardBacklogPage";
 import WorkboardGoalsPage from "@/pages/workboard/WorkboardGoalsPage";
 import WorkboardCalendarPage from "@/pages/workboard/WorkboardCalendarPage";
 import WorkboardBrainstormPage from "@/pages/workboard/WorkboardBrainstormPage";
+import ChatPage from "@/pages/chat/ChatPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -160,6 +161,7 @@ const AppRoutes = () => (
         <Route path="checkin" element={<WeeklyCheckinPage />} />
         <Route path="brainstorm" element={<WorkboardBrainstormPage />} />
       </Route>
+      <Route path="/apps/chat" element={<ChatPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
