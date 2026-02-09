@@ -27,6 +27,13 @@ import LanguageSettingsPage from "@/pages/settings/LanguageSettingsPage";
 import NotificationsSettingsPage from "@/pages/settings/NotificationsSettingsPage";
 import AppearanceSettingsPage from "@/pages/settings/AppearanceSettingsPage";
 import NotFound from "./pages/NotFound";
+import WorkboardLayout from "@/pages/workboard/WorkboardLayout";
+import WorkboardTodayPage from "@/pages/workboard/WorkboardTodayPage";
+import WorkboardWeekPage from "@/pages/workboard/WorkboardWeekPage";
+import WorkboardBacklogPage from "@/pages/workboard/WorkboardBacklogPage";
+import WorkboardGoalsPage from "@/pages/workboard/WorkboardGoalsPage";
+import WorkboardCalendarPage from "@/pages/workboard/WorkboardCalendarPage";
+import WorkboardBrainstormPage from "@/pages/workboard/WorkboardBrainstormPage";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -139,6 +146,14 @@ const AppRoutes = () => (
       <Route path="/settings/language" element={<LanguageSettingsPage />} />
       <Route path="/settings/notifications" element={<NotificationsSettingsPage />} />
       <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />
+      <Route path="/apps/workboard" element={<WorkboardLayout />}>
+        <Route index element={<WorkboardTodayPage />} />
+        <Route path="week" element={<WorkboardWeekPage />} />
+        <Route path="backlog" element={<WorkboardBacklogPage />} />
+        <Route path="goals" element={<WorkboardGoalsPage />} />
+        <Route path="calendar" element={<WorkboardCalendarPage />} />
+        <Route path="brainstorm" element={<WorkboardBrainstormPage />} />
+      </Route>
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
