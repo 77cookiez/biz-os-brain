@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Lightbulb, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { TaskActions } from '@/components/workboard/TaskActions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -172,9 +173,12 @@ export default function WorkboardBrainstormPage() {
                     </div>
                     {idea.description && <p className="text-xs text-muted-foreground mt-1 ml-6">{idea.description}</p>}
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => convertToTask(idea)} className="shrink-0 gap-1 text-xs">
-                    <ArrowRight className="h-3 w-3" /> To Task
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button variant="ghost" size="sm" onClick={() => convertToTask(idea)} className="gap-1 text-xs">
+                      <ArrowRight className="h-3 w-3" /> To Task
+                    </Button>
+                    <TaskActions title={idea.title} description={idea.description} id={idea.id} type="idea" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
