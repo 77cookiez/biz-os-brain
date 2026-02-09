@@ -121,7 +121,7 @@ export default function ChatPage() {
       </div>
 
       {/* Message area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-background">
         {selectedThreadId ? (
           <>
             <MessageView
@@ -135,17 +135,15 @@ export default function ChatPage() {
             <MessageComposer onSend={handleSend} onTyping={broadcastTyping} />
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-4 px-6">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <MessageSquarePlus className="h-8 w-8 text-primary" />
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-5 px-6">
+            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+              <MessageSquarePlus className="h-7 w-7 text-primary" />
             </div>
-            <div className="text-center space-y-2 max-w-sm">
-              <h3 className="text-base font-medium text-foreground">Team Chat</h3>
-              <p className="text-sm">
-                Write in your own language.{' '}
-                <span className="text-foreground/70">Your teammates will read it in theirs.</span>
+            <div className="text-center space-y-1.5 max-w-xs">
+              <h3 className="text-base font-semibold text-foreground">TeamChat</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Select a conversation or start a new one.
               </p>
-              <p className="text-xs text-muted-foreground">Select a conversation or start a new one.</p>
             </div>
           </div>
         )}

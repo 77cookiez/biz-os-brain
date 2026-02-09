@@ -1,7 +1,7 @@
-import { useState, useCallback, KeyboardEvent } from 'react';
+import { useState, useCallback, useRef, useEffect, KeyboardEvent } from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface MessageComposerProps {
   onSend: (text: string) => Promise<boolean>;
@@ -12,6 +12,15 @@ interface MessageComposerProps {
 export function MessageComposer({ onSend, onTyping, disabled }: MessageComposerProps) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }, [text]);
 
   const handleSend = useCallback(async () => {
     if (!text.trim() || sending) return;
@@ -19,6 +28,7 @@ export function MessageComposer({ onSend, onTyping, disabled }: MessageComposerP
     const ok = await onSend(text.trim());
     if (ok) setText('');
     setSending(false);
+    textareaRef.current?.focus();
   }, [text, onSend, sending]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -33,23 +43,35 @@ export function MessageComposer({ onSend, onTyping, disabled }: MessageComposerP
     onTyping?.();
   };
 
+  const canSend = text.trim().length > 0 && !sending && !disabled;
+
   return (
-    <div className="border-t border-border p-3 bg-card">
+    <div className="border-t border-border px-3 py-2.5 bg-card/80 backdrop-blur-sm">
       <div className="flex items-end gap-2 max-w-2xl mx-auto">
-        <Textarea
+        <textarea
+          ref={textareaRef}
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message…"
+          placeholder="Write in your language…"
           disabled={disabled || sending}
-          className="min-h-[44px] max-h-[120px] resize-none bg-background"
           rows={1}
+          className={cn(
+            "flex-1 resize-none rounded-xl border border-input bg-background px-3.5 py-2.5 text-sm",
+            "placeholder:text-muted-foreground/60",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            "min-h-[40px] max-h-[120px] leading-relaxed"
+          )}
         />
         <Button
           size="icon"
           onClick={handleSend}
-          disabled={!text.trim() || sending || disabled}
-          className="shrink-0 h-[44px] w-[44px]"
+          disabled={!canSend}
+          className={cn(
+            "shrink-0 h-10 w-10 rounded-full transition-all",
+            canSend ? "scale-100 opacity-100" : "scale-95 opacity-50"
+          )}
         >
           <Send className="h-4 w-4" />
         </Button>
