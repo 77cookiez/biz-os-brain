@@ -116,6 +116,18 @@ export default function GoalsPage() {
 
   const createPlan = async () => {
     if (!currentWorkspace || !user) return;
+
+    const meaningId = await createMeaningObject({
+      workspaceId: currentWorkspace.id,
+      createdBy: user.id,
+      type: 'GOAL',
+      sourceLang: currentLanguage.code,
+      meaningJson: buildMeaningFromText({
+        type: 'GOAL',
+        title: newPlan.title,
+        description: newPlan.description || undefined,
+      }),
+    });
     
     const { error } = await supabase.from('plans').insert({
       workspace_id: currentWorkspace.id,
@@ -124,7 +136,9 @@ export default function GoalsPage() {
       description: newPlan.description || null,
       plan_type: newPlan.planType as any,
       created_by: user.id,
-    });
+      source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
+    } as any);
 
     if (error) {
       toast.error('Failed to create plan');
