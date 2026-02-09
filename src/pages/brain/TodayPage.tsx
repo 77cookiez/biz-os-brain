@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Target, Plus, Sparkles, Calendar, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Target, Sparkles, Calendar, AlertCircle, CheckCircle2, ArrowRight, TrendingUp, ShieldAlert, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +9,6 @@ import { useBrainCommand } from '@/contexts/BrainCommandContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AddTaskDialog } from '@/components/brain/AddTaskDialog';
 
 interface Task {
   id: string;
@@ -19,10 +18,17 @@ interface Task {
   is_priority: boolean;
 }
 
+interface Insights {
+  overdueCount: number;
+  blockedCount: number;
+  completedThisWeek: number;
+  totalThisWeek: number;
+}
+
 export default function TodayPage() {
   const { t } = useTranslation();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [showAddTask, setShowAddTask] = useState(false);
+  const [insights, setInsights] = useState<Insights>({ overdueCount: 0, blockedCount: 0, completedThisWeek: 0, totalThisWeek: 0 });
   const { currentWorkspace, businessContext } = useWorkspace();
   const { user } = useAuth();
   const { prefillAndFocus } = useBrainCommand();
@@ -38,7 +44,10 @@ export default function TodayPage() {
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
 
   useEffect(() => {
-    if (currentWorkspace) fetchTasks();
+    if (currentWorkspace) {
+      fetchTasks();
+      fetchInsights();
+    }
   }, [currentWorkspace?.id]);
 
   useEffect(() => {
@@ -62,6 +71,37 @@ export default function TodayPage() {
     setTasks(data || []);
   };
 
+  const fetchInsights = async () => {
+    if (!currentWorkspace) return;
+    const today = new Date().toISOString().split('T')[0];
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const [overdueRes, blockedRes, completedRes, totalRes] = await Promise.all([
+      supabase.from('tasks').select('id', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id)
+        .in('status', ['backlog', 'planned', 'in_progress', 'blocked'])
+        .lt('due_date', today)
+        .not('due_date', 'is', null),
+      supabase.from('tasks').select('id', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('status', 'blocked'),
+      supabase.from('tasks').select('id', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('status', 'done')
+        .gte('completed_at', weekAgo),
+      supabase.from('tasks').select('id', { count: 'exact', head: true })
+        .eq('workspace_id', currentWorkspace.id)
+        .gte('created_at', weekAgo),
+    ]);
+
+    setInsights({
+      overdueCount: overdueRes.count || 0,
+      blockedCount: blockedRes.count || 0,
+      completedThisWeek: completedRes.count || 0,
+      totalThisWeek: totalRes.count || 0,
+    });
+  };
+
   const suggestions = [
     { text: t('today.setGoals') },
     { text: t('today.reviewPerformance') },
@@ -73,6 +113,10 @@ export default function TodayPage() {
   const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < new Date() && t.status !== 'done');
   const upcomingTasks = tasks.filter(t => !t.is_priority && (!t.due_date || new Date(t.due_date) >= new Date())).slice(0, 5);
 
+  const completionRate = insights.totalThisWeek > 0
+    ? Math.round((insights.completedThisWeek / insights.totalThisWeek) * 100)
+    : 0;
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* Header */}
@@ -80,17 +124,50 @@ export default function TodayPage() {
         <h1 className="text-xl font-bold text-foreground">
           {getGreeting()}{displayName ? `, ${displayName}` : ''}
         </h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowAddTask(true)} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            {t('today.addTask')}
-          </Button>
-          <Button size="sm" onClick={() => prefillAndFocus(t('today.setGoals'))} className="gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" />
-            {t('today.askBrainToPlan')}
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => prefillAndFocus(t('today.setGoals'))} className="gap-1.5">
+          <Sparkles className="h-3.5 w-3.5" />
+          {t('today.askBrainToPlan')}
+        </Button>
       </div>
+
+      {/* Read-Only Insights */}
+      {(insights.overdueCount > 0 || insights.blockedCount > 0 || insights.totalThisWeek > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card className={`border-border bg-card ${insights.overdueCount > 0 ? 'border-destructive/50' : ''}`}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${insights.overdueCount > 0 ? 'bg-destructive/10' : 'bg-muted'}`}>
+                <AlertCircle className={`h-4 w-4 ${insights.overdueCount > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{insights.overdueCount}</p>
+                <p className="text-xs text-muted-foreground">Overdue</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className={`border-border bg-card ${insights.blockedCount > 0 ? 'border-orange-500/50' : ''}`}>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${insights.blockedCount > 0 ? 'bg-orange-500/10' : 'bg-muted'}`}>
+                <ShieldAlert className={`h-4 w-4 ${insights.blockedCount > 0 ? 'text-orange-500' : 'text-muted-foreground'}`} />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{insights.blockedCount}</p>
+                <p className="text-xs text-muted-foreground">Blocked</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border bg-card">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground">{completionRate}%</p>
+                <p className="text-xs text-muted-foreground">Completed this week</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Priority Tasks */}
       {priorityTasks.length > 0 && (
@@ -191,8 +268,6 @@ export default function TodayPage() {
           ))}
         </div>
       </div>
-
-      <AddTaskDialog open={showAddTask} onOpenChange={setShowAddTask} onTaskCreated={fetchTasks} />
     </div>
   );
 }

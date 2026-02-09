@@ -42,6 +42,7 @@
   },
   "brain": {
     "confirm": "Confirm",
+    "sendAsDraft": "Send to Workboard as Draft",
     "editDraft": "Edit",
     "draftTitle": "Draft Preview"
   },
