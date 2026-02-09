@@ -193,15 +193,16 @@ Example output:
     const translatedText = translations[i] || item.meaningJson?.subject || "";
     results[item.id] = translatedText;
 
-    // Cache in content_translations
-    await supabase.from("content_translations").upsert({
+    // Cache in content_translations (best-effort, ignore errors)
+    const { error: cacheError } = await supabase.from("content_translations").upsert({
       meaning_object_id: item.id,
       target_lang: targetLang,
       field: "content",
       translated_text: translatedText,
-    }, { onConflict: "meaning_object_id,target_lang,field" }).catch(() => {
-      // Best-effort cache — ignore conflicts
-    });
+    }, { onConflict: "meaning_object_id,target_lang,field" });
+    if (cacheError) {
+      console.warn("Cache upsert failed:", cacheError.message);
+    }
   }
 
   return new Response(JSON.stringify({ translations: results }), {
