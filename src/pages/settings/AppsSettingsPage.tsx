@@ -1,9 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Package, Store, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Package, Store, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -73,6 +84,24 @@ export default function AppsSettingsPage() {
     }
   };
 
+  const handleUninstall = async (appId: string, appName: string) => {
+    if (!currentWorkspace) return;
+    try {
+      const { error } = await supabase
+        .from('workspace_apps')
+        .delete()
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('app_id', appId);
+
+      if (error) throw error;
+
+      await refreshInstalledApps();
+      toast.success(`${appName} uninstalled`);
+    } catch {
+      toast.error('Failed to uninstall app');
+    }
+  };
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
@@ -127,10 +156,36 @@ export default function AppsSettingsPage() {
                   <p className="text-xs text-muted-foreground mt-0.5 truncate">{app.description}</p>
                 )}
               </div>
-              <Switch
-                checked={app.is_active}
-                onCheckedChange={() => handleToggle(app.id, app.is_active)}
-              />
+              <div className="flex items-center gap-2">
+                <Switch
+                  checked={app.is_active}
+                  onCheckedChange={() => handleToggle(app.id, app.is_active)}
+                />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-card border-border">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-foreground">Uninstall {app.name}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will remove the app from your workspace. You can reinstall it later from the Marketplace.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleUninstall(app.id, app.name)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Uninstall
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           ))}
         </div>
