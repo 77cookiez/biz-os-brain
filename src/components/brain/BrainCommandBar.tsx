@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { Send, Loader2, Sparkles, Check, Pencil, ClipboardCheck } from 'lucide-react';
+import { Send, Loader2, Sparkles, FileOutput, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -76,7 +76,7 @@ export function BrainCommandBar() {
       // No actionable tasks found, just close
       setShowDraft(false);
       clearMessages();
-      toast.success('Plan confirmed');
+      toast.success('Noted');
       return;
     }
 
@@ -92,7 +92,7 @@ export function BrainCommandBar() {
       type: 'task' as const,
       title: t.title,
       description: t.description,
-      status: 'planned' as const,
+      status: 'backlog' as const,
     }));
     await createTasksFromPlan(items);
     setShowDraft(false);
@@ -213,8 +213,8 @@ export function BrainCommandBar() {
               {!showInstallPrompt && (
                 <div className="flex items-center gap-2">
                   <Button size="sm" onClick={handleConfirm} className="gap-1.5">
-                    <Check className="h-3.5 w-3.5" />
-                    {t('brain.confirm')}
+                    <FileOutput className="h-3.5 w-3.5" />
+                    {t('brain.sendAsDraft')}
                   </Button>
                   <Button size="sm" variant="outline" onClick={handleEdit} className="gap-1.5">
                     <Pencil className="h-3.5 w-3.5" />
