@@ -52,13 +52,14 @@ export default function CompanySettingsPage() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      // Get signed URL (bucket is private)
+      const { data: signedData, error: signedError } = await supabase.storage
         .from('company-assets')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year
 
-      // Add cache buster
-      const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`;
+      if (signedError) throw signedError;
+
+      const urlWithCacheBuster = `${signedData.signedUrl}&t=${Date.now()}`;
       setLogoUrl(urlWithCacheBuster);
       
       toast.success(t('settings.company.logoUpdated'));

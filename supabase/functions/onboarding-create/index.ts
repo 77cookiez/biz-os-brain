@@ -134,7 +134,7 @@ serve(async (req) => {
     console.error("onboarding-create error:", error);
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: "An error occurred processing your request",
       }),
       {
         status: 500,
