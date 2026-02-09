@@ -1,59 +1,55 @@
 
+# تطبيق مبدأ "Business Brain = يفكر فقط، لا ينفذ"
 
-# خطة التنفيذ: إدارة التطبيقات في الإعدادات + نقل الشاشات إلى Workboard
+## الوضع الحالي والمشاكل
 
-## ملخص التغييرات
+حاليًا، Business Brain يخالف المبدأ في عدة مواضع:
 
-تغييران رئيسيان:
-1. إضافة صفحة "Apps" ضمن الإعدادات لإدارة التطبيقات المثبتة (تفعيل/إلغاء تفعيل)
-2. نقل Goals & Plans و Team Tasks و Weekly Check-in من Business Brain إلى Workboard بالكامل
+1. **صفحة Today** تحتوي على زر "Add Task" الذي يُنشئ مهام مباشرة — هذا تنفيذ وليس تفكير
+2. **BrainCommandBar** عند الضغط على "Confirm" يُنشئ مهام مباشرة في Workboard — يجب أن يكون مسودة (Draft) فقط
+3. **System Prompt في brain-chat** يصف Brain كأنه يملك صلاحيات تنفيذية (Task management, Weekly check-ins)
 
----
+## التغييرات المطلوبة
 
-## 1. صفحة إدارة التطبيقات (Settings > Apps)
+### 1. صفحة Today — إزالة التنفيذ المباشر
+**ملف:** `src/pages/brain/TodayPage.tsx`
+- إزالة زر "Add Task" والـ `AddTaskDialog` بالكامل
+- الإبقاء على العرض القراءي (Priority Tasks, Overdue, This Week) لأنه read-only
+- الإبقاء على Quick Actions لأنها تملأ الـ Command Bar فقط (لا تنفذ)
+- تغيير زر "Ask Brain to Plan" ليبقى كما هو (يملأ Command Bar)
 
-- إنشاء صفحة جديدة `src/pages/settings/AppsSettingsPage.tsx`
-- تعرض جميع التطبيقات المثبتة في الـ workspace الحالي
-- لكل تطبيق: اسمه، حالته (مفعل/معطل)، وزر Activate/Deactivate
-- رابط سريع للذهاب إلى Marketplace لاكتشاف تطبيقات جديدة
-- إضافة الصفحة إلى قائمة Settings وإلى الـ Router
+### 2. BrainCommandBar — مسودات فقط بدون تنفيذ مباشر
+**ملف:** `src/components/brain/BrainCommandBar.tsx`
+- زر "Confirm" يتحول إلى "Send to Workboard as Draft"
+- عند الضغط، المهام تُنشأ بحالة `backlog` (مسودة) بدلاً من `planned`
+- إضافة تنبيه واضح أن المهام أُرسلت كمسودات تحتاج مراجعة في Workboard
 
-## 2. نقل الشاشات من Brain إلى Workboard
+### 3. System Prompt — تحديث دور Brain
+**ملف:** `supabase/functions/brain-chat/index.ts`
+- تحديث الوصف ليعكس الدور الجديد: "تحلل، تنصح، تقترح مسودات"
+- إزالة "Task management" من القدرات
+- إضافة توضيح أن Brain يقرأ بيانات Workboard لكن لا يملكها
+- التأكيد على أن كل اقتراح هو مسودة تحتاج موافقة المستخدم
+- إزالة `weekly_checkin` action لأن Check-in انتقل إلى Workboard
 
-### ما سيتغير في Business Brain (Sidebar):
-- إزالة "Goals & Plans" و "Team Tasks" و "Weekly Check-in" من قائمة Brain
-- يبقى فقط: **Today** (الصفحة الرئيسية للتفكير والتخطيط)
-
-### ما سيتغير في Workboard:
-- إضافة تبويبين جديدين في Workboard Layout:
-  - **Team Tasks** - نفس الصفحة الحالية مع نقلها
-  - **Check-in** - Weekly Check-in
-- الترتيب النهائي للتبويبات: Today, This Week, Backlog, Goals, Team Tasks, Calendar, Check-in, Brainstorm
-
-### تحديث الـ Routing:
-- إزالة routes: `/brain/goals`, `/brain/tasks`, `/brain/checkin`
-- إضافة routes جديدة تحت Workboard:
-  - `/apps/workboard/tasks` (Team Tasks)
-  - `/apps/workboard/checkin` (Weekly Check-in)
-- Goals موجودة بالفعل في `/apps/workboard/goals`
+### 4. TodayPage — إضافة تحليل ذكي (Read-Only Insights)
+**ملف:** `src/pages/brain/TodayPage.tsx`
+- إضافة قسم "Insights" يعرض ملاحظات تحليلية بناءً على بيانات Workboard:
+  - عدد المهام المتأخرة مع تحذير
+  - عدد المهام المحظورة (blocked)
+  - نسبة الإنجاز هذا الأسبوع
+- هذه بيانات قراءة فقط، لا أزرار تنفيذ
 
 ---
 
 ## التفاصيل التقنية
 
-### الملفات الجديدة:
-- `src/pages/settings/AppsSettingsPage.tsx` - صفحة إدارة التطبيقات
-
 ### الملفات المعدلة:
-- `src/pages/SettingsPage.tsx` - إضافة رابط "Apps" في قائمة الإعدادات
-- `src/App.tsx` - تحديث Routes (إزالة brain routes القديمة، إضافة workboard routes جديدة، إضافة settings/apps route)
-- `src/components/AppSidebar.tsx` - إزالة روابط Goals/Tasks/Check-in من قسم Brain
-- `src/pages/workboard/WorkboardLayout.tsx` - إضافة تبويبات Team Tasks و Check-in
-- `src/pages/brain/TeamTasksPage.tsx` - تعديل بسيط ليعمل ضمن Workboard
-- `src/pages/brain/WeeklyCheckinPage.tsx` - تعديل بسيط ليعمل ضمن Workboard
+| الملف | التغيير |
+|-------|---------|
+| `src/pages/brain/TodayPage.tsx` | إزالة Add Task، إضافة Insights قراءية |
+| `src/components/brain/BrainCommandBar.tsx` | تغيير Confirm إلى "Send as Draft"، حالة backlog |
+| `supabase/functions/brain-chat/index.ts` | تحديث System Prompt ليعكس الدور الاستشاري |
 
-### ملاحظات:
-- صفحة GoalsPage الموجودة في Brain ستُزال من الـ routing لأن Workboard لديه بالفعل صفحة Goals خاصة به
-- البيانات في قاعدة البيانات (tasks, goals, weekly_checkins) لن تتأثر - فقط الواجهة تتغير
-- لا حاجة لتغييرات في قاعدة البيانات
-
+### لا حاجة لتغييرات في قاعدة البيانات
+- البيانات نفسها، فقط طريقة التعامل معها تتغير
