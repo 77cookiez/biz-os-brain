@@ -1,55 +1,279 @@
 
-# تطبيق مبدأ "Business Brain = يفكر فقط، لا ينفذ"
 
-## الوضع الحالي والمشاكل
+تمام، قرأت الخطة كاملة سطرًا سطرًا.
+الآن أعطيك نسخة معدّلة جاهزة للأبروف، بنفس الأسلوب، لكن مصَحَّحة 100% حسب ما اتفقنا:
 
-حاليًا، Business Brain يخالف المبدأ في عدة مواضع:
+✅ ULL = App نظامي منفصل (Core System App)
 
-1. **صفحة Today** تحتوي على زر "Add Task" الذي يُنشئ مهام مباشرة — هذا تنفيذ وليس تفكير
-2. **BrainCommandBar** عند الضغط على "Confirm" يُنشئ مهام مباشرة في Workboard — يجب أن يكون مسودة (Draft) فقط
-3. **System Prompt في brain-chat** يصف Brain كأنه يملك صلاحيات تنفيذية (Task management, Weekly check-ins)
+✅ Meaning-first (Canonical Meaning هو الحقيقة)
 
-## التغييرات المطلوبة
+✅ الترجمة Projection وليست المصدر
 
-### 1. صفحة Today — إزالة التنفيذ المباشر
-**ملف:** `src/pages/brain/TodayPage.tsx`
-- إزالة زر "Add Task" والـ `AddTaskDialog` بالكامل
-- الإبقاء على العرض القراءي (Priority Tasks, Overdue, This Week) لأنه read-only
-- الإبقاء على Quick Actions لأنها تملأ الـ Command Bar فقط (لا تنفذ)
-- تغيير زر "Ask Brain to Plan" ليبقى كما هو (يملأ Command Bar)
+✅ لا نكسر الواقع الحالي (انتقال تدريجي ذكي)
 
-### 2. BrainCommandBar — مسودات فقط بدون تنفيذ مباشر
-**ملف:** `src/components/brain/BrainCommandBar.tsx`
-- زر "Confirm" يتحول إلى "Send to Workboard as Draft"
-- عند الضغط، المهام تُنشأ بحالة `backlog` (مسودة) بدلاً من `planned`
-- إضافة تنبيه واضح أن المهام أُرسلت كمسودات تحتاج مراجعة في Workboard
+✅ واضحة ومقنعة تقنيًا بحيث يقدر يشتغل عليها فورًا
 
-### 3. System Prompt — تحديث دور Brain
-**ملف:** `supabase/functions/brain-chat/index.ts`
-- تحديث الوصف ليعكس الدور الجديد: "تحلل، تنصح، تقترح مسودات"
-- إزالة "Task management" من القدرات
-- إضافة توضيح أن Brain يقرأ بيانات Workboard لكن لا يملكها
-- التأكيد على أن كل اقتراح هو مسودة تحتاج موافقة المستخدم
-- إزالة `weekly_checkin` action لأن Check-in انتقل إلى Workboard
+انسخ ما يلي كاملًا واعتبره النسخة المعتمدة.
 
-### 4. TodayPage — إضافة تحليل ذكي (Read-Only Insights)
-**ملف:** `src/pages/brain/TodayPage.tsx`
-- إضافة قسم "Insights" يعرض ملاحظات تحليلية بناءً على بيانات Workboard:
-  - عدد المهام المتأخرة مع تحذير
-  - عدد المهام المحظورة (blocked)
-  - نسبة الإنجاز هذا الأسبوع
-- هذه بيانات قراءة فقط، لا أزرار تنفيذ
+Universal Language Layer (ULL) – Implementation Plan (Approved Version)
+Overview
 
----
+The Universal Language Layer (ULL) is a core system app inside AI Business OS.
+It upgrades the platform from a text-first, translated UI system into a meaning-first operating environment, where:
 
-## التفاصيل التقنية
+Meaning is the source of truth
 
-### الملفات المعدلة:
-| الملف | التغيير |
-|-------|---------|
-| `src/pages/brain/TodayPage.tsx` | إزالة Add Task، إضافة Insights قراءية |
-| `src/components/brain/BrainCommandBar.tsx` | تغيير Confirm إلى "Send as Draft"، حالة backlog |
-| `supabase/functions/brain-chat/index.ts` | تحديث System Prompt ليعكس الدور الاستشاري |
+Language is a projection layer
 
-### لا حاجة لتغييرات في قاعدة البيانات
-- البيانات نفسها، فقط طريقة التعامل معها تتغير
+Translation is a rendering concern, not a data model
+
+ULL is not an OS, and not a feature.
+It is a foundational system app that all other apps (Tasks, Goals, Brain, Chat, etc.) depend on for language handling.
+
+Conceptual Model
+
+Canonical Meaning is stored once and treated as truth
+
+Human language (any language, including English) is:
+
+Input evidence
+
+Output projection
+
+Different users may see the same meaning in different languages simultaneously
+
+Current State Analysis
+
+The system currently has:
+
+react-i18next for static UI translations (EN, AR, FR)
+
+LanguageContext for per-user language preference with RTL support
+
+profiles.preferred_locale column
+
+workspace.default_locale
+
+Brain Chat edge function hardcoded to English output
+
+~30+ hardcoded English strings across UI components
+
+User-generated content stored as raw text, with no abstraction between language and meaning
+
+This state is functional but text-centric, not language-agnostic.
+
+Target Architecture (ULL as a System App)
++-----------------------------------------------------+
+|                    User Interface                    |
+|  (renders language via ULL projection, never truth)  |
++-----------------------------------------------------+
+        | input (any language) | output (user language)
+        v                      ^
++-----------------------------------------------------+
+|        Universal Language Layer (System App)         |
+|  - Meaning normalization                            |
+|  - Projection & translation                          |
+|  - Caching                                          |
+|  - Language policies                                |
++-----------------------------------------------------+
+        | canonical meaning     | render request
+        v                      ^
++-----------------------------------------------------+
+|              ull-translate Edge Function             |
+|  - Meaning → language projection                    |
+|  - AI-assisted translation                          |
+|  - Cache management                                 |
++-----------------------------------------------------+
+        |
+        v
++-----------------------------------------------------+
+|                   Database Layer                     |
+|  - meaning_objects  (source of truth)               |
+|  - content_translations (projection cache)          |
+|  - domain tables reference meaning IDs              |
++-----------------------------------------------------+
+
+Core Design Principles
+
+Meaning is the source of truth
+
+Original text is input evidence, not truth
+
+Language is per-user and per-view
+
+All translation is centralized in ULL
+
+ULL exists as a standalone system app
+
+Data Model
+1. Canonical Meaning Layer (NEW)
+
+Create a new table:
+
+meaning_objects
+
+id (UUID, PK)
+
+tenant_id
+
+type (task | goal | idea | brain_message | note | generic)
+
+meaning_json (JSONB) ← canonical representation
+
+created_by
+
+created_at
+
+This table is the only semantic source of truth.
+
+2. Translation Projection Cache (EXISTING, ADJUSTED)
+
+content_translations
+
+id (UUID, PK)
+
+meaning_object_id (UUID)
+
+target_lang
+
+translated_text
+
+created_at
+
+Unique constraint: (meaning_object_id, target_lang)
+
+3. Domain Tables (Incremental Migration)
+
+Existing tables (tasks, goals, ideas, brain_messages, plans):
+
+Keep existing text columns temporarily
+
+Add:
+
+meaning_object_id (UUID, nullable initially)
+
+source_lang (VARCHAR(5))
+
+Over time:
+
+New records MUST reference meaning_object_id
+
+Raw text becomes legacy / fallback only
+
+Implementation Phases
+Phase 0: Transitional Compatibility (Non-breaking)
+
+Purpose: introduce ULL without breaking existing data.
+
+Keep existing text fields
+
+Detect source_lang
+
+Use translation cache for cross-language views
+
+Treat existing text as input evidence
+
+This phase matches much of the current proposal, but is explicitly transitional.
+
+Phase 1: Meaning Layer Introduction (Core)
+1.1 Meaning Creation
+
+On content creation:
+
+Normalize user input into a meaning_object
+
+Store structured intent in meaning_json
+
+Link domain record to meaning_object_id
+
+1.2 ull-translate Edge Function
+
+Accepts:
+
+{
+  meaning_object_id,
+  target_lang
+}
+
+
+Renders text from canonical meaning
+
+Uses AI (gemini-2.5-flash-lite) as projection engine
+
+Stores result in content_translations
+
+System prompt:
+
+“Render the following canonical business meaning into {{target_lang}}, preserving intent and terminology.”
+
+Phase 2: Client-Side Projection
+useULL() Hook
+const { renderMeaning, renderBatch } = useULL();
+
+
+Resolves language from user profile
+
+Fetches rendered projection
+
+Falls back gracefully if needed
+
+<ULLText /> Component
+<ULLText meaningId={task.meaning_object_id} fallback={task.title} />
+
+
+No loaders
+
+No translation UI
+
+Invisible behavior
+
+Phase 3: App Integration
+
+Tasks, Goals, Ideas, Brain Messages:
+
+Write → meaning first
+
+Read → ULL projection
+
+Remove remaining hardcoded strings → i18n keys
+
+UI language remains react-i18next (unchanged)
+
+Phase 4: AI Brain Integration
+Brain Input
+
+Accepts user input in any language
+
+Normalizes into meaning objects
+
+Reasoning occurs on meaning, not strings
+
+Brain Output
+
+Brain outputs canonical meaning
+
+Rendering delegated to ULL
+
+English allowed only as internal bootstrap, never as truth
+
+Key Decisions (Final)
+
+ULL is a standalone system app
+
+Meaning objects are mandatory
+
+Translation is projection, not storage
+
+Lazy rendering with cache
+
+Graceful fallback
+
+No app owns language
+
+Approval Status
+
+✅ Architecturally aligned with AI Business OS
+✅ Non-breaking, incremental rollout
+✅ Scales to chat, voice, agents, documents
+✅ Approved for implementation
+
