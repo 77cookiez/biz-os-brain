@@ -1,247 +1,217 @@
 
-# Implementation Plan: User Settings, Company Logo & Workspace Management
+# UI Overhaul: Business Brain Experience
 
-## Overview
+## Summary
 
-This plan implements three major features following global best practices used by established platforms like Slack, Notion, and Microsoft Teams:
-
-1. **User Profile Settings** - Personal account management (email, password, avatar, name)
-2. **Company Logo Storage** - Persistent company branding with proper storage
-3. **Workspace Management** - Add/edit/switch workspaces within a company
+This plan addresses 8 improvement areas to transform AiBizos from a prototype feel into a polished, production-grade AI Business OS. The core philosophy: **one brain, one input, one dashboard**.
 
 ---
 
-## Architecture Design
+## 1. Rename "AI Brain" to "Business Brain"
+
+**Changes:**
+- Sidebar section label: "AI BRAIN" becomes "BUSINESS BRAIN"
+- TopBar input placeholder: "Ask Business Brain anything..."
+- Chat panel empty state: "Business Brain"
+- All translation files (en, ar, fr) updated accordingly
+- Edge function system prompt references stay as "AI Business Brain" (internal only)
+
+**Files:** `en.json`, `ar.json`, `fr.json`, `ChatPanel.tsx`
+
+---
+
+## 2. TopBar Input Becomes a Real AI Input
+
+The current TopBar "search bar" is just a clickable div that navigates to `/`. It will become a **real input field** with the full draft-preview-confirm workflow.
+
+**Behavior:**
+- User types directly in the TopBar input
+- On Enter or Send button click, the system calls the brain-chat edge function
+- Response appears in a **slide-down panel** (or dialog) below the TopBar
+- The response is treated as a **draft** with two action buttons: **Confirm** and **Edit**
+- Pressing Confirm saves the plan/task/goal; Edit lets the user modify the request
+- The panel can be dismissed
+
+**Implementation:**
+- Replace the clickable `div` in TopBar with a real `input` element + Send button
+- Add a new `BrainCommandBar` component that manages:
+  - Input state
+  - Calling `useBrainChat` hook
+  - Displaying the AI response in a dropdown/sheet panel
+  - Confirm/Edit buttons on the response
+- Use Cmd+K / Ctrl+K keyboard shortcut to focus the input (already hinted in UI)
+
+**Files:** `TopBar.tsx` (major rewrite of input section), new `src/components/brain/BrainCommandBar.tsx`
+
+---
+
+## 3. Remove Duplicate Input from TodayPage
+
+The large AI input box + hero section (brain icon, greeting, "What would you like to work on?") will be removed from TodayPage. The greeting can stay as a small contextual header.
+
+**What gets removed:**
+- The hero section with Brain icon and greeting (lines 117-128)
+- The large AI input box (lines 130-147)
+- The `showChat` state and full ChatPanel view (lines 97-112)
+- All imports related to chat functionality (`useBrainChat`, `ChatPanel`, `ReactMarkdown`)
+
+**What stays:**
+- A small greeting line at the top
+- Suggestion cards (modified -- see point 5)
+- Task sections (priority, overdue, upcoming)
+- Action buttons (Add Task, Ask Brain to Plan)
+
+**Files:** `TodayPage.tsx`
+
+---
+
+## 4. Redesign TodayPage as a Real Daily Dashboard
+
+The page becomes a focused work dashboard:
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                     SETTINGS HIERARCHY                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  👤 Account (NEW)          → User-specific settings             │
-│     ├── Profile (name, avatar)                                  │
-│     ├── Email change                                            │
-│     └── Password change                                         │
-│                                                                 │
-│  🏢 Company                → Company owner settings             │
-│     ├── Company name                                            │
-│     └── Company logo (stored in Storage)                        │
-│                                                                 │
-│  📁 Workspaces (NEW)       → Workspace management               │
-│     ├── List all workspaces                                     │
-│     ├── Create new workspace                                    │
-│     └── Edit workspace settings                                 │
-│                                                                 │
-│  👥 Team & Roles           → (existing)                         │
-│  🌍 Language & Region      → (existing)                         │
-│  🔔 Notifications          → (existing)                         │
-│  🎨 Appearance             → (existing)                         │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  Good morning, [Name]                   │
+│  [+ Add Task]  [Ask Brain to Plan]      │
+├─────────────────────────────────────────┤
+│  TOP 3 PRIORITIES                       │
+│  1. Task A                              │
+│  2. Task B                              │
+│  3. Task C                              │
+├─────────────────────────────────────────┤
+│  OVERDUE (if any)                       │
+│  ! Task D - was due Feb 5               │
+├─────────────────────────────────────────┤
+│  THIS WEEK                              │
+│  - Task E (Wed)                         │
+│  - Task F (Fri)                         │
+├─────────────────────────────────────────┤
+│  QUICK ACTIONS                          │
+│  [Set goals] [Review week] [Marketing]  │
+└─────────────────────────────────────────┘
 ```
 
----
+**Key additions:**
+- "Add Task" button -- opens a simple inline form or dialog to manually create a task
+- "Ask Brain to Plan" button -- focuses the TopBar command bar input with a pre-filled prompt
+- Suggestion cards move to the bottom as "Quick Actions"
+- Greeting becomes compact (one line, no icon)
 
-## Part 1: User Account Settings
-
-### What will be implemented:
-- **Profile Picture Upload** - Upload, preview, and save avatar to storage
-- **Full Name Edit** - Update display name
-- **Email Change** - With confirmation flow (Supabase handles verification)
-- **Password Change** - Current password + new password + confirmation
-
-### Database Changes:
-- Create storage bucket `avatars` for user profile pictures
-- Add RLS policies for avatar access (users can only manage their own)
-
-### UI Components:
-- New page: `src/pages/settings/AccountSettingsPage.tsx`
-- Avatar upload with drag-and-drop or click-to-select
-- Password change form with validation (min 8 characters)
-
-### Best Practices Applied:
-| Feature | Best Practice |
-|---------|--------------|
-| Avatar | Instant preview, 2MB limit, image validation |
-| Password | Require current password, strength indicator, confirmation field |
-| Email | Confirmation email sent, old email notified |
-| Name | Real-time update, displayed across app immediately |
+**Files:** `TodayPage.tsx` (major rewrite)
 
 ---
 
-## Part 2: Company Logo Storage
+## 5. Suggestion Cards Generate Drafts (Not Direct Execution)
 
-### Storage Architecture:
+Currently, clicking a suggestion immediately sends a chat message. Instead:
+
+- Clicking a suggestion card will **focus the TopBar command bar** and pre-fill the text
+- The user can edit or press Enter to send
+- The AI response appears as a **draft** with Confirm/Edit buttons
+- Nothing is executed until the user confirms
+
+This is handled by the new `BrainCommandBar` component which will expose a method to set input text programmatically (via React context or ref).
+
+**Files:** `BrainCommandBar.tsx`, `TodayPage.tsx`
+
+---
+
+## 6. Sidebar: Show Only Active Apps
+
+Currently the sidebar shows ALL apps from `app_registry` including inactive and "coming soon" ones. 
+
+**Change:**
+- Filter to show only apps where `isAppActive(app.id)` returns true
+- Remove the "off" and "soon" badges entirely
+- Inactive/coming-soon apps are only visible in the Marketplace page
+
+**Files:** `AppSidebar.tsx`
+
+---
+
+## 7. Subtle Badge Styling
+
+The "off" and "soon" badges are being removed from the sidebar (point 6), but if any badges remain elsewhere in the app, they will use a more subtle style -- smaller text, lower opacity, no background pill.
+
+**Files:** `AppSidebar.tsx`
+
+---
+
+## 8. Company Dropdown: Add Team Management Links
+
+The company/workspace dropdown in the TopBar will be expanded with team management shortcuts:
+
+**New items in dropdown:**
+- "Team" -- navigates to `/settings/team`
+- "Invitations" -- navigates to `/settings/team` (same page, invitation section)
+- "Roles" -- navigates to `/settings/team`
+- "Switch Workspace" section (already exists)
+
+**Structure:**
 ```text
-Storage Bucket: company-assets
-├── {company_id}/
-│   └── logo.{ext}    → Company logo (overwritten on change)
+Companies
+  - Company A
+  - Company B
+---
+Workspaces
+  - Workspace 1
+  - Workspace 2
+  + New Workspace
+---
+Team & Roles
+Switch Workspace
 ```
 
-### Database Changes:
-1. Add `logo_url` column to `companies` table
-2. Create storage bucket `company-assets`
-3. RLS policies: Only company owners can upload/modify logo
-
-### Who Can Edit:
-- Only users with `owner` role on the company can change the logo
-- The logo is displayed to all company members
-
-### Implementation:
-- Update `CompanySettingsPage.tsx` to upload to storage
-- Update `WorkspaceContext` to include `logo_url`
-- Display logo in TopBar company switcher
+**Files:** `TopBar.tsx`
 
 ---
 
-## Part 3: Workspace Management
+## Technical Details
 
-### Design Decision (Best Practice):
-Following Slack/Notion pattern:
-- Workspaces are shown in a dedicated settings section
-- "Add Workspace" button in the workspace switcher dropdown
-- Each workspace has its own settings page
+### New Components
 
-### New Features:
-1. **Workspace List** - See all workspaces in current company
-2. **Create Workspace** - Modal or inline form
-3. **Edit Workspace** - Name, default locale
-4. **Delete Workspace** - With confirmation (owner only)
+| Component | Purpose |
+|-----------|---------|
+| `src/components/brain/BrainCommandBar.tsx` | Global AI input with draft preview, confirm/edit flow |
+| `src/contexts/BrainCommandContext.tsx` | Context to allow any component to trigger the command bar |
 
-### UI Implementation:
-- New page: `src/pages/settings/WorkspacesSettingsPage.tsx`
-- Add "New Workspace" option in TopBar dropdown
-- Workspace settings modal/page with name and locale
-
-### Database Considerations:
-- Already have RLS: owners/admins can create/update workspaces
-- Need to add delete capability (with cascade handling)
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/pages/settings/AccountSettingsPage.tsx` | User profile, email, password settings |
-| `src/pages/settings/WorkspacesSettingsPage.tsx` | Workspace list and management |
-| `src/components/settings/AvatarUpload.tsx` | Reusable avatar upload component |
-| `src/components/settings/PasswordChangeForm.tsx` | Secure password change form |
-
----
-
-## Files to Modify
+### Modified Files
 
 | File | Changes |
 |------|---------|
-| `src/pages/SettingsPage.tsx` | Add Account and Workspaces sections |
-| `src/pages/settings/CompanySettingsPage.tsx` | Connect logo upload to storage |
-| `src/components/TopBar.tsx` | Show company logo, add "New Workspace" option |
-| `src/contexts/AuthContext.tsx` | Add `updateEmail`, `updatePassword` methods |
-| `src/contexts/WorkspaceContext.tsx` | Add `createWorkspace`, `updateWorkspace`, `deleteWorkspace` |
-| `src/App.tsx` | Add new routes |
-| Translation files | Add new translation keys |
+| `src/components/TopBar.tsx` | Replace fake input with BrainCommandBar, add team links to dropdown |
+| `src/pages/brain/TodayPage.tsx` | Remove hero/input/chat, add action buttons, reorder sections |
+| `src/components/AppSidebar.tsx` | Filter to active apps only, remove badges |
+| `src/components/brain/ChatPanel.tsx` | Update "AI Brain" references to "Business Brain" |
+| `src/i18n/translations/en.json` | Update all naming references + new keys |
+| `src/i18n/translations/ar.json` | Same |
+| `src/i18n/translations/fr.json` | Same |
+| `src/App.tsx` | Wrap with BrainCommandContext |
+| `src/components/OSLayout.tsx` | No changes needed (TopBar already included) |
 
----
+### Draft-Preview-Confirm Flow
 
-## Database Migration
+The BrainCommandBar will implement the execution gate pattern:
+1. User types request
+2. AI generates a structured draft (plan/task/goal)
+3. Draft is displayed in a Sheet/popover panel with Confirm and Edit buttons
+4. On Confirm: data is written to the database (tasks table, goals table, etc.)
+5. On Edit: user modifies the request and re-submits
 
-```sql
--- 1. Add logo_url to companies
-ALTER TABLE public.companies 
-ADD COLUMN logo_url TEXT;
+### Keyboard Shortcut
+- Cmd+K (Mac) / Ctrl+K (Windows) will focus the command bar input
+- Escape will close the draft panel
 
--- 2. Create storage bucket for avatars
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('avatars', 'avatars', true);
-
--- 3. Create storage bucket for company assets
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('company-assets', 'company-assets', true);
-
--- 4. RLS for avatars bucket
-CREATE POLICY "Users can upload own avatar"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'avatars' AND 
-  (storage.foldername(name))[1] = auth.uid()::text
-);
-
-CREATE POLICY "Users can update own avatar"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (
-  bucket_id = 'avatars' AND 
-  (storage.foldername(name))[1] = auth.uid()::text
-);
-
-CREATE POLICY "Anyone can view avatars"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'avatars');
-
--- 5. RLS for company-assets bucket
-CREATE POLICY "Company owners can upload logo"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'company-assets' AND 
-  public.has_company_role(
-    auth.uid(), 
-    (storage.foldername(name))[1]::uuid, 
-    'owner'
-  )
-);
-
-CREATE POLICY "Anyone can view company assets"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'company-assets');
-```
-
----
-
-## Technical Notes
-
-### Security Considerations:
-- Password change requires current password verification
-- Email change requires email verification on both old and new addresses
-- Company logo upload restricted to owners only
-- File size limits: 2MB for avatars, 5MB for company logos
-- File type validation: images only (JPEG, PNG, WebP, SVG)
-
-### Supabase Auth Methods Used:
-- `supabase.auth.updateUser({ email })` - Email change
-- `supabase.auth.updateUser({ password })` - Password change
-- Supabase Storage API for file uploads
-
-### Best Practices Checklist:
-- [x] Instant visual feedback on uploads
-- [x] Loading states during async operations
-- [x] Error handling with user-friendly messages
-- [x] Form validation before submission
-- [x] Confirmation dialogs for destructive actions
-- [x] Proper RLS policies for data security
-- [x] Image optimization (max dimensions, format)
-
----
-
-## Updated Settings Menu Structure
-
-```text
-Settings
-├── 👤 Account              ← NEW
-│   └── Profile, email, password
-├── 🏢 Company
-│   └── Name, logo
-├── 📁 Workspaces           ← NEW  
-│   └── List, create, manage
-├── 👥 Team & Roles
-├── 🌍 Language & Region
-├── 🔔 Notifications
-└── 🎨 Appearance
-```
-
-This follows the hierarchy: Personal → Organization → Team → Preferences
-
+### Translation Keys Added
+- `topbar.askBrain`: "Ask Business Brain anything..."
+- `today.addTask`: "Add Task"
+- `today.askBrainToPlan`: "Ask Brain to Plan"
+- `today.quickActions`: "Quick Actions"
+- `today.topPriorities`: "Top 3 Priorities"
+- `today.overdue`: "Overdue"
+- `today.thisWeek`: "This Week"
+- `brain.confirm`: "Confirm"
+- `brain.editDraft`: "Edit"
+- `brain.draftTitle`: "Draft Preview"
+- `navigation.businessBrain`: "BUSINESS BRAIN"
+- `topbar.teamRoles`: "Team & Roles"
