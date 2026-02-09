@@ -89,9 +89,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     i18n.changeLanguage(currentLanguage.code);
   }, [currentLanguage, i18n]);
 
-  const setCurrentLanguage = (lang: Language) => {
+  const setCurrentLanguage = async (lang: Language) => {
     setCurrentLanguageState(lang);
     localStorage.setItem(STORAGE_KEY_CURRENT, lang.code);
+    
+    // Persist to DB profile
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ preferred_locale: lang.code })
+        .eq('user_id', user.id);
+    }
   };
 
   const setEnabledLanguages = (languages: Language[]) => {
