@@ -34,9 +34,18 @@ export default function ChatPage() {
             <MessageComposer onSend={sendMessage} />
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-3">
-            <MessageSquarePlus className="h-10 w-10" />
-            <p className="text-sm">Select a conversation or start a new one</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-4 px-6">
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <MessageSquarePlus className="h-8 w-8 text-primary" />
+            </div>
+            <div className="text-center space-y-2 max-w-sm">
+              <h3 className="text-base font-medium text-foreground">Team Chat</h3>
+              <p className="text-sm">
+                Write in your own language.{' '}
+                <span className="text-foreground/70">Your teammates will read it in theirs.</span>
+              </p>
+              <p className="text-xs text-muted-foreground">Select a conversation or start a new one.</p>
+            </div>
           </div>
         )}
       </div>

@@ -31,17 +31,21 @@ export function MessageView({ messages, loading }: MessageViewProps) {
     );
   }
 
-  if (messages.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-        No messages yet. Say something!
-      </div>
-    );
-  }
-
   return (
     <ScrollArea className="flex-1 p-4">
       <div className="flex flex-col gap-2 max-w-2xl mx-auto">
+        {/* Welcome system message */}
+        {messages.length === 0 && (
+          <div className="flex justify-center my-8">
+            <div className="bg-muted/50 border border-border rounded-xl px-5 py-4 text-center max-w-sm">
+              <p className="text-sm text-foreground font-medium">👋 Welcome</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Write in your own language.{' '}
+                Your teammates will read it in theirs.
+              </p>
+            </div>
+          </div>
+        )}
         {messages.map(msg => {
           const isOwn = msg.sender_user_id === user?.id;
           const fallback = extractFallback(msg.meaning_json);
