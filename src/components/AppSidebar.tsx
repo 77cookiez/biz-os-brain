@@ -1,4 +1,4 @@
-import { LayoutGrid, Settings, Store, ChevronLeft, ChevronRight, Target, CheckSquare, Calendar, Sparkles } from "lucide-react";
+import { LayoutGrid, Settings, Store, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useTranslation } from "react-i18next";
@@ -40,9 +40,6 @@ export function AppSidebar() {
 
   const brainLinks = [
     { title: t('navigation.today'), icon: Sparkles, url: "/" },
-    { title: t('navigation.goalsPlans'), icon: Target, url: "/brain/goals" },
-    { title: t('navigation.teamTasks'), icon: CheckSquare, url: "/brain/tasks" },
-    { title: t('navigation.weeklyCheckin'), icon: Calendar, url: "/brain/checkin" },
   ];
 
   return (

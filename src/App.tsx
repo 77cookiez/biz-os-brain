@@ -14,7 +14,6 @@ import AuthPage from "@/pages/AuthPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import TodayPage from "@/pages/brain/TodayPage";
 import BusinessSetupPage from "@/pages/brain/BusinessSetupPage";
-import GoalsPage from "@/pages/brain/GoalsPage";
 import TeamTasksPage from "@/pages/brain/TeamTasksPage";
 import WeeklyCheckinPage from "@/pages/brain/WeeklyCheckinPage";
 import Marketplace from "@/pages/Marketplace";
@@ -26,6 +25,7 @@ import TeamRolesSettingsPage from "@/pages/settings/TeamRolesSettingsPage";
 import LanguageSettingsPage from "@/pages/settings/LanguageSettingsPage";
 import NotificationsSettingsPage from "@/pages/settings/NotificationsSettingsPage";
 import AppearanceSettingsPage from "@/pages/settings/AppearanceSettingsPage";
+import AppsSettingsPage from "@/pages/settings/AppsSettingsPage";
 import NotFound from "./pages/NotFound";
 import WorkboardLayout from "@/pages/workboard/WorkboardLayout";
 import WorkboardTodayPage from "@/pages/workboard/WorkboardTodayPage";
@@ -134,9 +134,6 @@ const AppRoutes = () => (
     >
       <Route path="/" element={<TodayPage />} />
       <Route path="/brain/setup" element={<BusinessSetupPage />} />
-      <Route path="/brain/goals" element={<GoalsPage />} />
-      <Route path="/brain/tasks" element={<TeamTasksPage />} />
-      <Route path="/brain/checkin" element={<WeeklyCheckinPage />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/settings/account" element={<AccountSettingsPage />} />
@@ -146,12 +143,15 @@ const AppRoutes = () => (
       <Route path="/settings/language" element={<LanguageSettingsPage />} />
       <Route path="/settings/notifications" element={<NotificationsSettingsPage />} />
       <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />
+      <Route path="/settings/apps" element={<AppsSettingsPage />} />
       <Route path="/apps/workboard" element={<WorkboardLayout />}>
         <Route index element={<WorkboardTodayPage />} />
         <Route path="week" element={<WorkboardWeekPage />} />
         <Route path="backlog" element={<WorkboardBacklogPage />} />
         <Route path="goals" element={<WorkboardGoalsPage />} />
+        <Route path="tasks" element={<TeamTasksPage />} />
         <Route path="calendar" element={<WorkboardCalendarPage />} />
+        <Route path="checkin" element={<WeeklyCheckinPage />} />
         <Route path="brainstorm" element={<WorkboardBrainstormPage />} />
       </Route>
     </Route>
