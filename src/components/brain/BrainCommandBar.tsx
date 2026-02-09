@@ -23,6 +23,8 @@ export function BrainCommandBar() {
   const navigate = useNavigate();
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [pendingPlanContent, setPendingPlanContent] = useState<string | null>(null);
+  const [sentDraftFingerprint, setSentDraftFingerprint] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   // Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -42,6 +44,7 @@ export function BrainCommandBar() {
     setInput('');
     setShowDraft(true);
     setShowInstallPrompt(false);
+    setSentDraftFingerprint(null); // Reset dedup for new conversation
     await sendMessage(text);
   }, [input, isLoading, setInput, setShowDraft, sendMessage]);
 
@@ -62,7 +65,14 @@ export function BrainCommandBar() {
     return tasks;
   }, []);
 
+  // Generate a fingerprint from task titles for dedup
+  const generateFingerprint = useCallback((tasks: { title: string }[]) => {
+    return tasks.map(t => t.title).sort().join('|');
+  }, []);
+
   const handleConfirm = useCallback(async () => {
+    if (isSending) return;
+
     const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
     if (!lastAssistant) {
       setShowDraft(false);
@@ -73,52 +83,63 @@ export function BrainCommandBar() {
     const tasks = extractTasksFromResponse(lastAssistant.content);
     
     if (tasks.length === 0) {
-      // No actionable tasks found, just close
       setShowDraft(false);
       clearMessages();
       toast.success('Noted');
       return;
     }
 
-    // Tasks found — check Workboard installation
+    // Dedup: check if we already sent this exact set of drafts
+    const fingerprint = generateFingerprint(tasks);
+    if (fingerprint === sentDraftFingerprint) {
+      toast.info('These drafts have already been sent to Workboard.');
+      return;
+    }
+
     if (!isWorkboardInstalled) {
       setPendingPlanContent(lastAssistant.content);
       setShowInstallPrompt(true);
       return;
     }
 
-    // Workboard installed — create tasks
-    const items = tasks.map(t => ({
-      type: 'task' as const,
-      title: t.title,
-      description: t.description,
-      status: 'backlog' as const,
-    }));
-    await createTasksFromPlan(items);
-    setShowDraft(false);
-    clearMessages();
-    navigate('/apps/workboard/today');
-  }, [messages, isWorkboardInstalled, createTasksFromPlan, clearMessages, setShowDraft, navigate, extractTasksFromResponse]);
+    setIsSending(true);
+    try {
+      const items = tasks.map(t => ({
+        type: 'task' as const,
+        title: t.title,
+        description: t.description,
+        status: 'backlog' as const,
+      }));
+      await createTasksFromPlan(items);
+      setSentDraftFingerprint(fingerprint);
+      setShowDraft(false);
+      clearMessages();
+      navigate('/apps/workboard/today');
+    } finally {
+      setIsSending(false);
+    }
+  }, [messages, isWorkboardInstalled, createTasksFromPlan, clearMessages, setShowDraft, navigate, extractTasksFromResponse, isSending, sentDraftFingerprint, generateFingerprint]);
 
   const handleInstallAndResume = useCallback(async () => {
     await installWorkboard();
     setShowInstallPrompt(false);
 
-    // Resume creating tasks from pending plan
     if (pendingPlanContent) {
       const tasks = extractTasksFromResponse(pendingPlanContent);
+      const fingerprint = generateFingerprint(tasks);
       const items = tasks.map(t => ({
         type: 'task' as const,
         title: t.title,
-        status: 'planned' as const,
+        status: 'backlog' as const,
       }));
       await createTasksFromPlan(items);
+      setSentDraftFingerprint(fingerprint);
       setPendingPlanContent(null);
       setShowDraft(false);
       clearMessages();
       navigate('/apps/workboard/today');
     }
-  }, [installWorkboard, pendingPlanContent, extractTasksFromResponse, createTasksFromPlan, setShowDraft, clearMessages, navigate]);
+  }, [installWorkboard, pendingPlanContent, extractTasksFromResponse, createTasksFromPlan, setShowDraft, clearMessages, navigate, generateFingerprint]);
 
   const handleEdit = () => {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
@@ -212,7 +233,7 @@ export function BrainCommandBar() {
               )}
               {!showInstallPrompt && (
                 <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={handleConfirm} className="gap-1.5">
+                  <Button size="sm" onClick={handleConfirm} disabled={isSending} className="gap-1.5">
                     <FileOutput className="h-3.5 w-3.5" />
                     {t('brain.sendAsDraft')}
                   </Button>
