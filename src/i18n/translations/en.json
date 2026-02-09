@@ -45,6 +45,8 @@
     "sendAsDraft": "Send to Workboard as Draft",
     "draftsAlreadySent": "These drafts have already been sent to Workboard.",
     "noted": "Noted",
+    "workboardInstalled": "Workboard installed successfully!",
+    "draftsSentToBacklog": "{{count}} draft(s) sent to Workboard Backlog. Review and schedule them in Workboard.",
     "editDraft": "Edit",
     "draftTitle": "Draft Preview"
   },
