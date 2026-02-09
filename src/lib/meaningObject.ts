@@ -62,7 +62,7 @@ export async function createMeaningObject(params: {
     .insert({
       workspace_id: params.workspaceId,
       created_by: params.createdBy,
-      type: params.type,
+      type: params.type.toLowerCase(),
       source_lang: params.sourceLang,
       meaning_json: parsed.data as any,
     })
