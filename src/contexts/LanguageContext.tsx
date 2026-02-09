@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import i18n from '@/i18n';
+import { useTranslation } from 'react-i18next';
 
 export interface Language {
   code: string;
@@ -31,6 +31,7 @@ const STORAGE_KEY_CURRENT = 'app_current_language';
 const STORAGE_KEY_ENABLED = 'app_enabled_languages';
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
+  const { i18n } = useTranslation();
   const [currentLanguage, setCurrentLanguageState] = useState<Language>(AVAILABLE_LANGUAGES[0]);
   const [enabledLanguages, setEnabledLanguagesState] = useState<Language[]>([AVAILABLE_LANGUAGES[0]]);
 
@@ -67,7 +68,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = currentLanguage.code;
     // Sync with i18next
     i18n.changeLanguage(currentLanguage.code);
-  }, [currentLanguage]);
+  }, [currentLanguage, i18n]);
 
   const setCurrentLanguage = (lang: Language) => {
     setCurrentLanguageState(lang);
