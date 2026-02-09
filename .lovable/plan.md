@@ -1,279 +1,267 @@
+هذا النص الذي أرسلته الآن **ممتاز جدًا** ومطابق للاتفاق بنسبة كبيرة ✅
+وأقدر تقول له: **Approved (Phase 1)** بعد **تعديلات طفيفة مهمة** حتى يصير “Meaning-first” مضبوط وما يطلع ثغرات أو ازدواجية.
 
+أعطيك أدناه **نسخة معدّلة جاهزة للنسخ** (نفس المحتوى تقريبًا لكن مع 6 تحسينات حاسمة):
 
-تمام، قرأت الخطة كاملة سطرًا سطرًا.
-الآن أعطيك نسخة معدّلة جاهزة للأبروف، بنفس الأسلوب، لكن مصَحَّحة 100% حسب ما اتفقنا:
+* ✅ تثبيت أن ULL = **System App منفصل**
+* ✅ إصلاح API: `workspaceId` vs `tenantId` + RLS
+* ✅ توحيد كتابة/تحديث المعنى (create/update) بدل create فقط
+* ✅ منع “meaningJson” يدخل يدويًا من الكلاينت بدون ضبط (مخاطر)
+* ✅ تحديد شكل “Meaning Block” الذي يخرجه Brain (لتسهيل الاستخراج)
+* ✅ إضافة قيود/تحقق (Validation + Zod) + edge-case للحقول
 
-✅ ULL = App نظامي منفصل (Core System App)
+انسخ التالي كنسخة Approved:
 
-✅ Meaning-first (Canonical Meaning هو الحقيقة)
+---
 
-✅ الترجمة Projection وليست المصدر
+# Phase 1 — Meaning-First Enforcement (Approved)
 
-✅ لا نكسر الواقع الحالي (انتقال تدريجي ذكي)
+## Summary
 
-✅ واضحة ومقنعة تقنيًا بحيث يقدر يشتغل عليها فورًا
+Phase 1 enforces: **No Meaning, No Content**.
+Every new task, goal, idea, and brain message must create a `meaning_object` first, then link to it. Original text becomes **input evidence + fallback only**. ULL projection upgrades from “translate text” to “render meaning”.
 
-انسخ ما يلي كاملًا واعتبره النسخة المعتمدة.
+**Important:** ULL is a **separate Core System App** inside AI Business OS. No other module implements translation/meaning logic.
 
-Universal Language Layer (ULL) – Implementation Plan (Approved Version)
-Overview
+---
 
-The Universal Language Layer (ULL) is a core system app inside AI Business OS.
-It upgrades the platform from a text-first, translated UI system into a meaning-first operating environment, where:
+## What Changes (and What Does NOT)
 
-Meaning is the source of truth
+**Changes:**
 
-Language is a projection layer
+* All write paths (tasks, goals, ideas, brain messages) create a `meaning_object` first, then link it
+* `ull-translate` edge function upgraded to resolve from `meaning_object_id` (meaning_json) instead of raw text
+* `useULL` hook and `ULLText` updated to use `meaning_object_id` as the primary key
+* Brain chat produces **structured meaning blocks** alongside natural language
+* Brain → Workboard integration creates meaning objects when confirming drafts
+* Update paths create meaning objects lazily for legacy records and can also update meaning when content edits occur
 
-Translation is a rendering concern, not a data model
+**Does NOT change:**
 
-ULL is not an OS, and not a feature.
-It is a foundational system app that all other apps (Tasks, Goals, Brain, Chat, etc.) depend on for language handling.
+* UI layout/UX (invisible upgrade)
+* Existing legacy data behavior (records without `meaning_object_id` continue via fallback)
+* Static UI translations (react-i18next stays)
 
-Conceptual Model
+---
 
-Canonical Meaning is stored once and treated as truth
+## Technical Details
 
-Human language (any language, including English) is:
+### 1) Shared Meaning Utility (Server-first)
 
-Input evidence
+Create: `src/lib/meaningObject.ts`
 
-Output projection
+Provide TWO functions (not create only):
 
-Different users may see the same meaning in different languages simultaneously
+```ts
+async function createMeaningObject(params: {
+  tenantId: string;          // use tenant/workspace consistently
+  createdBy: string;
+  type: 'TASK' | 'GOAL' | 'IDEA' | 'BRAIN_MESSAGE';
+  sourceLang: string;
+  meaningJson: MeaningJsonV1;
+  sourceText?: string;       // optional evidence for fallback/debug
+}): Promise<string>
 
-Current State Analysis
+async function updateMeaningObject(params: {
+  tenantId: string;
+  meaningObjectId: string;
+  updatedBy: string;
+  meaningJson: MeaningJsonV1;
+  sourceText?: string;
+}): Promise<void>
+```
 
-The system currently has:
+**Rule:** meaning objects are created/updated in one place (this file) to prevent drift.
 
-react-i18next for static UI translations (EN, AR, FR)
+> Note: if possible, prefer calling these from server actions / edge functions (not directly from client) for security and consistency with RLS.
 
-LanguageContext for per-user language preference with RTL support
+---
 
-profiles.preferred_locale column
+### 1.1 Meaning JSON v1 (Validated)
 
-workspace.default_locale
+Define a strict schema (zod) in the same file:
 
-Brain Chat edge function hardcoded to English output
+```ts
+type MeaningJsonV1 = {
+  version: 'v1';
+  type: 'TASK' | 'GOAL' | 'IDEA' | 'BRAIN_MESSAGE';
+  intent: string;
+  subject: string;
+  description?: string;
+  constraints?: Record<string, unknown>;
+  metadata?: {
+    created_from?: 'user' | 'brain';
+    confidence?: number;
+    source?: string;
+  };
+};
+```
 
-~30+ hardcoded English strings across UI components
+Validation:
 
-User-generated content stored as raw text, with no abstraction between language and meaning
+* `version` required
+* `type/intent/subject` required
+* `confidence` bounded (0..1)
 
-This state is functional but text-centric, not language-agnostic.
+---
 
-Target Architecture (ULL as a System App)
-+-----------------------------------------------------+
-|                    User Interface                    |
-|  (renders language via ULL projection, never truth)  |
-+-----------------------------------------------------+
-        | input (any language) | output (user language)
-        v                      ^
-+-----------------------------------------------------+
-|        Universal Language Layer (System App)         |
-|  - Meaning normalization                            |
-|  - Projection & translation                          |
-|  - Caching                                          |
-|  - Language policies                                |
-+-----------------------------------------------------+
-        | canonical meaning     | render request
-        v                      ^
-+-----------------------------------------------------+
-|              ull-translate Edge Function             |
-|  - Meaning → language projection                    |
-|  - AI-assisted translation                          |
-|  - Cache management                                 |
-+-----------------------------------------------------+
-        |
-        v
-+-----------------------------------------------------+
-|                   Database Layer                     |
-|  - meaning_objects  (source of truth)               |
-|  - content_translations (projection cache)          |
-|  - domain tables reference meaning IDs              |
-+-----------------------------------------------------+
+## 2) Write Path Changes (Meaning-first)
 
-Core Design Principles
+### 2.1 `useWorkboardTasks.ts` — `createTask()`
 
-Meaning is the source of truth
+* Create meaning object first (`type=TASK`)
+* Insert task with `meaning_object_id`
+* Store `source_lang` as already done
 
-Original text is input evidence, not truth
+### 2.1b `updateTask()`
 
-Language is per-user and per-view
+* If task has no `meaning_object_id`: create meaning object from current text and link
+* If task has meaning id: update meaning object (meaning_json) when title/description edits occur
 
-All translation is centralized in ULL
+Apply same pattern to:
 
-ULL exists as a standalone system app
+* Goals create/update
+* Ideas create/update
+* Brain messages create/update
 
-Data Model
-1. Canonical Meaning Layer (NEW)
+---
 
-Create a new table:
+## 3) ULL Projection Upgrade (Meaning-based)
 
-meaning_objects
+### 3.1 `ULLText` component
 
-id (UUID, PK)
+Primary prop:
 
-tenant_id
+```tsx
+<ULLText meaningId="..." fallback="..." />
+```
 
-type (task | goal | idea | brain_message | note | generic)
+Backward compatible props remain optional for Phase 0:
 
-meaning_json (JSONB) ← canonical representation
+* table/id/field/text/sourceLang
 
-created_by
+**Fallback chain:**
 
-created_at
+1. meaningId render → 2) cache → 3) original text → 4) safe placeholder
 
-This table is the only semantic source of truth.
-
-2. Translation Projection Cache (EXISTING, ADJUSTED)
-
-content_translations
-
-id (UUID, PK)
-
-meaning_object_id (UUID)
-
-target_lang
-
-translated_text
-
-created_at
-
-Unique constraint: (meaning_object_id, target_lang)
-
-3. Domain Tables (Incremental Migration)
-
-Existing tables (tasks, goals, ideas, brain_messages, plans):
-
-Keep existing text columns temporarily
+### 3.2 `useULL` hook
 
 Add:
 
-meaning_object_id (UUID, nullable initially)
+* `getTextByMeaning(meaningId, fallback?)`
+* Cache key: `meaning_object_id:target_lang`
 
-source_lang (VARCHAR(5))
+Keep legacy `getText()` for Phase 0 compatibility.
 
-Over time:
+### 3.3 `ull-translate` edge function
 
-New records MUST reference meaning_object_id
+Accept both modes:
 
-Raw text becomes legacy / fallback only
+**Preferred (Phase 1):**
 
-Implementation Phases
-Phase 0: Transitional Compatibility (Non-breaking)
+```json
+{ "meaning_object_id": "...", "target_lang": "ar" }
+```
 
-Purpose: introduce ULL without breaking existing data.
+Flow:
 
-Keep existing text fields
+1. cache lookup by (meaning_object_id + target_lang)
+2. fetch meaning_json from meaning_objects (tenant-scoped)
+3. project meaning → language via AI
+4. cache in content_translations
+5. return translated_text
 
-Detect source_lang
+**Legacy (Phase 0 fallback):**
 
-Use translation cache for cross-language views
+```json
+{ "texts": [...], "target_lang": "ar" }
+```
 
-Treat existing text as input evidence
+---
 
-This phase matches much of the current proposal, but is explicitly transitional.
+## 4) Brain Output Contract (Structured Meaning Blocks)
 
-Phase 1: Meaning Layer Introduction (Core)
-1.1 Meaning Creation
+### 4.1 brain-chat edge function
 
-On content creation:
+System prompt update (conceptual):
 
-Normalize user input into a meaning_object
+* Respond naturally in `user_lang`
+* When proposing tasks/action items/goals, output a **machine-readable Meaning Block** in addition to the natural text.
 
-Store structured intent in meaning_json
+Define one canonical block format for extraction:
 
-Link domain record to meaning_object_id
+````text
+```ULL_MEANING_V1
+[
+  { "version":"v1","type":"TASK","intent":"...","subject":"...","description":"...","constraints":{...},"metadata":{"created_from":"brain","confidence":0.85} }
+]
+````
 
-1.2 ull-translate Edge Function
+```
 
-Accepts:
+Rules:
+- The block must be valid JSON
+- Must not include language-specific phrasing requirements
+- The natural language response remains user-facing; block is for structured extraction
 
-{
-  meaning_object_id,
-  target_lang
-}
+### 4.2 `BrainCommandBar.tsx` — extraction
+- First try to parse `ULL_MEANING_V1` JSON blocks
+- If found, use these meaning objects directly to create linked tasks/goals
+- If not found, fallback to existing regex extraction (temporary)
 
+---
 
-Renders text from canonical meaning
+## 5) Lazy Migration for Existing Data (No Bulk Migration)
 
-Uses AI (gemini-2.5-flash-lite) as projection engine
+- No bulk backfill
+- On first edit of legacy record:
+  - create meaning object from text
+  - link record
+- On later edits:
+  - update meaning object
 
-Stores result in content_translations
+---
 
-System prompt:
+## 6) Security / RLS / Tenant Isolation
 
-“Render the following canonical business meaning into {{target_lang}}, preserving intent and terminology.”
+- Every meaning_objects and content_translations access is tenant/workspace scoped
+- Ensure edge functions enforce:
+  - membership
+  - tenantId matching
+- Meaning blocks from Brain are treated as untrusted input until validated (zod)
 
-Phase 2: Client-Side Projection
-useULL() Hook
-const { renderMeaning, renderBatch } = useULL();
+---
 
+## 7) Files to Create
 
-Resolves language from user profile
+| File | Purpose |
+|------|---------|
+| `src/lib/meaningObject.ts` | create/update meaning objects + validation |
 
-Fetches rendered projection
+---
 
-Falls back gracefully if needed
+## 8) Files to Modify
 
-<ULLText /> Component
-<ULLText meaningId={task.meaning_object_id} fallback={task.title} />
+(قائمة ملفاتك كما هي ✅)  
+مع إضافة: ensure update paths handle meaning updates.
 
+---
 
-No loaders
+## 9) Success Criteria
 
-No translation UI
+- 100% of new content has `meaning_object_id`
+- Editing legacy content creates meaning objects lazily
+- ULL resolves projections from meaning objects (default path)
+- Brain outputs structured meaning blocks reliably
+- Changing user language does not alter stored data
+- No UI regression
 
-Invisible behavior
+---
 
-Phase 3: App Integration
+### قرار الأبروف
+✅ **Approved for Phase 1** بهذه الصيغة.
 
-Tasks, Goals, Ideas, Brain Messages:
+---
 
-Write → meaning first
-
-Read → ULL projection
-
-Remove remaining hardcoded strings → i18n keys
-
-UI language remains react-i18next (unchanged)
-
-Phase 4: AI Brain Integration
-Brain Input
-
-Accepts user input in any language
-
-Normalizes into meaning objects
-
-Reasoning occurs on meaning, not strings
-
-Brain Output
-
-Brain outputs canonical meaning
-
-Rendering delegated to ULL
-
-English allowed only as internal bootstrap, never as truth
-
-Key Decisions (Final)
-
-ULL is a standalone system app
-
-Meaning objects are mandatory
-
-Translation is projection, not storage
-
-Lazy rendering with cache
-
-Graceful fallback
-
-No app owns language
-
-Approval Status
-
-✅ Architecturally aligned with AI Business OS
-✅ Non-breaking, incremental rollout
-✅ Scales to chat, voice, agents, documents
-✅ Approved for implementation
-
+إذا تبي أعطيك أيضًا **رسالة “Approval” قصيرة** ترسلها له (سطرين)، قلّي.
+```
