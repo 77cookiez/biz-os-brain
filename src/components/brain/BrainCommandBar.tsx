@@ -1,5 +1,5 @@
-import { useEffect, useCallback } from 'react';
-import { Send, Loader2, Sparkles, Check, Pencil } from 'lucide-react';
+import { useEffect, useCallback, useState } from 'react';
+import { Send, Loader2, Sparkles, Check, Pencil, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -7,6 +7,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { useBrainCommand } from '@/contexts/BrainCommandContext';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
+import { useBrainWorkboardIntegration } from '@/hooks/useBrainWorkboardIntegration';
+import { WorkboardInstallPrompt } from '@/components/brain/WorkboardInstallPrompt';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export function BrainCommandBar() {
   const { t } = useTranslation();
@@ -15,6 +19,10 @@ export function BrainCommandBar() {
     messages, isLoading, sendMessage, clearMessages,
     showDraft, setShowDraft,
   } = useBrainCommand();
+  const { isWorkboardInstalled, installWorkboard, createTasksFromPlan } = useBrainWorkboardIntegration();
+  const navigate = useNavigate();
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [pendingPlanContent, setPendingPlanContent] = useState<string | null>(null);
 
   // Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -33,18 +41,90 @@ export function BrainCommandBar() {
     const text = input;
     setInput('');
     setShowDraft(true);
+    setShowInstallPrompt(false);
     await sendMessage(text);
   }, [input, isLoading, setInput, setShowDraft, sendMessage]);
 
-  const handleConfirm = () => {
+  // Parse AI response to extract actionable tasks
+  const extractTasksFromResponse = useCallback((content: string) => {
+    const lines = content.split('\n');
+    const tasks: { title: string; description?: string }[] = [];
+    for (const line of lines) {
+      // Match numbered or bulleted task-like lines
+      const match = line.match(/^[\s]*[-•*]\s+(.+)|^[\s]*\d+[.)]\s+(.+)/);
+      if (match) {
+        const title = (match[1] || match[2]).replace(/\*\*/g, '').trim();
+        if (title.length > 5 && title.length < 200) {
+          tasks.push({ title });
+        }
+      }
+    }
+    return tasks;
+  }, []);
+
+  const handleConfirm = useCallback(async () => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistant) {
+      setShowDraft(false);
+      clearMessages();
+      return;
+    }
+
+    const tasks = extractTasksFromResponse(lastAssistant.content);
+    
+    if (tasks.length === 0) {
+      // No actionable tasks found, just close
+      setShowDraft(false);
+      clearMessages();
+      toast.success('Plan confirmed');
+      return;
+    }
+
+    // Tasks found — check Workboard installation
+    if (!isWorkboardInstalled) {
+      setPendingPlanContent(lastAssistant.content);
+      setShowInstallPrompt(true);
+      return;
+    }
+
+    // Workboard installed — create tasks
+    const items = tasks.map(t => ({
+      type: 'task' as const,
+      title: t.title,
+      description: t.description,
+      status: 'planned' as const,
+    }));
+    await createTasksFromPlan(items);
     setShowDraft(false);
     clearMessages();
-  };
+    navigate('/apps/workboard/today');
+  }, [messages, isWorkboardInstalled, createTasksFromPlan, clearMessages, setShowDraft, navigate, extractTasksFromResponse]);
+
+  const handleInstallAndResume = useCallback(async () => {
+    await installWorkboard();
+    setShowInstallPrompt(false);
+
+    // Resume creating tasks from pending plan
+    if (pendingPlanContent) {
+      const tasks = extractTasksFromResponse(pendingPlanContent);
+      const items = tasks.map(t => ({
+        type: 'task' as const,
+        title: t.title,
+        status: 'planned' as const,
+      }));
+      await createTasksFromPlan(items);
+      setPendingPlanContent(null);
+      setShowDraft(false);
+      clearMessages();
+      navigate('/apps/workboard/today');
+    }
+  }, [installWorkboard, pendingPlanContent, extractTasksFromResponse, createTasksFromPlan, setShowDraft, clearMessages, navigate]);
 
   const handleEdit = () => {
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
     if (lastUserMsg) setInput(lastUserMsg.content);
     setShowDraft(false);
+    setShowInstallPrompt(false);
     clearMessages();
     inputRef.current?.focus();
   };
@@ -52,6 +132,7 @@ export function BrainCommandBar() {
   const handleSheetClose = (open: boolean) => {
     if (!open) {
       setShowDraft(false);
+      setShowInstallPrompt(false);
       clearMessages();
     }
   };
@@ -122,15 +203,25 @@ export function BrainCommandBar() {
           </ScrollArea>
 
           {lastAssistantMsg && !isLoading && (
-            <div className="flex items-center gap-2 px-6 py-4 border-t border-border shrink-0">
-              <Button size="sm" onClick={handleConfirm} className="gap-1.5">
-                <Check className="h-3.5 w-3.5" />
-                {t('brain.confirm')}
-              </Button>
-              <Button size="sm" variant="outline" onClick={handleEdit} className="gap-1.5">
-                <Pencil className="h-3.5 w-3.5" />
-                {t('brain.editDraft')}
-              </Button>
+            <div className="px-6 py-4 border-t border-border shrink-0 space-y-3">
+              {showInstallPrompt && (
+                <WorkboardInstallPrompt
+                  onInstall={handleInstallAndResume}
+                  onDismiss={() => { setShowInstallPrompt(false); setPendingPlanContent(null); }}
+                />
+              )}
+              {!showInstallPrompt && (
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={handleConfirm} className="gap-1.5">
+                    <Check className="h-3.5 w-3.5" />
+                    {t('brain.confirm')}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={handleEdit} className="gap-1.5">
+                    <Pencil className="h-3.5 w-3.5" />
+                    {t('brain.editDraft')}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>
