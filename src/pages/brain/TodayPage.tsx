@@ -199,9 +199,9 @@ export default function TodayPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             {overdueTasks.map(task => (
-              <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-destructive/10">
-                <span className="text-sm text-foreground">{task.title}</span>
-                <span className="text-xs text-destructive">
+              <div key={task.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-destructive/10">
+                <span className="text-sm text-foreground truncate">{task.title}</span>
+                <span className="text-xs text-destructive whitespace-nowrap shrink-0">
                   {task.due_date && new Date(task.due_date).toLocaleDateString()}
                 </span>
               </div>
