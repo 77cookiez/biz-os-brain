@@ -1,4 +1,4 @@
-import { Building, Globe, Users, Bell, Palette, ChevronRight } from "lucide-react";
+import { User, Building, FolderOpen, Globe, Users, Bell, Palette, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -7,7 +7,9 @@ export default function SettingsPage() {
   const { t } = useTranslation();
 
   const settingSections = [
+    { icon: User, titleKey: "account.title", descKey: "account.description", path: "/settings/account" },
     { icon: Building, titleKey: "settings.company.title", descKey: "settings.company.description", path: "/settings/company" },
+    { icon: FolderOpen, titleKey: "workspaces.title", descKey: "workspaces.description", path: "/settings/workspaces" },
     { icon: Users, titleKey: "settings.team.title", descKey: "settings.team.description", path: "/settings/team" },
     { icon: Globe, titleKey: "settings.language.title", descKey: "settings.language.description", path: "/settings/language" },
     { icon: Bell, titleKey: "settings.notifications.title", descKey: "settings.notifications.description", path: "/settings/notifications" },

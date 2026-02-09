@@ -1,4 +1,4 @@
-import { Search, Globe, ChevronDown, LogOut, Building2 } from "lucide-react";
+import { Search, Globe, ChevronDown, LogOut, Building2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
@@ -50,9 +50,17 @@ export function TopBar() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-secondary-foreground hover:bg-secondary transition-colors">
-            <div className="h-6 w-6 rounded-md bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-              {currentCompany?.name?.[0]?.toUpperCase() || 'A'}
-            </div>
+            {currentCompany?.logo_url ? (
+              <img 
+                src={currentCompany.logo_url} 
+                alt={currentCompany.name} 
+                className="h-6 w-6 rounded-md object-cover"
+              />
+            ) : (
+              <div className="h-6 w-6 rounded-md bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                {currentCompany?.name?.[0]?.toUpperCase() || 'A'}
+              </div>
+            )}
             <div className="hidden md:flex flex-col items-start leading-none">
               <span className="text-xs font-medium text-foreground">{currentCompany?.name || 'Company'}</span>
               <span className="text-[10px] text-muted-foreground">{currentWorkspace?.name || 'Workspace'}</span>
@@ -83,6 +91,11 @@ export function TopBar() {
               {workspace.name}
             </DropdownMenuItem>
           ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate('/settings/workspaces')}>
+            <Plus className="h-4 w-4 mr-2" />
+            {t('topbar.newWorkspace')}
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 

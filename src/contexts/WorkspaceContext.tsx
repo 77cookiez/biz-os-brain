@@ -6,6 +6,7 @@ interface Company {
   id: string;
   name: string;
   created_by: string;
+  logo_url?: string | null;
 }
 
 interface Workspace {
@@ -57,6 +58,10 @@ interface WorkspaceContextType {
   setCurrentCompany: (company: Company) => void;
   setCurrentWorkspace: (workspace: Workspace) => void;
   createCompanyAndWorkspace: (companyName: string, workspaceName: string) => Promise<{ company: Company; workspace: Workspace } | null>;
+  createWorkspace: (name: string, defaultLocale?: string) => Promise<Workspace | null>;
+  updateWorkspace: (workspaceId: string, updates: { name?: string; default_locale?: string }) => Promise<void>;
+  deleteWorkspace: (workspaceId: string) => Promise<void>;
+  updateCompany: (updates: { name?: string; logo_url?: string }) => Promise<void>;
   updateBusinessContext: (updates: BusinessContextUpdate) => Promise<void>;
   refreshBusinessContext: () => Promise<void>;
   refreshInstalledApps: () => Promise<void>;
@@ -238,6 +243,91 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     if (data) setBusinessContext(data);
   };
 
+  const createWorkspace = async (name: string, defaultLocale: string = 'en'): Promise<Workspace | null> => {
+    if (!user || !currentCompany) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('workspaces')
+        .insert({
+          company_id: currentCompany.id,
+          name,
+          default_locale: defaultLocale
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add user as workspace member
+      await supabase.from('workspace_members').insert({
+        workspace_id: data.id,
+        user_id: user.id,
+        team_role: 'owner',
+        invite_status: 'accepted',
+        joined_at: new Date().toISOString()
+      });
+
+      setWorkspaces(prev => [...prev, data]);
+      return data;
+    } catch (error) {
+      console.error('Error creating workspace:', error);
+      return null;
+    }
+  };
+
+  const updateWorkspace = async (workspaceId: string, updates: { name?: string; default_locale?: string }) => {
+    const { data, error } = await supabase
+      .from('workspaces')
+      .update(updates)
+      .eq('id', workspaceId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    setWorkspaces(prev => prev.map(w => w.id === workspaceId ? data : w));
+    if (currentWorkspace?.id === workspaceId) {
+      setCurrentWorkspace(data);
+    }
+  };
+
+  const deleteWorkspace = async (workspaceId: string) => {
+    // Cannot delete current workspace
+    if (currentWorkspace?.id === workspaceId) {
+      // Switch to another workspace first
+      const otherWorkspace = workspaces.find(w => w.id !== workspaceId && w.company_id === currentCompany?.id);
+      if (otherWorkspace) {
+        setCurrentWorkspace(otherWorkspace);
+      }
+    }
+
+    const { error } = await supabase
+      .from('workspaces')
+      .delete()
+      .eq('id', workspaceId);
+
+    if (error) throw error;
+
+    setWorkspaces(prev => prev.filter(w => w.id !== workspaceId));
+  };
+
+  const updateCompany = async (updates: { name?: string; logo_url?: string }) => {
+    if (!currentCompany) return;
+
+    const { data, error } = await supabase
+      .from('companies')
+      .update(updates)
+      .eq('id', currentCompany.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    setCompanies(prev => prev.map(c => c.id === currentCompany.id ? data : c));
+    setCurrentCompany(data);
+  };
+
   const activateApp = async (appId: string) => {
     if (!currentWorkspace || !user) return;
 
@@ -275,6 +365,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setCurrentCompany,
       setCurrentWorkspace,
       createCompanyAndWorkspace,
+      createWorkspace,
+      updateWorkspace,
+      deleteWorkspace,
+      updateCompany,
       updateBusinessContext,
       refreshBusinessContext,
       refreshInstalledApps,
