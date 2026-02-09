@@ -43,6 +43,8 @@
   "brain": {
     "confirm": "Confirm",
     "sendAsDraft": "Send to Workboard as Draft",
+    "draftsAlreadySent": "These drafts have already been sent to Workboard.",
+    "noted": "Noted",
     "editDraft": "Edit",
     "draftTitle": "Draft Preview"
   },
@@ -176,6 +178,9 @@
     "priorityTasks": "Top 3 Priorities",
     "overdue": "Overdue",
     "thisWeek": "This Week",
+    "insightsOverdue": "Overdue",
+    "insightsBlocked": "Blocked",
+    "insightsCompletedThisWeek": "Completed this week",
     "quickActions": "Quick Actions",
     "addTask": "Add Task",
     "askBrainToPlan": "Ask Brain to Plan",

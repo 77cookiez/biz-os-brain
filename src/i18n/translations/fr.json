@@ -42,6 +42,9 @@
   },
   "brain": {
     "confirm": "Confirmer",
+    "sendAsDraft": "Envoyer au Workboard comme brouillon",
+    "draftsAlreadySent": "Ces brouillons ont déjà été envoyés au Workboard.",
+    "noted": "Noté",
     "editDraft": "Modifier",
     "draftTitle": "Aperçu du brouillon"
   },
@@ -175,6 +178,9 @@
     "priorityTasks": "Top 3 Priorités",
     "overdue": "En retard",
     "thisWeek": "Cette semaine",
+    "insightsOverdue": "En retard",
+    "insightsBlocked": "Bloquées",
+    "insightsCompletedThisWeek": "Complétées cette semaine",
     "quickActions": "Actions rapides",
     "addTask": "Ajouter une tâche",
     "askBrainToPlan": "Demander au Cerveau",

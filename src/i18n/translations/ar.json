@@ -42,6 +42,9 @@
   },
   "brain": {
     "confirm": "تأكيد",
+    "sendAsDraft": "إرسال إلى لوحة العمل كمسودة",
+    "draftsAlreadySent": "تم إرسال هذه المسودات إلى لوحة العمل بالفعل.",
+    "noted": "تم",
     "editDraft": "تعديل",
     "draftTitle": "معاينة المسودة"
   },
@@ -175,6 +178,9 @@
     "priorityTasks": "أهم 3 أولويات",
     "overdue": "متأخرة",
     "thisWeek": "هذا الأسبوع",
+    "insightsOverdue": "متأخرة",
+    "insightsBlocked": "محظورة",
+    "insightsCompletedThisWeek": "مكتملة هذا الأسبوع",
     "quickActions": "إجراءات سريعة",
     "addTask": "إضافة مهمة",
     "askBrainToPlan": "اطلب من العقل التخطيط",

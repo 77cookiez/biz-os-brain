@@ -140,7 +140,7 @@ export default function TodayPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{insights.overdueCount}</p>
-                <p className="text-xs text-muted-foreground">Overdue</p>
+                <p className="text-xs text-muted-foreground">{t('today.insightsOverdue')}</p>
               </div>
             </CardContent>
           </Card>
@@ -151,7 +151,7 @@ export default function TodayPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{insights.blockedCount}</p>
-                <p className="text-xs text-muted-foreground">Blocked</p>
+                <p className="text-xs text-muted-foreground">{t('today.insightsBlocked')}</p>
               </div>
             </CardContent>
           </Card>
@@ -162,7 +162,7 @@ export default function TodayPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{completionRate}%</p>
-                <p className="text-xs text-muted-foreground">Completed this week</p>
+                <p className="text-xs text-muted-foreground">{t('today.insightsCompletedThisWeek')}</p>
               </div>
             </CardContent>
           </Card>
