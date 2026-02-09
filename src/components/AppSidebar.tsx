@@ -3,6 +3,8 @@ import { NavLink } from "@/components/NavLink";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useTranslation } from "react-i18next";
 import logoPrimary from "@/assets/logo-primary.png";
+import logoLight from "@/assets/logo-light.png";
+import { useTheme } from "@/contexts/ThemeContext";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +13,7 @@ const iconMap: Record<string, React.ElementType> = {};
 
 export function AppSidebar() {
   const { t } = useTranslation();
+  const { resolvedTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const { installedApps } = useWorkspace();
   const [appNames, setAppNames] = useState<Record<string, { name: string; icon: string }>>({});
@@ -51,7 +54,7 @@ export function AppSidebar() {
       {/* Logo */}
       <div className="flex h-14 items-center gap-2 px-4 border-b border-border">
         {!collapsed && (
-          <img src={logoPrimary} alt="AiBizos" className="h-6 object-contain" />
+          <img src={resolvedTheme === 'dark' ? logoLight : logoPrimary} alt="AiBizos" className="h-6 object-contain" />
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
