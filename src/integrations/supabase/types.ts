@@ -201,6 +201,44 @@ export type Database = {
           },
         ]
       }
+      chat_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           created_at: string
@@ -257,6 +295,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_read_at: string | null
           role: string
           thread_id: string
           user_id: string
@@ -264,6 +303,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_read_at?: string | null
           role?: string
           thread_id: string
           user_id: string
@@ -271,6 +311,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_read_at?: string | null
           role?: string
           thread_id?: string
           user_id?: string
