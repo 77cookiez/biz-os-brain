@@ -1,7 +1,11 @@
 import { useState, useCallback } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { buildMeaningFromText, createMeaningObject } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -13,13 +17,56 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/brain-chat`;
 export function useBrainChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { businessContext, installedApps } = useWorkspace();
+  const { businessContext, installedApps, currentWorkspace } = useWorkspace();
   const { currentLanguage } = useLanguage();
+  const { user } = useAuth();
+
+  /** Persist a single brain message to DB with a meaning object */
+  const persistMessage = useCallback(async (
+    role: 'user' | 'assistant',
+    content: string,
+  ) => {
+    if (!currentWorkspace || !user) return;
+
+    const meaningJson = buildMeaningFromText({
+      type: 'BRAIN_MESSAGE',
+      title: content.slice(0, 120),
+      description: content.length > 120 ? content : undefined,
+      createdFrom: role === 'user' ? 'user' : 'brain',
+    });
+
+    const meaningId = await createMeaningObject({
+      workspaceId: currentWorkspace.id,
+      createdBy: user.id,
+      type: 'BRAIN_MESSAGE',
+      sourceLang: currentLanguage.code,
+      meaningJson,
+    });
+
+    const payload = {
+      workspace_id: currentWorkspace.id,
+      user_id: user.id,
+      role,
+      content,
+      source_lang: currentLanguage.code,
+      meaning_object_id: meaningId,
+    };
+
+    guardMeaningInsert('brain_messages', payload);
+
+    const { error } = await supabase.from('brain_messages').insert(payload);
+    if (error) {
+      console.error('[Brain] Failed to persist message:', error.message);
+    }
+  }, [currentWorkspace, user, currentLanguage.code]);
 
   const sendMessage = useCallback(async (input: string, action?: string) => {
     const userMsg: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
+
+    // Persist user message
+    persistMessage('user', input);
 
     let assistantSoFar = '';
     
@@ -124,13 +171,18 @@ export function useBrainChat() {
           } catch { /* ignore */ }
         }
       }
+
+      // Persist assistant response after stream completes
+      if (assistantSoFar) {
+        persistMessage('assistant', assistantSoFar);
+      }
     } catch (error) {
       console.error('Chat error:', error);
       toast.error('Failed to communicate with Business Brain');
     } finally {
       setIsLoading(false);
     }
-  }, [messages, businessContext, installedApps, currentLanguage.code]);
+  }, [messages, businessContext, installedApps, currentLanguage.code, persistMessage]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
