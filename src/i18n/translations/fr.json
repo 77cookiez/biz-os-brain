@@ -45,6 +45,8 @@
     "sendAsDraft": "Envoyer au Workboard comme brouillon",
     "draftsAlreadySent": "Ces brouillons ont déjà été envoyés au Workboard.",
     "noted": "Noté",
+    "workboardInstalled": "Workboard installé avec succès !",
+    "draftsSentToBacklog": "{{count}} brouillon(s) envoyé(s) au Backlog du Workboard. Révisez et planifiez-les dans le Workboard.",
     "editDraft": "Modifier",
     "draftTitle": "Aperçu du brouillon"
   },

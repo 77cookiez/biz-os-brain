@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export interface PlanItem {
   type: 'task' | 'goal';
@@ -13,6 +14,7 @@ export interface PlanItem {
 }
 
 export function useBrainWorkboardIntegration() {
+  const { t } = useTranslation();
   const { installedApps, activateApp, refreshInstalledApps } = useWorkspace();
   const { createTask } = useWorkboardTasks();
 
@@ -23,7 +25,7 @@ export function useBrainWorkboardIntegration() {
   const installWorkboard = useCallback(async () => {
     await activateApp('workboard');
     await refreshInstalledApps();
-    toast.success('Workboard installed successfully!');
+    toast.success(t('brain.workboardInstalled'));
   }, [activateApp, refreshInstalledApps]);
 
   const createTasksFromPlan = useCallback(
@@ -42,7 +44,7 @@ export function useBrainWorkboardIntegration() {
         }
       }
       if (created > 0) {
-        toast.success(`${created} draft${created > 1 ? 's' : ''} sent to Workboard Backlog. Review and schedule them in Workboard.`);
+        toast.success(t('brain.draftsSentToBacklog', { count: created }));
       }
       return created;
     },
