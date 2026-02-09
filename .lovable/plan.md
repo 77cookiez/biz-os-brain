@@ -1,283 +1,55 @@
 
-AI Business Brain – Dedicated Page (Final Spec – ULL Integrated)
-Purpose
 
-The AI Business Brain is a thinking and decision-support system, not an execution engine.
+# Fix: Brain 404 + Language Persistence
 
-It exists to:
+## Issue 1: Brain 404 in Apps Section
 
-Understand business context across all installed apps
+**Root Cause:** The "brain" app is registered in `app_registry` and installed in `workspace_apps`. The sidebar renders installed apps under the "Apps" section with links to `/apps/{app_id}`, so Brain gets a link to `/apps/brain`. But the actual route is `/brain`, not `/apps/brain`.
 
-Reason, analyze, and advise
+**Fix:** Add `brain` to the `SYSTEM_APP_IDS` list in `systemApps.ts` (or at minimum to the sidebar filter). Since Brain is already shown in the primary "Business Brain" section of the sidebar, it should be excluded from the "Apps" section just like ULL is. Adding `brain` to `SYSTEM_APP_IDS` will:
+- Filter it out from the dynamic Apps nav section (line 40 already filters system apps)
+- Prevent it from being uninstalled/deactivated in settings
+- It already has a dedicated link at `/brain` in the `brainLinks` array
 
-Produce draft decisions and plans
+**File:** `src/lib/systemApps.ts`
+- Change `SYSTEM_APP_IDS` from `['ull']` to `['ull', 'brain']`
 
-Never execute actions or mutate data directly
+---
 
-All execution happens only in downstream apps after explicit confirmation.
+## Issue 2: Language Resets to Arabic
 
-Route
-/brain
+**Root Cause:** The user's profile in the database has `preferred_locale: 'ar'`. The `LanguageProvider` loads from the DB profile on every mount, and DB takes priority over localStorage. So even if the user switches to English via the UI (which saves to localStorage), on next navigation/remount the DB value (`ar`) overrides it.
 
+The `setCurrentLanguage` function only saves to localStorage but never updates the DB profile. So the DB always wins.
 
-Dedicated full-page Brain Console, separate from Today or dashboards.
+**Fix:** Update `setCurrentLanguage` in `LanguageContext.tsx` to also persist to the `profiles` table:
 
-Core Principles (Non-Negotiable)
+```typescript
+const setCurrentLanguage = async (lang: Language) => {
+  setCurrentLanguageState(lang);
+  localStorage.setItem(STORAGE_KEY_CURRENT, lang.code);
+  
+  // Also persist to DB profile
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await supabase
+      .from('profiles')
+      .update({ preferred_locale: lang.code })
+      .eq('user_id', user.id);
+  }
+};
+```
 
-Brain Thinks, It Does Not Execute
+**File:** `src/contexts/LanguageContext.tsx`
+- Update the `setCurrentLanguage` function to sync with the database
 
-No direct creation, update, or deletion of records
+---
 
-No financial or operational execution
+## Summary
 
-No irreversible actions
+| Issue | Root Cause | Fix |
+|-------|-----------|-----|
+| Brain 404 | Sidebar links to `/apps/brain`, route is `/brain` | Add `brain` to `SYSTEM_APP_IDS` so it's excluded from Apps section |
+| Language resets | DB `preferred_locale` overrides localStorage on every mount | Sync language changes to DB in `setCurrentLanguage` |
 
-Draft-First Architecture
-
-Every output is a draft
-
-Drafts must be reviewed and explicitly promoted elsewhere
-
-Decision Flow
-
-Ask → Plan → Dry-Run → Confirm → Execute
-
-
-The Brain covers Ask → Plan → Dry-Run only.
-
-ULL Is the Source of Linguistic Truth
-
-All language understanding, normalization, and intent extraction flows through ULL
-
-UI language, voice input, and reasoning are decoupled
-
-Page Layout
-+------------------------------------------------------+
-|  AI Business Brain                                   |
-|  Context Awareness Strip                             |
-+------------------------------------------------------+
-|  Smart Contextual Quick Actions (2–3 max)            |
-+------------------------------------------------------+
-|                                                      |
-|   Reasoning Stream (scrollable, markdown)            |
-|                                                      |
-+------------------------------------------------------+
-|  Decision & Draft Panel (persistent)                 |
-+------------------------------------------------------+
-|  [Mic] [ Type your message… ] [Send]                 |
-+------------------------------------------------------+
-
-1. Context Awareness Strip (Always Visible)
-
-A lightweight, non-numerical context indicator.
-
-Displays:
-
-Connected apps & readiness (icons only)
-
-Data freshness indicator
-
-Brain confidence level (High / Medium / Low)
-
-Action:
-
-Fix context
-
-❌ No metrics, charts, or KPIs.
-
-2. Smart Contextual Quick Actions
-
-Rules:
-
-Max 2–3 items
-
-Generated dynamically from workspace state
-
-Never auto-execute
-
-Behavior:
-
-Clicking a card prefills the input
-
-User must explicitly press Send
-
-3. Reasoning Stream (Not a Chat)
-
-This is not a conversational chat UI.
-
-Response structure:
-
-🧠 Brain Insight
-
-What I understand
-
-Why it matters
-
-What it implies for the business
-
-📌 Key Observations
-
-3–5 concise points
-
-⚠️ Risks Detected (conditional)
-
-💡 Strategic Suggestions
-
-Advisory only
-
-No execution
-
-4. Decision & Draft Panel (Mandatory)
-
-Appears after every Brain response.
-
-Contents:
-
-Objective
-
-Assumptions
-
-Constraints
-
-Options (A / B / C)
-
-Trade-offs
-
-Allowed Actions Only:
-
-Save as Draft
-
-Open Dry-Run Preview
-
-Send Draft to Workboard
-
-Dismiss
-
-❌ No Execute / Apply / Create actions allowed.
-
-5. Input Bar
-Text Input
-
-Placeholder:
-
-Ask the Business Brain anything about your business…
-
-6. Voice Input – ULL-Driven (Language-Agnostic)
-Key Principle
-
-Voice input language is not hard-coded.
-Language handling is delegated to ULL, not the browser.
-
-Voice Flow Architecture
-User Speech
-   ↓
-Browser Speech Recognition (best available locale)
-   ↓
-Raw Transcript
-   ↓
-ULL (Universal Language Layer)
-   - detect actual language
-   - normalize wording
-   - correct grammar
-   - unify meaning
-   - extract intent
-   ↓
-AI Business Brain reasoning
-
-Voice Behavior Rules
-
-The system attempts to use the closest browser-supported locale matching the current ULL language
-
-If an exact match is unavailable:
-
-A compatible fallback locale is used
-
-The transcript is always processed by ULL for:
-
-Language detection
-
-Normalization
-
-Semantic correction
-
-Confidence Handling
-
-Each transcript carries a confidence score:
-
-high | medium | low
-
-For low confidence:
-
-Brain re-confirms understanding:
-
-“I understood this as: … Is that correct?”
-
-Result
-
-Functional support for all human languages
-
-Browser limitations are abstracted away
-
-ULL remains the single linguistic authority
-
-7. Empty State (First Use Only)
-
-Shown when no messages exist.
-
-Capability Cards:
-
-Strategic Advisor
-
-Business Planning
-
-Business Coaching
-
-Each card opens example prompts, not execution.
-
-8. Memory & Sessions (Recommended)
-
-Conversations stored as sessions
-
-Rename / Pin / Archive
-
-Brain may reference past decisions contextually
-
-What Must NOT Exist on This Page
-
-❌ Dashboards
-
-❌ KPIs
-
-❌ Charts
-
-❌ Task lists
-
-❌ Orders or inventory tables
-
-❌ Financial execution
-
-❌ Auto-creation of records
-
-This page is thinking only.
-
-Technical Notes
-New Files
-
-src/pages/brain/BrainPage.tsx
-
-src/hooks/useVoiceInput.ts
-
-Modified Files
-
-Routing (/brain)
-
-Sidebar navigation
-
-i18n (UI text only; logic handled by ULL)
-
-Final Design Truth
-
-ULL understands language.
-The Brain understands business.
-Execution belongs elsewhere.
-
+Both fixes are small, targeted changes -- one line in `systemApps.ts` and a few lines in `LanguageContext.tsx`.
