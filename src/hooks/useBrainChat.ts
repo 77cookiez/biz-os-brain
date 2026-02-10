@@ -224,7 +224,7 @@ export function useBrainChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, businessContext, installedApps, currentLanguage.code, persistMessage]);
+  }, [messages, businessContext, installedApps, currentLanguage.code, persistMessage, fetchWorkContext]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
