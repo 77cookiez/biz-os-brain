@@ -326,6 +326,23 @@
     "inApp": "Dans l'application",
     "inAppDesc": "Afficher la carte de résumé à l'ouverture de l'application",
     "email": "Email",
-    "emailDesc": "Recevoir un résumé hebdomadaire par email"
+    "emailDesc": "Recevoir un résumé hebdomadaire par email",
+    "schedule": "Calendrier de livraison",
+    "scheduleDay": "Jour",
+    "scheduleTime": "Heure",
+    "scheduleNote": "Maximum un résumé par semaine. Utilise le fuseau horaire de l'espace de travail.",
+    "monday": "Lundi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi",
+    "thursday": "Jeudi",
+    "friday": "Vendredi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "empty": "Aucune notification pour le moment",
+    "settings": "Paramètres de notification"
   }
 }

@@ -7,12 +7,16 @@ interface DigestPreferences {
   enabled: boolean;
   in_app: boolean;
   email: boolean;
+  schedule_day: number;
+  schedule_hour: number;
 }
 
 const DEFAULTS: DigestPreferences = {
   enabled: true,
   in_app: true,
   email: true,
+  schedule_day: 1,
+  schedule_hour: 9,
 };
 
 export function useDigestPreferences() {
@@ -30,7 +34,7 @@ export function useDigestPreferences() {
     const load = async () => {
       const { data } = await supabase
         .from('digest_preferences')
-        .select('enabled, in_app, email')
+        .select('enabled, in_app, email, schedule_day, schedule_hour')
         .eq('user_id', user.id)
         .eq('workspace_id', currentWorkspace.id)
         .maybeSingle();
@@ -40,6 +44,8 @@ export function useDigestPreferences() {
           enabled: data.enabled ?? true,
           in_app: data.in_app ?? true,
           email: data.email ?? true,
+          schedule_day: (data as any).schedule_day ?? 1,
+          schedule_hour: (data as any).schedule_hour ?? 9,
         });
       }
       setLoading(false);

@@ -6,6 +6,7 @@ import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import { BrainCommandBar } from "@/components/brain/BrainCommandBar";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -97,6 +98,9 @@ export function TopBar() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Notifications */}
+      <NotificationBell />
 
       {/* Language */}
       {enabledLanguages.length > 1 ? (

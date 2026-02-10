@@ -222,19 +222,22 @@ ${factSheet}`,
       }
     }
 
-    // Step 4: Store digest
+    // Step 4: Store digest (upsert for idempotency)
     const { data: digest, error: insertError } = await supabase
       .from("weekly_digests")
-      .insert({
-        user_id,
-        workspace_id,
-        week_start: weekStartStr,
-        week_end: weekEndStr,
-        stats,
-        blockers_summary: blockersSummary,
-        decisions_summary: decisionsSummary,
-        narrative_text: narrativeText,
-      } as any)
+      .upsert(
+        {
+          user_id,
+          workspace_id,
+          week_start: weekStartStr,
+          week_end: weekEndStr,
+          stats,
+          blockers_summary: blockersSummary,
+          decisions_summary: decisionsSummary,
+          narrative_text: narrativeText,
+        } as any,
+        { onConflict: "user_id,workspace_id,week_start" }
+      )
       .select()
       .single();
 
@@ -244,6 +247,33 @@ ${factSheet}`,
         JSON.stringify({ error: "Failed to store digest" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Step 4b: Create in-app notification (idempotent via week_key unique constraint)
+    const inAppEnabled = !prefs || prefs.in_app !== false;
+    if (inAppEnabled) {
+      const notifTitle = isEmpty
+        ? "Nothing major this week"
+        : `Your week: ${stats.tasks_completed} completed, ${stats.tasks_blocked} blocked`;
+      const notifBody = narrativeText || (isEmpty
+        ? "You're all set for the next week."
+        : `${stats.tasks_created} tasks created, ${stats.goals_created} goals created.`);
+
+      await supabase
+        .from("notifications")
+        .upsert(
+          {
+            user_id,
+            workspace_id,
+            type: "weekly_digest",
+            title: notifTitle,
+            body: notifBody,
+            data_json: { link: "/insights", digest_id: digest?.id },
+            channels: ["in_app"],
+            week_key: weekStartStr,
+          } as any,
+          { onConflict: "user_id,workspace_id,type,week_key", ignoreDuplicates: true }
+        );
     }
 
     // Step 5: Send email if enabled

@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Globe, Shield, Server, Database, Zap, Languages, Mail, Bell, Smartphone } from "lucide-react";
+import { ArrowLeft, Check, Globe, Shield, Server, Database, Zap, Languages, Mail, Bell, Smartphone, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ContentLanguagePicker } from "@/components/settings/ContentLanguagePicker";
 import { useDigestPreferences } from "@/hooks/useDigestPreferences";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function LanguageSettingsPage() {
   const navigate = useNavigate();
@@ -283,6 +284,57 @@ export default function LanguageSettingsPage() {
                   checked={digestPrefs.email}
                   onCheckedChange={(email) => updateDigestPrefs({ email })}
                 />
+              </div>
+
+              {/* Schedule Controls */}
+              <div className="p-3 rounded-lg bg-secondary/30 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <p className="text-sm font-medium text-foreground">{t('digest.schedule', 'Delivery Schedule')}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{t('digest.scheduleDay', 'Day')}</p>
+                    <Select
+                      value={String(digestPrefs.schedule_day)}
+                      onValueChange={(v) => updateDigestPrefs({ schedule_day: Number(v) })}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">{t('digest.monday', 'Monday')}</SelectItem>
+                        <SelectItem value="2">{t('digest.tuesday', 'Tuesday')}</SelectItem>
+                        <SelectItem value="3">{t('digest.wednesday', 'Wednesday')}</SelectItem>
+                        <SelectItem value="4">{t('digest.thursday', 'Thursday')}</SelectItem>
+                        <SelectItem value="5">{t('digest.friday', 'Friday')}</SelectItem>
+                        <SelectItem value="6">{t('digest.saturday', 'Saturday')}</SelectItem>
+                        <SelectItem value="0">{t('digest.sunday', 'Sunday')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">{t('digest.scheduleTime', 'Time')}</p>
+                    <Select
+                      value={String(digestPrefs.schedule_hour)}
+                      onValueChange={(v) => updateDigestPrefs({ schedule_hour: Number(v) })}
+                    >
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>
+                            {String(i).padStart(2, '0')}:00
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {t('digest.scheduleNote', 'Maximum one digest per week. Uses workspace timezone.')}
+                </p>
               </div>
             </>
           )}
