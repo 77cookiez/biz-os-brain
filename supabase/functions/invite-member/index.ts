@@ -19,25 +19,25 @@ serve(async (req) => {
 
     // Verify the calling user
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const token = authHeader.replace("Bearer ", "");
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const {
-      data: { user: caller },
-    } = await anonClient.auth.getUser();
-    if (!caller) {
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const callerId = claimsData.claims.sub;
 
     const { email, workspace_id, team_role, custom_role_name } = await req.json();
 
@@ -67,7 +67,7 @@ serve(async (req) => {
     const { data: callerRole } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", callerId)
       .eq("company_id", workspace.company_id)
       .single();
 
@@ -78,30 +78,30 @@ serve(async (req) => {
       );
     }
 
-    // Look up the user by email using admin API (paginated)
+    // Look up the user by email directly
+    const { data: lookupData, error: lookupError } =
+      await adminClient.auth.admin.listUsers({ page: 1, perPage: 50 });
+
     let targetUser = null;
-    let page = 1;
-    const perPage = 100;
-    while (!targetUser) {
-      const { data: userList, error: listError } =
-        await adminClient.auth.admin.listUsers({ page, perPage });
-
-      if (listError) {
-        return new Response(JSON.stringify({ error: "Failed to lookup users" }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const found = userList.users.find(
+    if (!lookupError && lookupData?.users) {
+      targetUser = lookupData.users.find(
         (u: any) => u.email?.toLowerCase() === email.toLowerCase()
       );
-      if (found) {
-        targetUser = found;
-        break;
+    }
+
+    // Fallback: also check additional pages if not found
+    if (!targetUser && !lookupError && lookupData?.users?.length === 50) {
+      let page = 2;
+      while (!targetUser) {
+        const { data: pageData, error: pageError } =
+          await adminClient.auth.admin.listUsers({ page, perPage: 50 });
+        if (pageError || !pageData?.users?.length) break;
+        targetUser = pageData.users.find(
+          (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+        );
+        if (pageData.users.length < 50) break;
+        page++;
       }
-      if (userList.users.length < perPage) break;
-      page++;
     }
 
     if (!targetUser) {
