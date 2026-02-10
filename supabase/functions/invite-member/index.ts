@@ -164,6 +164,7 @@ serve(async (req) => {
         custom_role_name: team_role === "custom" ? custom_role_name || null : null,
         invite_status: isNewUser ? "pending" : "accepted",
         joined_at: isNewUser ? null : new Date().toISOString(),
+        email: email.toLowerCase(),
       });
 
     if (insertError) {

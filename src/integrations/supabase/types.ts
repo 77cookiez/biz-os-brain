@@ -912,6 +912,7 @@ export type Database = {
       workspace_members: {
         Row: {
           custom_role_name: string | null
+          email: string | null
           id: string
           invite_status: string
           invited_at: string
@@ -922,6 +923,7 @@ export type Database = {
         }
         Insert: {
           custom_role_name?: string | null
+          email?: string | null
           id?: string
           invite_status?: string
           invited_at?: string
@@ -932,6 +934,7 @@ export type Database = {
         }
         Update: {
           custom_role_name?: string | null
+          email?: string | null
           id?: string
           invite_status?: string
           invited_at?: string
