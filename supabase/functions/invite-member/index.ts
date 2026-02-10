@@ -78,40 +78,35 @@ serve(async (req) => {
       );
     }
 
-    // Look up the user by email directly
-    const { data: lookupData, error: lookupError } =
-      await adminClient.auth.admin.listUsers({ page: 1, perPage: 50 });
-
+    // Look up the user by email
     let targetUser = null;
-    if (!lookupError && lookupData?.users) {
-      targetUser = lookupData.users.find(
+    let page = 1;
+    while (true) {
+      const { data: pageData, error: pageError } =
+        await adminClient.auth.admin.listUsers({ page, perPage: 50 });
+      if (pageError || !pageData?.users?.length) break;
+      const found = pageData.users.find(
         (u: any) => u.email?.toLowerCase() === email.toLowerCase()
       );
+      if (found) { targetUser = found; break; }
+      if (pageData.users.length < 50) break;
+      page++;
     }
 
-    // Fallback: also check additional pages if not found
-    if (!targetUser && !lookupError && lookupData?.users?.length === 50) {
-      let page = 2;
-      while (!targetUser) {
-        const { data: pageData, error: pageError } =
-          await adminClient.auth.admin.listUsers({ page, perPage: 50 });
-        if (pageError || !pageData?.users?.length) break;
-        targetUser = pageData.users.find(
-          (u: any) => u.email?.toLowerCase() === email.toLowerCase()
-        );
-        if (pageData.users.length < 50) break;
-        page++;
-      }
-    }
-
+    // If user not found, auto-invite them via Supabase (creates account + sends email)
     if (!targetUser) {
-      return new Response(
-        JSON.stringify({
-          error: "user_not_found",
-          message: "No account found with this email. They need to sign up first.",
-        }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const { data: inviteData, error: inviteError } =
+        await adminClient.auth.admin.inviteUserByEmail(email);
+
+      if (inviteError) {
+        console.error("Invite error:", inviteError);
+        return new Response(
+          JSON.stringify({ error: "invite_failed", message: "Failed to send invitation email. " + inviteError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      targetUser = inviteData.user;
     }
 
     // Check if already a member
@@ -145,6 +140,9 @@ serve(async (req) => {
       });
     }
 
+    // Determine if this is a new (invited) or existing user
+    const isNewUser = !targetUser.confirmed_at;
+
     // Add to workspace_members
     const { error: insertError } = await adminClient
       .from("workspace_members")
@@ -153,8 +151,8 @@ serve(async (req) => {
         user_id: targetUser.id,
         team_role: team_role,
         custom_role_name: team_role === "custom" ? custom_role_name || null : null,
-        invite_status: "accepted",
-        joined_at: new Date().toISOString(),
+        invite_status: isNewUser ? "pending" : "accepted",
+        joined_at: isNewUser ? null : new Date().toISOString(),
       });
 
     if (insertError) {
