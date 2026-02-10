@@ -337,101 +337,8 @@ export default function BrainPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] max-w-4xl mx-auto">
-      {/* Header + Context Strip */}
-      <div className="space-y-3 pt-4 pb-3 px-1">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center brain-glow">
-            <Sparkles className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">{t('brainPage.title')}</h1>
-            <p className="text-xs text-muted-foreground">{t('brainPage.subtitle')}</p>
-          </div>
-        </div>
-        <ContextStrip t={t} />
-      </div>
-
-      {/* Input Bar — pinned at top */}
-      <div className="px-2 pb-3">
-        {/* Voice listening indicator */}
-        {isListening && (
-          <div className="flex items-center gap-2 mb-2 px-2 text-xs">
-            <span className="flex items-center gap-1 text-destructive">
-              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-              {t('brainPage.voice.listening')}
-            </span>
-            <Badge variant="outline" className="text-[10px]">
-              {t(`brainPage.voice.confidence.${confidence}`)}
-            </Badge>
-          </div>
-        )}
-
-        <div className="relative flex items-end rounded-2xl border border-border bg-card shadow-sm focus-within:border-primary/50 focus-within:shadow-md transition-all">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('brainPage.inputPlaceholder')}
-            className="min-h-[52px] max-h-[200px] bg-transparent border-0 text-foreground resize-none flex-1 py-3.5 px-4 pr-24 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
-            rows={1}
-          />
-
-          <div className="absolute bottom-2 right-2 flex items-center gap-1">
-            {/* Mic button */}
-            {isSupported && (
-              <button
-                onClick={isListening ? stopListening : startListening}
-                className={cn(
-                  "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
-                  isListening
-                    ? "bg-destructive text-destructive-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </button>
-            )}
-
-            {/* Send button */}
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className={cn(
-                "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
-                input.trim() && !isLoading
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
-              )}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUp className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Smart Quick Actions */}
-      {!hasMessages && suggestions.length > 0 && (
-        <div className="flex gap-2 px-1 pb-3 overflow-x-auto">
-          {suggestions.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => handleSuggestionClick(s.key)}
-              className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-secondary-foreground hover:bg-secondary hover:border-primary/30 transition-all shrink-0 group"
-            >
-              <s.icon className="h-3.5 w-3.5 text-primary" />
-              <span>{t(s.key)}</span>
-              <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Reasoning Stream */}
-      <ScrollArea className="flex-1 px-1" ref={scrollRef}>
+      {/* Reasoning Stream / Empty State */}
+      <ScrollArea className="flex-1 px-1 pt-4" ref={scrollRef}>
         {!hasMessages ? (
           <EmptyState t={t} />
         ) : (
@@ -468,7 +375,7 @@ export default function BrainPage() {
                   )}
                 </div>
 
-                {/* Decision Panel after assistant messages */}
+                {/* Decision Panel after last assistant message */}
                 {message.role === 'assistant' && i === messages.length - 1 && (
                   <div className="mt-3 ml-11">
                     <DecisionPanel content={message.content} t={t} onSaveAsDraft={handleSaveAsDraft} onSendToWorkboard={handleSendToWorkboard} isSending={isSending} />
@@ -493,6 +400,84 @@ export default function BrainPage() {
           </div>
         )}
       </ScrollArea>
+
+      {/* Bottom section: suggestions + input pinned at bottom like ChatGPT */}
+      <div className="shrink-0 px-2 pb-4 pt-2 space-y-3">
+        {/* Smart Quick Actions */}
+        {!hasMessages && suggestions.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto">
+            {suggestions.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => handleSuggestionClick(s.key)}
+                className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-secondary-foreground hover:bg-secondary hover:border-primary/30 transition-all shrink-0 group"
+              >
+                <s.icon className="h-3.5 w-3.5 text-primary" />
+                <span>{t(s.key)}</span>
+                <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Voice listening indicator */}
+        {isListening && (
+          <div className="flex items-center gap-2 px-2 text-xs">
+            <span className="flex items-center gap-1 text-destructive">
+              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              {t('brainPage.voice.listening')}
+            </span>
+            <Badge variant="outline" className="text-[10px]">
+              {t(`brainPage.voice.confidence.${confidence}`)}
+            </Badge>
+          </div>
+        )}
+
+        {/* Input bar */}
+        <div className="relative flex items-end rounded-2xl border border-border bg-card shadow-sm focus-within:border-primary/50 focus-within:shadow-md transition-all">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t('brainPage.inputPlaceholder')}
+            className="min-h-[52px] max-h-[200px] bg-transparent border-0 text-foreground resize-none flex-1 py-3.5 px-4 pr-24 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
+            rows={1}
+          />
+
+          <div className="absolute bottom-2 right-2 flex items-center gap-1">
+            {isSupported && (
+              <button
+                onClick={isListening ? stopListening : startListening}
+                className={cn(
+                  "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
+                  isListening
+                    ? "bg-destructive text-destructive-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+            )}
+
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className={cn(
+                "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
+                input.trim() && !isLoading
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
+              )}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
