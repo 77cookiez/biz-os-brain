@@ -39,6 +39,8 @@ export function useChatToWork() {
       metadata: {
         created_from: 'user',
         source: 'chat',
+        source_message_id: message.id,
+        source_thread_id: message.thread_id,
       },
     };
 
