@@ -61,7 +61,16 @@ serve(async (req) => {
     }
 
     // Build system prompt with business context
-    const langLabel = userLang === 'ar' ? 'Arabic (العربية)' : userLang === 'fr' ? 'French (Français)' : userLang === 'es' ? 'Spanish (Español)' : userLang === 'de' ? 'German (Deutsch)' : 'English';
+    const langMap: Record<string, string> = {
+      ar: 'Arabic (العربية)', fr: 'French (Français)', es: 'Spanish (Español)',
+      de: 'German (Deutsch)', hi: 'Hindi (हिन्दी)', ur: 'Urdu (اردو)',
+      zh: 'Chinese (中文)', pt: 'Portuguese (Português)', ru: 'Russian (Русский)',
+      ja: 'Japanese (日本語)', ko: 'Korean (한국어)', tr: 'Turkish (Türkçe)',
+      it: 'Italian (Italiano)', nl: 'Dutch (Nederlands)', sw: 'Swahili (Kiswahili)',
+      th: 'Thai (ไทย)', vi: 'Vietnamese (Tiếng Việt)', fa: 'Persian (فارسی)',
+      bn: 'Bengali (বাংলা)', he: 'Hebrew (עברית)',
+    };
+    const langLabel = langMap[userLang || ''] || (userLang ? `Language: ${userLang}` : 'English');
 
     let systemPrompt = `You are the AI Business Brain for AiBizos — a unified AI Business Operating System.
 You operate in TWO modes simultaneously:

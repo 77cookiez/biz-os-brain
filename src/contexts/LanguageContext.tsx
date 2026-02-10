@@ -20,10 +20,12 @@ export const AVAILABLE_LANGUAGES: Language[] = [
 interface LanguageContextType {
   currentLanguage: Language;
   enabledLanguages: Language[];
+  contentLocale: string | null;
   setCurrentLanguage: (lang: Language) => void;
   setEnabledLanguages: (languages: Language[]) => void;
   toggleLanguage: (lang: Language) => void;
   cycleLanguage: () => void;
+  setContentLocale: (code: string | null) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -35,6 +37,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
   const [currentLanguage, setCurrentLanguageState] = useState<Language>(AVAILABLE_LANGUAGES[0]);
   const [enabledLanguages, setEnabledLanguagesState] = useState<Language[]>([AVAILABLE_LANGUAGES[0]]);
+  const [contentLocale, setContentLocaleState] = useState<string | null>(null);
 
   // Load from DB profile first, then localStorage fallback
   useEffect(() => {
@@ -51,15 +54,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Try loading preferred_locale from profile
+      // Try loading preferred_locale + content_locale from profile
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('preferred_locale')
+          .select('preferred_locale, content_locale')
           .eq('user_id', user.id)
           .single();
         
+        if (profile?.content_locale) {
+          setContentLocaleState(profile.content_locale);
+        }
+
         if (profile?.preferred_locale) {
           const found = AVAILABLE_LANGUAGES.find(l => l.code === profile.preferred_locale);
           if (found) {
@@ -134,14 +141,27 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setCurrentLanguage(enabledLanguages[nextIndex]);
   };
 
+  const setContentLocale = async (code: string | null) => {
+    setContentLocaleState(code);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ content_locale: code } as any)
+        .eq('user_id', user.id);
+    }
+  };
+
   return (
     <LanguageContext.Provider value={{
       currentLanguage,
       enabledLanguages,
+      contentLocale,
       setCurrentLanguage,
       setEnabledLanguages,
       toggleLanguage,
-      cycleLanguage
+      cycleLanguage,
+      setContentLocale,
     }}>
       {children}
     </LanguageContext.Provider>

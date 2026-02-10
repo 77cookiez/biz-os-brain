@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, BarChart3, ShieldAlert, MessageSquare, Target, CheckCircle2, AlertTriangle, Lightbulb } from 'lucide-react';
 import { useInsights } from '@/hooks/useInsights';
+import { ULLText } from '@/components/ull/ULLText';
 
 export default function InsightsPage() {
   const { t } = useTranslation();
-  const { weeklySummary, blockers, decisions, loading, error, weekStart, weekEnd } = useInsights();
+  const { data, loading, error, weekStart, weekEnd } = useInsights();
 
   if (loading) {
     return (
@@ -24,11 +25,27 @@ export default function InsightsPage() {
     );
   }
 
+  if (!data) return null;
+
+  const { weekly, blockers, decisions } = data;
+
   const isEmpty =
-    weeklySummary.tasksCreated === 0 &&
-    weeklySummary.tasksCompleted === 0 &&
-    blockers.length === 0 &&
-    decisions.length === 0;
+    weekly.tasks_created === 0 &&
+    weekly.tasks_completed === 0 &&
+    blockers.blocked_tasks.length === 0 &&
+    blockers.stale_tasks.length === 0 &&
+    decisions.tasks_created_from_chat.length === 0 &&
+    decisions.goals_created_from_chat.length === 0;
+
+  const allBlockers = [
+    ...blockers.blocked_tasks.map(b => ({ ...b, type: 'blocked' as const })),
+    ...blockers.stale_tasks.map(b => ({ ...b, type: 'stale' as const, reason_code: 'stale' })),
+  ];
+
+  const allDecisions = [
+    ...decisions.tasks_created_from_chat.map(d => ({ ...d, type: 'task' as const })),
+    ...decisions.goals_created_from_chat.map(d => ({ ...d, type: 'goal' as const, task_id: d.goal_id })),
+  ];
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -65,34 +82,34 @@ export default function InsightsPage() {
           <CardContent className="space-y-3">
             <SummaryRow
               icon={<CheckCircle2 className="h-4 w-4 text-primary" />}
-              text={t('insights.tasksCreated', { count: weeklySummary.tasksCreated })}
+              text={t('insights.tasksCreated', { count: weekly.tasks_created })}
             />
             <SummaryRow
               icon={<CheckCircle2 className="h-4 w-4 text-green-500" />}
-              text={t('insights.tasksCompleted', { count: weeklySummary.tasksCompleted })}
+              text={t('insights.tasksCompleted', { count: weekly.tasks_completed })}
             />
-            {weeklySummary.tasksBlocked > 0 && (
+            {weekly.tasks_blocked > 0 && (
               <SummaryRow
                 icon={<ShieldAlert className="h-4 w-4 text-orange-500" />}
-                text={t('insights.tasksBlockedSummary', { count: weeklySummary.tasksBlocked })}
+                text={t('insights.tasksBlockedSummary', { count: weekly.tasks_blocked })}
               />
             )}
-            {weeklySummary.tasksFromChat > 0 && (
+            {weekly.tasks_from_chat > 0 && (
               <SummaryRow
                 icon={<MessageSquare className="h-4 w-4 text-blue-500" />}
-                text={t('insights.tasksFromChat', { count: weeklySummary.tasksFromChat })}
+                text={t('insights.tasksFromChat', { count: weekly.tasks_from_chat })}
               />
             )}
-            {weeklySummary.goalsCreated > 0 && (
+            {weekly.goals_created > 0 && (
               <SummaryRow
                 icon={<Target className="h-4 w-4 text-primary" />}
-                text={t('insights.goalsCreated', { count: weeklySummary.goalsCreated })}
+                text={t('insights.goalsCreated', { count: weekly.goals_created })}
               />
             )}
-            {weeklySummary.goalsFromChat > 0 && (
+            {weekly.goals_from_chat > 0 && (
               <SummaryRow
                 icon={<MessageSquare className="h-4 w-4 text-blue-500" />}
-                text={t('insights.goalsFromChat', { count: weeklySummary.goalsFromChat })}
+                text={t('insights.goalsFromChat', { count: weekly.goals_from_chat })}
               />
             )}
           </CardContent>
@@ -100,7 +117,7 @@ export default function InsightsPage() {
       )}
 
       {/* SECTION 2: Blockers */}
-      {blockers.length > 0 && (
+      {allBlockers.length > 0 && (
         <Card className="border-border bg-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
@@ -108,29 +125,26 @@ export default function InsightsPage() {
               {t('insights.blockers')}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              {t('insights.blockersSubtitle', { count: blockers.length })}
+              {t('insights.blockersSubtitle', { count: allBlockers.length })}
             </p>
           </CardHeader>
           <CardContent className="space-y-2">
-            {blockers.map(b => (
-              <div key={b.id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
+            {allBlockers.map(b => (
+              <div key={b.task_id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50">
                 <ShieldAlert className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground truncate">{b.title}</p>
+                  <ULLText
+                    meaningId={b.meaning_object_id}
+                    fallback={b.task_id}
+                    className="text-sm text-foreground truncate block"
+                  />
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <Badge variant="outline" className="text-xs">
-                      {b.status === 'blocked' ? t('insights.statusBlocked') : t('insights.statusStale', { days: b.days_inactive })}
+                      {b.type === 'blocked'
+                        ? t('insights.statusBlocked')
+                        : t('insights.statusStale', { days: (b as any).days_inactive })}
                     </Badge>
-                    {b.discussed_in_chat && (
-                      <Badge variant="secondary" className="text-xs">
-                        <MessageSquare className="h-3 w-3 mr-1" />
-                        {t('insights.discussedInChat')}
-                      </Badge>
-                    )}
                   </div>
-                  {b.blocked_reason && (
-                    <p className="text-xs text-muted-foreground mt-1">{b.blocked_reason}</p>
-                  )}
                 </div>
               </div>
             ))}
@@ -139,7 +153,7 @@ export default function InsightsPage() {
       )}
 
       {/* SECTION 3: Decisions from Conversations */}
-      {decisions.length > 0 && (
+      {allDecisions.length > 0 && (
         <Card className="border-border bg-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
@@ -147,19 +161,23 @@ export default function InsightsPage() {
               {t('insights.decisions')}
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
-              {t('insights.decisionsSubtitle', { count: decisions.length })}
+              {t('insights.decisionsSubtitle', { count: allDecisions.length })}
             </p>
           </CardHeader>
           <CardContent className="space-y-2">
-            {decisions.map(d => (
-              <div key={d.id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
+            {allDecisions.map(d => (
+              <div key={d.task_id} className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50">
                 {d.type === 'task' ? (
                   <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
                 ) : (
                   <Target className="h-4 w-4 text-primary shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground truncate">{d.title}</p>
+                  <ULLText
+                    meaningId={d.meaning_object_id}
+                    fallback={d.task_id}
+                    className="text-sm text-foreground truncate block"
+                  />
                 </div>
                 <Badge variant="outline" className="text-xs shrink-0">
                   {d.type === 'task' ? t('insights.typeTask') : t('insights.typeGoal')}

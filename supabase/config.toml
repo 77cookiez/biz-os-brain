@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.manage-member]
 verify_jwt = false
+
+[functions.insights-get]
+verify_jwt = false

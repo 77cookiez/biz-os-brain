@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Globe, Shield, Server, Database, Zap } from "lucide-react";
+import { ArrowLeft, Check, Globe, Shield, Server, Database, Zap, Languages } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +8,12 @@ import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ContentLanguagePicker } from "@/components/settings/ContentLanguagePicker";
 
 export default function LanguageSettingsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { currentLanguage, enabledLanguages, setCurrentLanguage, toggleLanguage } = useLanguage();
+  const { currentLanguage, enabledLanguages, setCurrentLanguage, toggleLanguage, contentLocale, setContentLocale } = useLanguage();
   const { user } = useAuth();
 
   const isEnabled = (lang: Language) => 
@@ -186,6 +187,34 @@ export default function LanguageSettingsPage() {
             <p className="text-sm font-medium text-foreground">{t('settings.language.fallbackDesc', 'Show original text')}</p>
           </div>
         </div>
+      </div>
+
+      {/* Content Language (ULL Projection) */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Languages className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-medium text-foreground">
+            {t('settings.language.contentLanguageTitle', 'Content Language (ULL Projection)')}
+          </h3>
+          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">ULL</Badge>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {t('settings.language.contentLanguageDesc', 'This controls the language for AI-generated content, Brain responses, and ULL-translated text. This is separate from the UI language (which only supports English, Arabic, and French).')}
+        </p>
+
+        <ContentLanguagePicker
+          value={contentLocale || currentLanguage.code}
+          onChange={(code) => {
+            setContentLocale(code);
+            toast.success(t('settings.language.contentLanguageSaved', 'Content language updated'));
+          }}
+          placeholder={t('common.search', 'Search languages...')}
+        />
+
+        <p className="text-[11px] text-muted-foreground border-t border-border pt-3 mt-3">
+          {t('settings.language.contentLanguageFallback', 'Fallback chain: Content Language → UI Language → Workspace Default → English')}
+        </p>
       </div>
 
       {/* Developer docs link */}
