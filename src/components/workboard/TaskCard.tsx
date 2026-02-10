@@ -57,24 +57,23 @@ export function TaskCard({ task, onStatusChange, onTogglePriority }: TaskCardPro
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <ULLText
-            meaningId={(task as any).meaning_object_id}
+            meaningId={task.meaning_object_id}
             table="tasks"
             id={task.id}
             field="title"
             fallback={task.title}
-            sourceLang={(task as any).source_lang || 'en'}
+            sourceLang={task.source_lang || 'en'}
             className={`text-sm font-medium ${task.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'}`}
           />
           {task.is_priority && <Badge variant="default" className="text-[10px] px-1.5 py-0">{t('workboard.priority')}</Badge>}
         </div>
         {task.description && (
           <ULLText
-            meaningId={(task as any).meaning_object_id}
             table="tasks"
             id={task.id}
             field="description"
             fallback={task.description}
-            sourceLang={(task as any).source_lang || 'en'}
+            sourceLang={task.source_lang || 'en'}
             className="text-xs text-muted-foreground mt-1 line-clamp-1"
             as="p"
           />
