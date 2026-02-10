@@ -285,5 +285,26 @@
     "description": "Description (optional)",
     "markAsPriority": "Mark as priority",
     "createTask": "Create Task"
+  },
+  "insights": {
+    "title": "Insights",
+    "subtitle": "Week of {{start}} — {{end}}",
+    "empty": "No activity this week yet. Start creating tasks and goals!",
+    "weeklySummary": "Weekly Summary",
+    "tasksCreated": "{{count}} task(s) created",
+    "tasksCompleted": "{{count}} task(s) completed",
+    "tasksBlockedSummary": "{{count}} task(s) currently blocked",
+    "tasksFromChat": "{{count}} task(s) originated from chat",
+    "goalsCreated": "{{count}} goal(s) created",
+    "goalsFromChat": "{{count}} goal(s) created from conversations",
+    "blockers": "Blockers",
+    "blockersSubtitle": "{{count}} item(s) need attention",
+    "statusBlocked": "Blocked",
+    "statusStale": "No activity for {{days}} days",
+    "discussedInChat": "Discussed in chat",
+    "decisions": "Decisions from Conversations",
+    "decisionsSubtitle": "{{count}} decision(s) made from team discussions",
+    "typeTask": "Task",
+    "typeGoal": "Goal"
   }
 }

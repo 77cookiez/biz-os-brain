@@ -272,5 +272,26 @@
     "description": "Description (optionnel)",
     "markAsPriority": "Marquer comme prioritaire",
     "createTask": "Créer la tâche"
+  },
+  "insights": {
+    "title": "Insights",
+    "subtitle": "Semaine du {{start}} — {{end}}",
+    "empty": "Pas encore d'activité cette semaine. Commencez à créer des tâches et des objectifs !",
+    "weeklySummary": "Résumé hebdomadaire",
+    "tasksCreated": "{{count}} tâche(s) créée(s)",
+    "tasksCompleted": "{{count}} tâche(s) complétée(s)",
+    "tasksBlockedSummary": "{{count}} tâche(s) actuellement bloquée(s)",
+    "tasksFromChat": "{{count}} tâche(s) provenant du chat",
+    "goalsCreated": "{{count}} objectif(s) créé(s)",
+    "goalsFromChat": "{{count}} objectif(s) créé(s) à partir de conversations",
+    "blockers": "Blocages",
+    "blockersSubtitle": "{{count}} élément(s) nécessitent votre attention",
+    "statusBlocked": "Bloqué",
+    "statusStale": "Pas d'activité depuis {{days}} jours",
+    "discussedInChat": "Discuté dans le chat",
+    "decisions": "Décisions issues des conversations",
+    "decisionsSubtitle": "{{count}} décision(s) prises lors des discussions d'équipe",
+    "typeTask": "Tâche",
+    "typeGoal": "Objectif"
   }
 }

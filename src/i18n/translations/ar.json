@@ -272,5 +272,26 @@
     "description": "الوصف (اختياري)",
     "markAsPriority": "تحديد كأولوية",
     "createTask": "إنشاء مهمة"
+  },
+  "insights": {
+    "title": "الرؤى",
+    "subtitle": "أسبوع {{start}} — {{end}}",
+    "empty": "لا يوجد نشاط هذا الأسبوع بعد. ابدأ بإنشاء المهام والأهداف!",
+    "weeklySummary": "ملخص الأسبوع",
+    "tasksCreated": "{{count}} مهمة تم إنشاؤها",
+    "tasksCompleted": "{{count}} مهمة مكتملة",
+    "tasksBlockedSummary": "{{count}} مهمة محظورة حالياً",
+    "tasksFromChat": "{{count}} مهمة نشأت من المحادثات",
+    "goalsCreated": "{{count}} هدف تم إنشاؤه",
+    "goalsFromChat": "{{count}} هدف تم إنشاؤه من المحادثات",
+    "blockers": "العوائق",
+    "blockersSubtitle": "{{count}} عنصر يحتاج اهتمام",
+    "statusBlocked": "محظور",
+    "statusStale": "لا نشاط منذ {{days}} يوم",
+    "discussedInChat": "تمت مناقشتها في المحادثة",
+    "decisions": "القرارات من المحادثات",
+    "decisionsSubtitle": "{{count}} قرار تم اتخاذه من مناقشات الفريق",
+    "typeTask": "مهمة",
+    "typeGoal": "هدف"
   }
 }
