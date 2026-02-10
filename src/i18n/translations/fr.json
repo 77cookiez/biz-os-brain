@@ -309,5 +309,23 @@
     "discussedInChat": "Discuté dans le chat",
     "decisions": "Décisions issues des conversations",
     "decisionsSubtitle": "{{count}} décision(s) prises lors des discussions d'équipe"
+  },
+  "digest": {
+    "title": "Votre semaine en un coup d'œil",
+    "generating": "Préparation de votre résumé hebdomadaire...",
+    "empty": "Rien de majeur cette semaine — mais vous êtes prêt pour la prochaine.",
+    "completed": "Vous avez complété {{count}} tâches",
+    "created": "{{count}} nouvelles tâches créées",
+    "blocked": "{{count}} éléments actuellement bloqués",
+    "decisions": "{{count}} décisions émergées des conversations",
+    "openInsights": "Ouvrir les Insights",
+    "settingsTitle": "Résumé hebdomadaire",
+    "settingsDesc": "Recevez un résumé calme et hebdomadaire de l'activité de votre espace de travail. Une fois par semaine, pas de spam.",
+    "enabled": "Résumé hebdomadaire",
+    "enabledDesc": "Activer ou désactiver le résumé hebdomadaire",
+    "inApp": "Dans l'application",
+    "inAppDesc": "Afficher la carte de résumé à l'ouverture de l'application",
+    "email": "Email",
+    "emailDesc": "Recevoir un résumé hebdomadaire par email"
   }
 }

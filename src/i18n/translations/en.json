@@ -322,5 +322,23 @@
     "discussedInChat": "Discussed in chat",
     "decisions": "Decisions from Conversations",
     "decisionsSubtitle": "{{count}} decision(s) made from team discussions"
+  },
+  "digest": {
+    "title": "Your week at a glance",
+    "generating": "Preparing your weekly digest...",
+    "empty": "Nothing major happened this week — but you're all set for the next one.",
+    "completed": "You completed {{count}} tasks",
+    "created": "{{count}} new tasks created",
+    "blocked": "{{count}} items are currently blocked",
+    "decisions": "{{count}} decisions emerged from conversations",
+    "openInsights": "Open Insights",
+    "settingsTitle": "Weekly Digest",
+    "settingsDesc": "Receive a calm, weekly summary of your workspace activity. Once per week, no spam.",
+    "enabled": "Weekly Digest",
+    "enabledDesc": "Enable or disable the weekly digest",
+    "inApp": "In-app",
+    "inAppDesc": "Show digest card when you open the app",
+    "email": "Email",
+    "emailDesc": "Receive a weekly email summary"
   }
 }

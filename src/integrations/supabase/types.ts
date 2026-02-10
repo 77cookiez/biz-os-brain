@@ -423,6 +423,47 @@ export type Database = {
           },
         ]
       }
+      digest_preferences: {
+        Row: {
+          created_at: string
+          email: boolean
+          enabled: boolean
+          id: string
+          in_app: boolean
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: boolean
+          enabled?: boolean
+          id?: string
+          in_app?: boolean
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: boolean
+          enabled?: boolean
+          id?: string
+          in_app?: boolean
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "digest_preferences_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
@@ -863,6 +904,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "weekly_checkins_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_digests: {
+        Row: {
+          blockers_summary: Json | null
+          created_at: string
+          decisions_summary: Json | null
+          id: string
+          narrative_text: string | null
+          read_at: string | null
+          stats: Json
+          user_id: string
+          week_end: string
+          week_start: string
+          workspace_id: string
+        }
+        Insert: {
+          blockers_summary?: Json | null
+          created_at?: string
+          decisions_summary?: Json | null
+          id?: string
+          narrative_text?: string | null
+          read_at?: string | null
+          stats?: Json
+          user_id: string
+          week_end: string
+          week_start: string
+          workspace_id: string
+        }
+        Update: {
+          blockers_summary?: Json | null
+          created_at?: string
+          decisions_summary?: Json | null
+          id?: string
+          narrative_text?: string | null
+          read_at?: string | null
+          stats?: Json
+          user_id?: string
+          week_end?: string
+          week_start?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_digests_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
