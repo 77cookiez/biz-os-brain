@@ -1,7 +1,9 @@
 import { useEffect, useCallback, useState } from 'react';
-import { Send, Loader2, Sparkles, FileOutput, Pencil } from 'lucide-react';
+import { Send, Loader2, Sparkles, FileOutput, Pencil, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useVoiceInput } from '@/hooks/useVoiceInput';
+import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useBrainCommand } from '@/contexts/BrainCommandContext';
@@ -33,6 +35,13 @@ export function BrainCommandBar() {
   const [pendingPlanContent, setPendingPlanContent] = useState<string | null>(null);
   const [sentDraftFingerprint, setSentDraftFingerprint] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+
+  // Voice input
+  const { isListening, isSupported, startListening, stopListening } = useVoiceInput({
+    onResult: (transcript) => {
+      setInput(input + transcript);
+    },
+  });
 
   // Cmd+K / Ctrl+K shortcut
   useEffect(() => {
@@ -253,7 +262,7 @@ export function BrainCommandBar() {
           placeholder={t('topbar.askBrain')}
           className="flex-1 bg-transparent border-0 h-8 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
         />
-        {input.trim() && (
+        {input.trim() ? (
           <Button
             size="icon"
             variant="ghost"
@@ -267,11 +276,25 @@ export function BrainCommandBar() {
               <Send className="h-3.5 w-3.5" />
             )}
           </Button>
-        )}
-        {!input.trim() && (
-          <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
-            ⌘K
-          </kbd>
+        ) : (
+          <div className="flex items-center gap-1">
+            {isSupported && (
+              <button
+                onClick={isListening ? stopListening : startListening}
+                className={cn(
+                  "h-6 w-6 rounded-full flex items-center justify-center transition-colors",
+                  isListening
+                    ? "bg-destructive text-destructive-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                {isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              </button>
+            )}
+            <kbd className="hidden sm:inline-flex items-center gap-1 rounded border border-border bg-background px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              ⌘K
+            </kbd>
+          </div>
         )}
       </div>
 
