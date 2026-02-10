@@ -14,7 +14,8 @@
     "search": "Search",
     "settings": "Settings",
     "or": "or",
-    "you": "You"
+    "you": "You",
+    "insights": "Insights"
   },
   "greeting": {
     "morning": "Good morning",
@@ -332,6 +333,11 @@
     "blocked": "{{count}} items are currently blocked",
     "decisions": "{{count}} decisions emerged from conversations",
     "openInsights": "Open Insights",
+    "archive": "Archive",
+    "archiveTitle": "Weekly Digest Archive",
+    "archiveSubtitle": "Browse your past weekly summaries",
+    "archiveEmpty": "No digests yet",
+    "archiveEmptyDesc": "Weekly digests will appear here after your first week of activity.",
     "settingsTitle": "Weekly Digest",
     "settingsDesc": "Receive a calm, weekly summary of your workspace activity. Once per week, no spam.",
     "enabled": "Weekly Digest",
@@ -351,6 +357,16 @@
     "friday": "Friday",
     "saturday": "Saturday",
     "sunday": "Sunday"
+  },
+  "decisions": {
+    "title": "Worth a Look",
+    "subtitle": "Patterns noticed from your recent activity",
+    "loading": "Analyzing patterns...",
+    "confidence": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
   },
   "notifications": {
     "title": "Notifications",
