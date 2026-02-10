@@ -39,7 +39,7 @@ export function useTeamMembers() {
     const { data } = await supabase
       .from('workspace_members')
       .select('id, user_id, team_role, custom_role_name, invite_status, joined_at, email')
-      .eq('workspace_id', currentWorkspace.id);
+      .eq('workspace_id', currentWorkspace.id) as { data: any[] | null };
 
     if (data) {
       const userIds = data.map(m => m.user_id);
