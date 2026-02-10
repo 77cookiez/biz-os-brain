@@ -39,7 +39,7 @@ serve(async (req) => {
     }
     const callerId = claimsData.claims.sub;
 
-    const { email, workspace_id, team_role, custom_role_name } = await req.json();
+    const { email, workspace_id, team_role, custom_role_name, inviter_name, company_name } = await req.json();
 
     if (!email || !workspace_id || !team_role) {
       return new Response(
@@ -95,8 +95,18 @@ serve(async (req) => {
 
     // If user not found, auto-invite them via Supabase (creates account + sends email)
     if (!targetUser) {
+      const roleName = team_role === 'custom' ? (custom_role_name || 'Team Member') : 
+        team_role.charAt(0).toUpperCase() + team_role.slice(1);
+      
       const { data: inviteData, error: inviteError } =
-        await adminClient.auth.admin.inviteUserByEmail(email);
+        await adminClient.auth.admin.inviteUserByEmail(email, {
+          data: {
+            invited_by: inviter_name || 'Your team',
+            company_name: company_name || 'the team',
+            team_role: roleName,
+          },
+          redirectTo: `${req.headers.get('origin') || supabaseUrl}/auth`,
+        });
 
       if (inviteError) {
         console.error("Invite error:", inviteError);

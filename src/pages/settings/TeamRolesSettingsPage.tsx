@@ -32,7 +32,12 @@ export default function TeamRolesSettingsPage() {
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
     setInviting(true);
-    const ok = await inviteMember(inviteEmail.trim(), inviteRole, customRoleName.trim() || undefined);
+    const inviterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Team member';
+    const companyName = currentWorkspace?.name || '';
+    const ok = await inviteMember(
+      inviteEmail.trim(), inviteRole, customRoleName.trim() || undefined,
+      inviterName, companyName
+    );
     if (ok) {
       setInviteEmail('');
       setCustomRoleName('');
@@ -42,9 +47,11 @@ export default function TeamRolesSettingsPage() {
     setInviting(false);
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsApp = (role?: string) => {
     if (!currentWorkspace) return;
-    const link = generateWhatsAppLink(currentWorkspace.name);
+    const inviterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Team member';
+    const roleName = role || getRoleLabel(inviteRole, customRoleName);
+    const link = generateWhatsAppLink(currentWorkspace.name, inviterName, roleName, currentWorkspace.name);
     window.open(link, '_blank');
   };
 
@@ -128,15 +135,15 @@ export default function TeamRolesSettingsPage() {
                     <span className="bg-card px-2 text-muted-foreground">{t('common.or', 'or')}</span>
                   </div>
                 </div>
-                <Button variant="outline" className="w-full gap-2" onClick={handleWhatsApp}>
-                  <MessageCircle className="h-4 w-4" />
-                  {t('settings.team.inviteViaWhatsApp', 'Invite via WhatsApp')}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              <Button variant="outline" className="w-full gap-2" onClick={() => handleWhatsApp()}>
+                <MessageCircle className="h-4 w-4" />
+                {t('settings.team.inviteViaWhatsApp', 'Invite via WhatsApp')}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-          <Button variant="outline" className="gap-2" onClick={handleWhatsApp}>
+        <Button variant="outline" className="gap-2" onClick={() => handleWhatsApp()}>
             <MessageCircle className="h-4 w-4" />
             WhatsApp
           </Button>
