@@ -337,6 +337,68 @@ export default function BrainPage() {
         <ContextStrip t={t} />
       </div>
 
+      {/* Input Bar — pinned at top */}
+      <div className="px-2 pb-3">
+        {/* Voice listening indicator */}
+        {isListening && (
+          <div className="flex items-center gap-2 mb-2 px-2 text-xs">
+            <span className="flex items-center gap-1 text-destructive">
+              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              {t('brainPage.voice.listening')}
+            </span>
+            <Badge variant="outline" className="text-[10px]">
+              {t(`brainPage.voice.confidence.${confidence}`)}
+            </Badge>
+          </div>
+        )}
+
+        <div className="relative flex items-end rounded-2xl border border-border bg-card shadow-sm focus-within:border-primary/50 focus-within:shadow-md transition-all">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t('brainPage.inputPlaceholder')}
+            className="min-h-[52px] max-h-[200px] bg-transparent border-0 text-foreground resize-none flex-1 py-3.5 px-4 pr-24 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
+            rows={1}
+          />
+
+          <div className="absolute bottom-2 right-2 flex items-center gap-1">
+            {/* Mic button */}
+            {isSupported && (
+              <button
+                onClick={isListening ? stopListening : startListening}
+                className={cn(
+                  "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
+                  isListening
+                    ? "bg-destructive text-destructive-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+            )}
+
+            {/* Send button */}
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className={cn(
+                "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
+                input.trim() && !isLoading
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "bg-muted text-muted-foreground cursor-not-allowed"
+              )}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUp className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Smart Quick Actions */}
       {!hasMessages && suggestions.length > 0 && (
         <div className="flex gap-2 px-1 pb-3 overflow-x-auto">
@@ -417,72 +479,6 @@ export default function BrainPage() {
           </div>
         )}
       </ScrollArea>
-
-      {/* ChatGPT-style Input Bar */}
-      <div className="px-2 pb-4 pt-2">
-        {/* Voice listening indicator */}
-        {isListening && (
-          <div className="flex items-center gap-2 mb-2 px-2 text-xs">
-            <span className="flex items-center gap-1 text-destructive">
-              <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-              {t('brainPage.voice.listening')}
-            </span>
-            <Badge variant="outline" className="text-[10px]">
-              {t(`brainPage.voice.confidence.${confidence}`)}
-            </Badge>
-          </div>
-        )}
-
-        <div className="relative flex items-end rounded-2xl border border-border bg-card shadow-sm focus-within:border-primary/50 focus-within:shadow-md transition-all">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('brainPage.inputPlaceholder')}
-            className="min-h-[52px] max-h-[200px] bg-transparent border-0 text-foreground resize-none flex-1 py-3.5 px-4 pr-24 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
-            rows={1}
-          />
-
-          <div className="absolute bottom-2 right-2 flex items-center gap-1">
-            {/* Mic button */}
-            {isSupported && (
-              <button
-                onClick={isListening ? stopListening : startListening}
-                className={cn(
-                  "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
-                  isListening
-                    ? "bg-destructive text-destructive-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
-              >
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </button>
-            )}
-
-            {/* Send button */}
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className={cn(
-                "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
-                input.trim() && !isLoading
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
-              )}
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUp className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        <p className="text-[10px] text-muted-foreground text-center mt-2">
-          {t('brainPage.disclaimer', 'Brain can make mistakes. Verify important information.')}
-        </p>
-      </div>
     </div>
   );
 }
