@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ULLText } from '@/components/ull/ULLText';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -25,6 +26,8 @@ interface Goal {
   kpi_current: number | null;
   due_date: string | null;
   status: string;
+  meaning_object_id?: string | null;
+  source_lang?: string;
 }
 
 export default function WorkboardGoalsPage() {
@@ -148,8 +151,28 @@ export default function WorkboardGoalsPage() {
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-foreground text-base">{goal.title}</CardTitle>
-                      {goal.description && <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>}
+                      <CardTitle className="text-foreground text-base">
+                        <ULLText
+                          meaningId={goal.meaning_object_id}
+                          table="goals"
+                          id={goal.id}
+                          field="title"
+                          fallback={goal.title}
+                          sourceLang={goal.source_lang || 'en'}
+                        />
+                      </CardTitle>
+                      {goal.description && (
+                        <ULLText
+                          meaningId={goal.meaning_object_id}
+                          table="goals"
+                          id={goal.id}
+                          field="description"
+                          fallback={goal.description}
+                          sourceLang={goal.source_lang || 'en'}
+                          className="text-sm text-muted-foreground mt-1"
+                          as="p"
+                        />
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={goal.status === 'active' ? 'default' : 'secondary'}>{goal.status}</Badge>
