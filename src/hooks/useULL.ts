@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const ULL_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ull-translate`;
@@ -28,7 +28,8 @@ function meaningCacheKey(meaningId: string, targetLang: string) {
 const pendingMeaningRequests = new Set<string>();
 
 export function useULL() {
-  const { currentLanguage } = useLanguage();
+  const { currentLanguage, contentLocale } = useLanguage();
+  const targetLang = contentLocale || currentLanguage.code;
   const [, forceUpdate] = useState(0);
   const batchQueue = useRef<TranslateItem[]>([]);
   const batchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -40,7 +41,7 @@ export function useULL() {
     batchQueue.current = [];
     if (items.length === 0) return;
 
-    const targetLang = currentLanguage.code;
+    const tl = targetLang;
 
     try {
       const resp = await fetch(ULL_URL, {
@@ -57,7 +58,7 @@ export function useULL() {
             text: i.text,
             source_lang: i.sourceLang,
           })),
-          target_lang: targetLang,
+          target_lang: tl,
         }),
       });
 
@@ -67,7 +68,7 @@ export function useULL() {
       const translations = data.translations as Record<string, string>;
 
       for (const [compositeKey, translatedText] of Object.entries(translations)) {
-        const fullKey = `${compositeKey}:${targetLang}`;
+        const fullKey = `${compositeKey}:${tl}`;
         translationCache.set(fullKey, translatedText);
       }
 
@@ -75,14 +76,14 @@ export function useULL() {
     } catch {
       // Silent failure — original text will be shown
     }
-  }, [currentLanguage.code]);
+  }, [targetLang]);
 
   const flushMeaningBatch = useCallback(async () => {
     const ids = [...meaningQueue.current];
     meaningQueue.current = [];
     if (ids.length === 0) return;
 
-    const targetLang = currentLanguage.code;
+    const tl = targetLang;
 
     try {
       const resp = await fetch(ULL_URL, {
@@ -93,13 +94,13 @@ export function useULL() {
         },
         body: JSON.stringify({
           meaning_object_ids: ids,
-          target_lang: targetLang,
+          target_lang: tl,
         }),
       });
 
       if (!resp.ok) {
         // Clear pending so they can be retried
-        for (const id of ids) pendingMeaningRequests.delete(`${id}:${targetLang}`);
+        for (const id of ids) pendingMeaningRequests.delete(`${id}:${tl}`);
         return;
       }
 
@@ -107,17 +108,17 @@ export function useULL() {
       const translations = data.translations as Record<string, string>;
 
       for (const [mId, translatedText] of Object.entries(translations)) {
-        meaningCache.set(meaningCacheKey(mId, targetLang), translatedText);
-        pendingMeaningRequests.delete(`${mId}:${targetLang}`);
+        meaningCache.set(meaningCacheKey(mId, tl), translatedText);
+        pendingMeaningRequests.delete(`${mId}:${tl}`);
       }
       // Clear any ids that weren't in the response
-      for (const id of ids) pendingMeaningRequests.delete(`${id}:${targetLang}`);
+      for (const id of ids) pendingMeaningRequests.delete(`${id}:${tl}`);
 
       forceUpdate(n => n + 1);
     } catch {
-      for (const id of ids) pendingMeaningRequests.delete(`${id}:${targetLang}`);
+      for (const id of ids) pendingMeaningRequests.delete(`${id}:${tl}`);
     }
-  }, [currentLanguage.code]);
+  }, [targetLang]);
 
   const scheduleBatch = useCallback((item: TranslateItem) => {
     batchQueue.current.push(item);
@@ -126,13 +127,13 @@ export function useULL() {
   }, [flushBatch]);
 
   const scheduleMeaning = useCallback((meaningId: string) => {
-    const pendingKey = `${meaningId}:${currentLanguage.code}`;
+    const pendingKey = `${meaningId}:${targetLang}`;
     if (pendingMeaningRequests.has(pendingKey)) return;
     pendingMeaningRequests.add(pendingKey);
     meaningQueue.current.push(meaningId);
     if (meaningTimer.current) clearTimeout(meaningTimer.current);
     meaningTimer.current = setTimeout(flushMeaningBatch, 50);
-  }, [flushMeaningBatch, currentLanguage.code]);
+  }, [flushMeaningBatch, targetLang]);
 
   /**
    * Legacy Phase 0: Get translated text by table/id/field.
@@ -144,16 +145,16 @@ export function useULL() {
     originalText: string,
     sourceLang: string = 'en'
   ): string => {
-    const targetLang = currentLanguage.code;
-    if (sourceLang === targetLang) return originalText;
+    const tl = targetLang;
+    if (sourceLang === tl) return originalText;
 
-    const key = cacheKey(table, id, field, targetLang);
+    const key = cacheKey(table, id, field, tl);
     const cached = translationCache.get(key);
     if (cached) return cached;
 
     scheduleBatch({ table, id, field, text: originalText, sourceLang });
     return originalText;
-  }, [currentLanguage.code, scheduleBatch]);
+  }, [targetLang, scheduleBatch]);
 
   /**
    * Phase 1: Get translated text by meaning_object_id.
@@ -164,14 +165,14 @@ export function useULL() {
   ): string => {
     if (!meaningId) return fallback;
 
-    const targetLang = currentLanguage.code;
-    const key = meaningCacheKey(meaningId, targetLang);
+    const tl = targetLang;
+    const key = meaningCacheKey(meaningId, tl);
     const cached = meaningCache.get(key);
     if (cached) return cached;
 
     scheduleMeaning(meaningId);
     return fallback;
-  }, [currentLanguage.code, scheduleMeaning]);
+  }, [targetLang, scheduleMeaning]);
 
   return { getText, getTextByMeaning };
 }

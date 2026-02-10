@@ -145,6 +145,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const setContentLocale = async (code: string | null) => {
     setContentLocaleState(code);
+    clearULLCache(); // Force fresh translations for the new content language
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase
