@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ULLText } from '@/components/ull/ULLText';
+import { WeeklyDigestCard } from '@/components/digest/WeeklyDigestCard';
 
 interface Task {
   id: string;
@@ -129,6 +130,9 @@ export default function TodayPage() {
           {getGreeting()}{displayName ? `, ${displayName}` : ''}
         </h1>
       </div>
+
+      {/* Weekly Digest Card */}
+      <WeeklyDigestCard />
 
       {/* Read-Only Insights */}
       {(insights.overdueCount > 0 || insights.blockedCount > 0 || insights.totalThisWeek > 0) && (
