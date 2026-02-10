@@ -17,6 +17,8 @@ interface BrainCommandContextType {
   setDraftResponse: (val: string | null) => void;
   showDraft: boolean;
   setShowDraft: (val: boolean) => void;
+  pendingMessage: string | null;
+  setPendingMessage: (val: string | null) => void;
 }
 
 const BrainCommandContext = createContext<BrainCommandContextType | null>(null);
@@ -26,6 +28,7 @@ export function BrainCommandProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
   const [showDraft, setShowDraft] = useState(false);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null!);
   const { messages, isLoading, sendMessage, clearMessages } = useBrainChat();
 
@@ -44,6 +47,7 @@ export function BrainCommandProvider({ children }: { children: ReactNode }) {
       focusInput, prefillAndFocus, inputRef,
       messages, isLoading, sendMessage, clearMessages,
       draftResponse, setDraftResponse, showDraft, setShowDraft,
+      pendingMessage, setPendingMessage,
     }}>
       {children}
     </BrainCommandContext.Provider>
@@ -70,6 +74,8 @@ export function useBrainCommand() {
       setDraftResponse: () => {},
       showDraft: false,
       setShowDraft: () => {},
+      pendingMessage: null as string | null,
+      setPendingMessage: () => {},
     } satisfies BrainCommandContextType;
   }
   return ctx;
