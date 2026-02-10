@@ -86,6 +86,32 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existingDigest) {
+      // Ensure in-app notification exists even if digest was already generated
+      const inAppEnabled = !prefs || prefs.in_app !== false;
+      if (inAppEnabled) {
+        const { data: existingNotif } = await supabase
+          .from("notifications")
+          .select("id")
+          .eq("user_id", user_id)
+          .eq("workspace_id", workspace_id)
+          .eq("type", "weekly_digest")
+          .eq("week_key", weekStartStr)
+          .maybeSingle();
+
+        if (!existingNotif) {
+          await supabase.from("notifications").insert({
+            user_id,
+            workspace_id,
+            type: "weekly_digest",
+            title: "Your week at a glance",
+            body: "Your weekly digest is ready.",
+            data_json: { link: "/insights", digest_id: existingDigest.id },
+            channels: ["in_app"],
+            week_key: weekStartStr,
+          } as any);
+        }
+      }
+
       return new Response(
         JSON.stringify({ skipped: true, reason: "already_generated", digest_id: existingDigest.id }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
