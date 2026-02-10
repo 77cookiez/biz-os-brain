@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,7 @@ export function WeeklyDigestCard() {
   const [dismissed, setDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const hasTriedGenerate = useRef(false);
 
   const fetchDigest = useCallback(async () => {
     if (!currentWorkspace?.id || !user?.id) {
@@ -49,11 +50,11 @@ export function WeeklyDigestCard() {
       return;
     }
 
-    // Get current week's Monday
+    // Get current week's Monday (UTC to match server)
     const now = new Date();
-    const dayOfWeek = now.getDay();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+    const dayOfWeek = now.getUTCDay();
+    const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    weekStart.setUTCDate(weekStart.getUTCDate() - ((dayOfWeek + 6) % 7)); // Monday
     const weekStartStr = weekStart.toISOString().split('T')[0];
 
     const { data, error } = await supabase
@@ -70,8 +71,9 @@ export function WeeklyDigestCard() {
       if (data.read_at) {
         setDismissed(true);
       }
-    } else if (!data) {
-      // Try to generate digest on first visit
+    } else if (!data && !hasTriedGenerate.current) {
+      // Try to generate digest on first visit (only once)
+      hasTriedGenerate.current = true;
       await generateDigest();
     }
 
