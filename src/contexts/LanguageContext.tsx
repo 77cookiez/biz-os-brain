@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
+import { clearULLCache } from '@/hooks/useULL';
 
 export interface Language {
   code: string;
@@ -99,6 +100,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setCurrentLanguage = async (lang: Language) => {
     setCurrentLanguageState(lang);
     localStorage.setItem(STORAGE_KEY_CURRENT, lang.code);
+    clearULLCache(); // Force fresh translations for the new language
     
     // Persist to DB profile
     const { data: { user } } = await supabase.auth.getUser();

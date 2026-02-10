@@ -182,4 +182,5 @@ export function useULL() {
 export function clearULLCache() {
   translationCache.clear();
   meaningCache.clear();
+  pendingMeaningRequests.clear();
 }
