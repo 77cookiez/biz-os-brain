@@ -1,12 +1,14 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
   Loader2, Lightbulb, CheckCircle2, ShieldAlert,
   MessageSquare, Target, AlertTriangle, Sparkles, Clock,
-  ListChecks, TrendingUp
+  ListChecks, TrendingUp, Archive
 } from 'lucide-react';
 import { useInsights } from '@/hooks/useInsights';
 import { ULLText } from '@/components/ull/ULLText';
@@ -14,6 +16,7 @@ import { InsightsNarrative } from '@/components/insights/InsightsNarrative';
 
 export default function InsightsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data, loading, error, weekStart, weekEnd } = useInsights();
 
   if (loading) {
@@ -73,14 +76,25 @@ export default function InsightsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6 pb-8">
       {/* Header */}
-      <div className="pt-2">
-        <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-primary" />
-          {t('insights.title')}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('insights.subtitle', { start: weekStart, end: weekEnd })}
-        </p>
+      <div className="pt-2 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-primary" />
+            {t('insights.title')}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {t('insights.subtitle', { start: weekStart, end: weekEnd })}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => navigate('/insights/archive')}
+        >
+          <Archive className="h-3.5 w-3.5" />
+          {t('digest.archive', 'Archive')}
+        </Button>
       </div>
 
       {/* Empty State */}
