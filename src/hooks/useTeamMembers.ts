@@ -38,7 +38,7 @@ export function useTeamMembers() {
 
     const { data } = await supabase
       .from('workspace_members')
-      .select('id, user_id, team_role, custom_role_name, invite_status, joined_at')
+      .select('id, user_id, team_role, custom_role_name, invite_status, joined_at, email')
       .eq('workspace_id', currentWorkspace.id);
 
     if (data) {
@@ -55,6 +55,7 @@ export function useTeamMembers() {
           ...m,
           team_role: m.team_role as TeamRole,
           full_name: profileName || fallback,
+          email: m.email || undefined,
         };
       });
       setMembers(membersWithNames);

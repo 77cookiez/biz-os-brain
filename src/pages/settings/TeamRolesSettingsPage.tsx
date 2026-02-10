@@ -287,9 +287,11 @@ export default function TeamRolesSettingsPage() {
                       <p className="text-sm font-medium text-foreground">
                         {member.full_name || member.email || 'Invited User'} {isSelf && <span className="text-muted-foreground">({t('common.you', 'You')})</span>}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {member.invite_status === 'pending' ? '⏳ Pending — waiting to sign up' : '✅ Active'}
-                      </p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {member.email && <span>{member.email}</span>}
+                        {member.email && <span>•</span>}
+                        <span>{member.invite_status === 'pending' ? '⏳ Pending' : '✅ Active'}</span>
+                      </div>
                     </div>
                   </div>
 
