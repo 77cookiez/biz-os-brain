@@ -48,11 +48,15 @@ export function useTeamMembers() {
         .select('user_id, full_name')
         .in('user_id', userIds);
 
-      const membersWithNames: TeamMember[] = data.map(m => ({
-        ...m,
-        team_role: m.team_role as TeamRole,
-        full_name: profiles?.find(p => p.user_id === m.user_id)?.full_name || 'Unknown',
-      }));
+      const membersWithNames: TeamMember[] = data.map(m => {
+        const profileName = profiles?.find(p => p.user_id === m.user_id)?.full_name?.trim();
+        const fallback = m.invite_status === 'pending' ? 'Invited User' : 'Team Member';
+        return {
+          ...m,
+          team_role: m.team_role as TeamRole,
+          full_name: profileName || fallback,
+        };
+      });
       setMembers(membersWithNames);
     }
     setLoading(false);
