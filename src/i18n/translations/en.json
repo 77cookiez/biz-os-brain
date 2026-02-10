@@ -12,7 +12,9 @@
     "next": "Next",
     "close": "Close",
     "search": "Search",
-    "settings": "Settings"
+    "settings": "Settings",
+    "or": "or",
+    "you": "You"
   },
   "greeting": {
     "morning": "Good morning",
@@ -186,7 +188,18 @@
       "inviteMember": "Invite Team Member",
       "sendInvite": "Send Invite",
       "teamMembers": "Team Members",
-      "enterEmail": "Enter email address"
+      "enterEmail": "Enter email address",
+      "inviteViaWhatsApp": "Invite via WhatsApp",
+      "customRolePlaceholder": "Enter custom role name",
+      "removeMember": "Remove member",
+      "role": {
+        "owner": "Owner",
+        "operations": "Operations",
+        "sales": "Sales",
+        "marketing": "Marketing",
+        "finance": "Finance",
+        "custom": "Custom"
+      }
     },
     "language": {
       "title": "Language & Region",
