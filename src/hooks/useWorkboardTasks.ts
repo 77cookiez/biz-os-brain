@@ -22,6 +22,9 @@ export interface WorkboardTask {
   completed_at: string | null;
   created_at: string;
   created_by: string;
+  meaning_object_id?: string | null;
+  source_lang?: string;
+  meaning_json?: Record<string, unknown> | null;
 }
 
 export function useWorkboardTasks() {
@@ -36,11 +39,14 @@ export function useWorkboardTasks() {
     setLoading(true);
     const { data } = await supabase
       .from('tasks')
-      .select('*')
+      .select('*, meaning_objects(meaning_json)')
       .eq('workspace_id', currentWorkspace.id)
       .order('is_priority', { ascending: false })
       .order('created_at', { ascending: false });
-    setTasks((data as WorkboardTask[]) || []);
+    setTasks((data?.map((t: any) => ({
+      ...t,
+      meaning_json: t.meaning_objects?.meaning_json || null,
+    })) as WorkboardTask[]) || []);
     setLoading(false);
   }, [currentWorkspace?.id]);
 

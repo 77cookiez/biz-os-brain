@@ -1,11 +1,13 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ULLText } from '@/components/ull/ULLText';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Trash2, CheckCheck, ListPlus } from 'lucide-react';
+import { MoreVertical, Trash2, CheckCheck, ListPlus, CircleCheck } from 'lucide-react';
+import { useChatTaskLinks } from '@/hooks/useChatTaskLinks';
+import { useNavigate } from 'react-router-dom';
 import type { ChatMessage } from '@/hooks/useChatMessages';
 
 interface MessageViewProps {
@@ -33,8 +35,13 @@ function shouldShowMeta(msg: ChatMessage, prev?: ChatMessage): boolean {
 
 export function MessageView({ messages, loading, typingUsers = [], onDeleteMessage, onCreateTaskFromMessage, isAdmin, showWelcome }: MessageViewProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
   const [createdTaskMsgIds, setCreatedTaskMsgIds] = useState<Set<string>>(new Set());
+
+  // Chat → Task awareness: detect which messages have linked tasks
+  const messageIds = useMemo(() => messages.map(m => m.id), [messages]);
+  const { links: taskLinks } = useChatTaskLinks(messageIds);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,8 +89,9 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
           const showMeta = shouldShowMeta(msg, prev);
           const isFirst = showMeta;
           const isLast = !messages[i + 1] || shouldShowMeta(messages[i + 1], msg);
-          const canCreateTask = isOwn && onCreateTaskFromMessage && !createdTaskMsgIds.has(msg.id);
+          const canCreateTask = isOwn && onCreateTaskFromMessage && !createdTaskMsgIds.has(msg.id) && !taskLinks.has(msg.id);
           const hasActions = (isAdmin || isOwn) && onDeleteMessage;
+          const linkedTask = taskLinks.get(msg.id);
 
           return (
             <div
@@ -175,6 +183,20 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                )}
+
+                {/* Awareness tag: "Task created" */}
+                {linkedTask && (
+                  <button
+                    onClick={() => navigate(`/apps/workboard/backlog?task=${linkedTask.taskId}`)}
+                    className={cn(
+                      "flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[10px] text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors w-fit",
+                      isOwn ? "ml-auto" : ""
+                    )}
+                  >
+                    <CircleCheck className="h-3 w-3 text-emerald-500" />
+                    <span>Task created</span>
+                  </button>
                 )}
               </div>
             </div>

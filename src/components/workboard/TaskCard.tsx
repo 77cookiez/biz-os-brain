@@ -1,10 +1,12 @@
-import { Circle, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Circle, CheckCircle2, AlertCircle, Clock, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { TaskActions } from '@/components/workboard/TaskActions';
 import { ULLText } from '@/components/ull/ULLText';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { getTaskChatSource } from '@/hooks/useChatTaskLinks';
 import type { WorkboardTask, TaskStatus } from '@/hooks/useWorkboardTasks';
 
 const statusKeys: Record<TaskStatus, string> = {
@@ -39,7 +41,9 @@ interface TaskCardProps {
 
 export function TaskCard({ task, onStatusChange, onTogglePriority }: TaskCardProps) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const StatusIcon = statusIcons[task.status];
+  const chatSource = getTaskChatSource(task.meaning_json);
 
   return (
     <div className={`flex items-start gap-3 p-4 rounded-lg border border-border bg-card ${task.is_priority ? 'ring-1 ring-primary/50' : ''}`}>
@@ -83,6 +87,15 @@ export function TaskCard({ task, onStatusChange, onTogglePriority }: TaskCardPro
             <span className="text-[11px] text-muted-foreground">
               {new Date(task.due_date).toLocaleDateString()}
             </span>
+          )}
+          {chatSource && (
+            <button
+              onClick={() => navigate(`/apps/chat?thread=${chatSource.sourceThreadId}&msg=${chatSource.sourceMessageId}`)}
+              className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <MessageSquare className="h-3 w-3" />
+              <span>Discussed in TeamChat</span>
+            </button>
           )}
         </div>
       </div>

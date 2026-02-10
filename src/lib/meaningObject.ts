@@ -14,6 +14,8 @@ export const MeaningJsonV1Schema = z.object({
     created_from: z.enum(['user', 'brain']).optional(),
     confidence: z.number().min(0).max(1).optional(),
     source: z.string().optional(),
+    source_message_id: z.string().optional(),
+    source_thread_id: z.string().optional(),
   }).optional(),
 });
 
