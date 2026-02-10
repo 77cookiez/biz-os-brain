@@ -32,20 +32,32 @@ export default function TeamRolesSettingsPage() {
   const [inviteSuccess, setInviteSuccess] = useState<{ email: string; name: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const getInviteLink = () => {
-    return `${window.location.origin}/auth`;
-  };
+  const inviteLink = `${window.location.origin}/auth`;
 
   const handleCopyLink = async () => {
     const inviterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Team member';
     const roleName = getRoleLabel(inviteRole, customRoleName);
-    const link = getInviteLink();
-    const text = `👋 Hi! ${inviterName} invited you to join "${currentWorkspace?.name}" on AiBizOS as ${roleName}.\n\n🚀 Sign up here: ${link}\n\nSee you inside! 🎯`;
-    
+    const text = `👋 Hi! ${inviterName} invited you to join "${currentWorkspace?.name}" on AiBizOS as ${roleName}.\n\n🚀 Sign up here: ${inviteLink}\n\nSee you inside! 🎯`;
     await navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success('Invite link copied!');
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyLinkForMember = async (memberName: string, memberRole: TeamRole, memberCustomRole: string | null) => {
+    const inviterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Team member';
+    const roleName = getRoleLabel(memberRole, memberCustomRole);
+    const text = `👋 Hi${memberName ? ' ' + memberName : ''}! ${inviterName} invited you to join "${currentWorkspace?.name}" on AiBizOS as ${roleName}.\n\n🚀 Sign up here: ${inviteLink}\n\nSee you inside! 🎯`;
+    await navigator.clipboard.writeText(text);
+    toast.success('Invite link copied!');
+  };
+
+  const handleWhatsAppForMember = (memberName: string, memberRole: TeamRole, memberCustomRole: string | null) => {
+    if (!currentWorkspace) return;
+    const inviterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Team member';
+    const roleName = getRoleLabel(memberRole, memberCustomRole);
+    const link = generateWhatsAppLink(currentWorkspace.name, inviterName, roleName, currentWorkspace.name);
+    window.open(link, '_blank');
   };
 
   const handleInvite = async () => {
@@ -137,7 +149,7 @@ export default function TeamRolesSettingsPage() {
                   <div className="flex gap-2">
                     <Input
                       readOnly
-                      value={getInviteLink()}
+                      value={inviteLink}
                       className="text-xs bg-secondary/50"
                     />
                     <Button
@@ -320,6 +332,24 @@ export default function TeamRolesSettingsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-popover border-border">
+                          {member.invite_status === 'pending' && (
+                            <>
+                              <DropdownMenuItem
+                                className="text-xs gap-2"
+                                onClick={() => handleCopyLinkForMember(member.full_name, member.team_role, member.custom_role_name)}
+                              >
+                                <Copy className="h-3.5 w-3.5" />
+                                Copy invite link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-xs gap-2"
+                                onClick={() => handleWhatsAppForMember(member.full_name, member.team_role, member.custom_role_name)}
+                              >
+                                <MessageCircle className="h-3.5 w-3.5" />
+                                Resend via WhatsApp
+                              </DropdownMenuItem>
+                            </>
+                          )}
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive text-xs gap-2"
                             onClick={() => removeMember(member.id)}
