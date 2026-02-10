@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, UserPlus, Users, Mail, Shield, MoreHorizontal, Trash2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, UserPlus, Users, Mail, Shield, MoreHorizontal, Trash2, MessageCircle, Copy, Check, Link2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useTeamMembers, PREDEFINED_ROLES, type TeamRole } from '@/hooks/useTeamMembers';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 export default function TeamRolesSettingsPage() {
   const navigate = useNavigate();
@@ -28,6 +29,24 @@ export default function TeamRolesSettingsPage() {
   const [inviteRole, setInviteRole] = useState<TeamRole>('operations');
   const [customRoleName, setCustomRoleName] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [inviteSuccess, setInviteSuccess] = useState<{ email: string; name: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const getInviteLink = () => {
+    return `${window.location.origin}/auth`;
+  };
+
+  const handleCopyLink = async () => {
+    const inviterName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Team member';
+    const roleName = getRoleLabel(inviteRole, customRoleName);
+    const link = getInviteLink();
+    const text = `👋 Hi! ${inviterName} invited you to join "${currentWorkspace?.name}" on AiBizOS as ${roleName}.\n\n🚀 Sign up here: ${link}\n\nSee you inside! 🎯`;
+    
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Invite link copied!');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -39,12 +58,20 @@ export default function TeamRolesSettingsPage() {
       inviterName, companyName
     );
     if (ok) {
+      setInviteSuccess({ email: inviteEmail.trim(), name: inviterName });
       setInviteEmail('');
       setCustomRoleName('');
       setInviteRole('operations');
-      setInviteOpen(false);
     }
     setInviting(false);
+  };
+
+  const handleCloseInviteDialog = (open: boolean) => {
+    setInviteOpen(open);
+    if (!open) {
+      setInviteSuccess(null);
+      setCopied(false);
+    }
   };
 
   const handleWhatsApp = (role?: string) => {
@@ -80,7 +107,7 @@ export default function TeamRolesSettingsPage() {
           {t('settings.team.inviteMember')}
         </h3>
         <div className="flex gap-2">
-          <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+          <Dialog open={inviteOpen} onOpenChange={handleCloseInviteDialog}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Mail className="h-4 w-4" />
@@ -89,61 +116,121 @@ export default function TeamRolesSettingsPage() {
             </DialogTrigger>
             <DialogContent className="bg-card border-border">
               <DialogHeader>
-                <DialogTitle className="text-foreground">{t('settings.team.inviteMember')}</DialogTitle>
+                <DialogTitle className="text-foreground">
+                  {inviteSuccess ? '✅ Member Added!' : t('settings.team.inviteMember')}
+                </DialogTitle>
               </DialogHeader>
-              <div className="space-y-4 pt-2">
-                <Input
-                  type="email"
-                  placeholder={t('settings.team.enterEmail')}
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                />
-                <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as TeamRole)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border">
-                    {PREDEFINED_ROLES.filter(r => r.value !== 'owner').map(r => (
-                      <SelectItem key={r.value} value={r.value}>
-                        {t(r.labelKey, r.value.charAt(0).toUpperCase() + r.value.slice(1))}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {inviteRole === 'custom' && (
-                  <Input
-                    placeholder={t('settings.team.customRolePlaceholder', 'Enter custom role name')}
-                    value={customRoleName}
-                    onChange={(e) => setCustomRoleName(e.target.value)}
-                  />
-                )}
-                <div className="flex gap-2">
+
+              {inviteSuccess ? (
+                /* Success state with shareable link */
+                <div className="space-y-4 pt-2">
+                  <div className="rounded-lg bg-primary/10 border border-primary/20 p-4 text-center space-y-2">
+                    <p className="text-sm text-foreground font-medium">
+                      {inviteSuccess.email} has been added to the workspace!
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Share the invite link below so they can sign up and join.
+                    </p>
+                  </div>
+
+                  {/* Copy invite link */}
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={getInviteLink()}
+                      className="text-xs bg-secondary/50"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={handleCopyLink}
+                    >
+                      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 gap-2"
+                      onClick={handleCopyLink}
+                    >
+                      <Link2 className="h-4 w-4" />
+                      {copied ? 'Copied!' : 'Copy Invite Message'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 gap-2"
+                      onClick={() => handleWhatsApp()}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      WhatsApp
+                    </Button>
+                  </div>
+
                   <Button
-                    className="flex-1 gap-2"
+                    variant="ghost"
+                    className="w-full text-xs text-muted-foreground"
+                    onClick={() => setInviteSuccess(null)}
+                  >
+                    + Invite another member
+                  </Button>
+                </div>
+              ) : (
+                /* Invite form */
+                <div className="space-y-4 pt-2">
+                  <Input
+                    type="email"
+                    placeholder={t('settings.team.enterEmail')}
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as TeamRole)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover border-border">
+                      {PREDEFINED_ROLES.filter(r => r.value !== 'owner').map(r => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {t(r.labelKey, r.value.charAt(0).toUpperCase() + r.value.slice(1))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {inviteRole === 'custom' && (
+                    <Input
+                      placeholder={t('settings.team.customRolePlaceholder', 'Enter custom role name')}
+                      value={customRoleName}
+                      onChange={(e) => setCustomRoleName(e.target.value)}
+                    />
+                  )}
+                  <Button
+                    className="w-full gap-2"
                     onClick={handleInvite}
                     disabled={inviting || !inviteEmail.trim()}
                   >
-                    <Mail className="h-4 w-4" />
-                    {inviting ? t('common.loading') : t('settings.team.sendInvite')}
+                    <UserPlus className="h-4 w-4" />
+                    {inviting ? t('common.loading') : 'Add & Get Invite Link'}
+                  </Button>
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-card px-2 text-muted-foreground">{t('common.or', 'or')}</span>
+                    </div>
+                  </div>
+                  <Button variant="outline" className="w-full gap-2" onClick={() => handleWhatsApp()}>
+                    <MessageCircle className="h-4 w-4" />
+                    {t('settings.team.inviteViaWhatsApp', 'Invite via WhatsApp')}
                   </Button>
                 </div>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-card px-2 text-muted-foreground">{t('common.or', 'or')}</span>
-                  </div>
-                </div>
-              <Button variant="outline" className="w-full gap-2" onClick={() => handleWhatsApp()}>
-                <MessageCircle className="h-4 w-4" />
-                {t('settings.team.inviteViaWhatsApp', 'Invite via WhatsApp')}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              )}
+            </DialogContent>
+          </Dialog>
 
-        <Button variant="outline" className="gap-2" onClick={() => handleWhatsApp()}>
+          <Button variant="outline" className="gap-2" onClick={() => handleWhatsApp()}>
             <MessageCircle className="h-4 w-4" />
             WhatsApp
           </Button>
@@ -186,20 +273,20 @@ export default function TeamRolesSettingsPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-foreground">
-                        {member.full_name} {isSelf && <span className="text-muted-foreground">({t('common.you', 'You')})</span>}
+                        {member.full_name || member.email || 'Invited User'} {isSelf && <span className="text-muted-foreground">({t('common.you', 'You')})</span>}
                       </p>
-                      <p className="text-xs text-muted-foreground">{member.invite_status}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {member.invite_status === 'pending' ? '⏳ Pending — waiting to sign up' : '✅ Active'}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {/* Role badge or selector */}
                     {isOwner && !isOwnerMember && !isSelf ? (
                       <Select
                         value={member.team_role}
                         onValueChange={(v) => {
                           if (v === 'custom') {
-                            // For custom, show a prompt-like approach
                             const name = prompt(t('settings.team.customRolePlaceholder', 'Enter custom role name'));
                             if (name) updateMemberRole(member.id, 'custom', name);
                           } else {
@@ -225,7 +312,6 @@ export default function TeamRolesSettingsPage() {
                       </Badge>
                     )}
 
-                    {/* Remove button (owner only, not self, not other owners) */}
                     {isOwner && !isSelf && !isOwnerMember && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
