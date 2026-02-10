@@ -39,6 +39,7 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
   const [isListening, setIsListening] = useState(false);
   const [confidence, setConfidence] = useState<'high' | 'medium' | 'low'>('high');
   const recognitionRef = useRef<any>(null);
+  const isListeningRef = useRef(false);
 
   const SpeechRecognition =
     typeof window !== 'undefined'
@@ -48,8 +49,9 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
   const isSupported = !!SpeechRecognition;
 
   const stopListening = useCallback(() => {
+    isListeningRef.current = false;
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch (_) {}
       recognitionRef.current = null;
     }
     setIsListening(false);
@@ -60,8 +62,10 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 
     // Stop any existing instance
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try { recognitionRef.current.stop(); } catch (_) {}
     }
+
+    isListeningRef.current = true;
 
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
@@ -112,24 +116,43 @@ export function useVoiceInput(options: UseVoiceInputOptions = {}): UseVoiceInput
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.warn('[Voice] Recognition error:', event.error);
-      if (event.error !== 'no-speech' && event.error !== 'aborted') {
-        stopListening();
+      // Only fully stop on fatal errors (not silence/aborted)
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        isListeningRef.current = false;
+        setIsListening(false);
+        recognitionRef.current = null;
       }
+      // 'no-speech', 'aborted', 'network' → let onend handle auto-restart
     };
 
     recognition.onend = () => {
+      // Auto-restart if user hasn't explicitly stopped
+      if (isListeningRef.current) {
+        try {
+          recognition.start();
+        } catch (_) {
+          // If restart fails, try creating a new instance after a brief delay
+          setTimeout(() => {
+            if (isListeningRef.current) {
+              startListening();
+            }
+          }, 300);
+        }
+        return;
+      }
       setIsListening(false);
       recognitionRef.current = null;
     };
 
     recognition.start();
-  }, [SpeechRecognition, currentLanguage.code, continuous, onResult, onInterimResult, stopListening]);
+  }, [SpeechRecognition, currentLanguage.code, continuous, onResult, onInterimResult]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isListeningRef.current = false;
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try { recognitionRef.current.stop(); } catch (_) {}
       }
     };
   }, []);
