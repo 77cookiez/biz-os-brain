@@ -109,7 +109,12 @@ export function useTeamMembers() {
         return false;
       }
 
-      toast.success(`${data.member?.full_name || email} added to workspace!`);
+      const name = data.member?.full_name || email;
+      if (data.email_sent) {
+        toast.success(`${name} added! Invitation email sent.`);
+      } else {
+        toast.success(`${name} added! Share the invite link so they can sign up.`);
+      }
       fetchMembers();
       return true;
     } catch {

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -173,9 +174,67 @@ serve(async (req) => {
       );
     }
 
+    // Send invite email via Resend
+    const roleName = team_role === 'custom' ? (custom_role_name || 'Team Member') : 
+      team_role.charAt(0).toUpperCase() + team_role.slice(1);
+    const origin = req.headers.get('origin') || 'https://biz-os-brain.lovable.app';
+    
+    let emailSent = false;
+    const resendKey = Deno.env.get("RESEND_API_KEY");
+    if (resendKey) {
+      try {
+        const resend = new Resend(resendKey);
+        const inviter = inviter_name || 'Your team';
+        const company = company_name || 'the team';
+
+        await resend.emails.send({
+          from: "AiBizOS <onboarding@resend.dev>",
+          to: [email],
+          subject: `${inviter} invited you to join ${company} on AiBizOS`,
+          html: `
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 20px;"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+<tr><td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:32px;text-align:center;">
+<h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">AiBizOS</h1>
+<p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">AI-Powered Business Operating System</p>
+</td></tr>
+<tr><td style="padding:32px;">
+<h2 style="margin:0 0 16px;color:#18181b;font-size:20px;font-weight:600;">You're Invited! 🎉</h2>
+<p style="margin:0 0 16px;color:#3f3f46;font-size:15px;line-height:1.6;">
+<strong>${inviter}</strong> has invited you to join <strong>${company}</strong> on AiBizOS.</p>
+<table cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr>
+<td style="background:#f0f0ff;border:1px solid #e0e0ff;border-radius:8px;padding:12px 16px;">
+<span style="color:#6366f1;font-size:13px;font-weight:500;">📋 Your Role:</span>
+<span style="color:#18181b;font-size:14px;font-weight:600;margin-left:8px;">${roleName}</span>
+</td></tr></table>
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;"><tr><td align="center">
+<a href="${origin}/auth" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;">
+Accept Invitation →</a></td></tr></table>
+<div style="background:#fafafa;border-radius:8px;padding:20px;margin:0 0 24px;">
+<p style="margin:0 0 12px;color:#18181b;font-size:14px;font-weight:600;">Getting Started:</p>
+<p style="margin:0 0 8px;color:#52525b;font-size:13px;">1️⃣ Click the button above to sign up</p>
+<p style="margin:0 0 8px;color:#52525b;font-size:13px;">2️⃣ Complete your profile</p>
+<p style="margin:0;color:#52525b;font-size:13px;">3️⃣ Start collaborating with your team</p></div>
+<p style="margin:0;color:#a1a1aa;font-size:12px;text-align:center;">If you didn't expect this invitation, you can safely ignore this email.</p>
+</td></tr>
+<tr><td style="padding:20px 32px;background:#fafafa;border-top:1px solid #f0f0f0;text-align:center;">
+<p style="margin:0;color:#a1a1aa;font-size:11px;">Sent by AiBizOS • AI-Powered Business Operating System</p>
+</td></tr></table></td></tr></table></body></html>`,
+        });
+        emailSent = true;
+        console.log("Invite email sent via Resend to:", email);
+      } catch (emailErr) {
+        console.error("Resend email error (non-fatal):", emailErr);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
+        email_sent: emailSent,
         member: {
           user_id: targetUser.id,
           email: targetUser.email,
