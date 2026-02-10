@@ -11,6 +11,7 @@ export interface PlanItem {
   status?: 'backlog' | 'planned' | 'in_progress';
   due_date?: string;
   is_priority?: boolean;
+  meaning_object_id?: string;
 }
 
 export function useBrainWorkboardIntegration() {
@@ -39,6 +40,7 @@ export function useBrainWorkboardIntegration() {
             status: item.status || 'backlog',
             due_date: item.due_date,
             is_priority: item.is_priority,
+            meaning_object_id: item.meaning_object_id,
           });
           created++;
         }
