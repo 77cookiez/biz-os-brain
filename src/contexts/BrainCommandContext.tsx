@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useRef, type ReactNode } from 'react';
 import { useBrainChat } from '@/hooks/useBrainChat';
 
 interface BrainCommandContextType {
@@ -21,7 +21,7 @@ interface BrainCommandContextType {
 
 const BrainCommandContext = createContext<BrainCommandContextType | null>(null);
 
-export function BrainCommandProvider({ children }: { children: React.ReactNode }) {
+export function BrainCommandProvider({ children }: { children: ReactNode }) {
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
