@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.ull-translate]
 verify_jwt = false
+
+[functions.invite-member]
+verify_jwt = false
+
+[functions.manage-member]
+verify_jwt = false

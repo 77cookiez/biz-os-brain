@@ -79,18 +79,24 @@ export function useTeamMembers() {
         },
       });
 
+      // functions.invoke puts non-2xx responses in error
       if (error) {
-        toast.error('Failed to send invitation');
-        return false;
-      }
+        // Try to parse the error response body
+        let errBody: any = null;
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === 'function') {
+            errBody = await ctx.json();
+          }
+        } catch {}
 
-      if (data?.error === 'user_not_found') {
-        toast.error(data.message || 'User not found. They need to sign up first.');
-        return false;
-      }
-
-      if (data?.error === 'already_member') {
-        toast.error(data.message || 'Already a member');
+        if (errBody?.error === 'user_not_found') {
+          toast.error(errBody.message || 'User not found. They need to sign up first.');
+        } else if (errBody?.error === 'already_member') {
+          toast.error(errBody.message || 'Already a member');
+        } else {
+          toast.error(errBody?.error || errBody?.message || 'Failed to send invitation');
+        }
         return false;
       }
 

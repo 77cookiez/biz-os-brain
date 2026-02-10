@@ -78,20 +78,31 @@ serve(async (req) => {
       );
     }
 
-    // Look up the user by email using admin API
-    const { data: userList, error: listError } =
-      await adminClient.auth.admin.listUsers();
+    // Look up the user by email using admin API (paginated)
+    let targetUser = null;
+    let page = 1;
+    const perPage = 100;
+    while (!targetUser) {
+      const { data: userList, error: listError } =
+        await adminClient.auth.admin.listUsers({ page, perPage });
 
-    if (listError) {
-      return new Response(JSON.stringify({ error: "Failed to lookup users" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (listError) {
+        return new Response(JSON.stringify({ error: "Failed to lookup users" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const found = userList.users.find(
+        (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+      );
+      if (found) {
+        targetUser = found;
+        break;
+      }
+      if (userList.users.length < perPage) break;
+      page++;
     }
-
-    const targetUser = userList.users.find(
-      (u: any) => u.email?.toLowerCase() === email.toLowerCase()
-    );
 
     if (!targetUser) {
       return new Response(
