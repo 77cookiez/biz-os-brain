@@ -296,6 +296,29 @@ export default function TeamRolesSettingsPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* Copy & WhatsApp buttons for pending members */}
+                    {isOwner && member.invite_status === 'pending' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs gap-1.5"
+                          onClick={() => handleCopyLinkForMember(member.full_name, member.team_role, member.custom_role_name)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                          {t('settings.team.copyLink', 'Copy Link')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => handleWhatsAppForMember(member.full_name, member.team_role, member.custom_role_name)}
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
+
                     {isOwner && !isOwnerMember && !isSelf ? (
                       <Select
                         value={member.team_role}
@@ -334,24 +357,6 @@ export default function TeamRolesSettingsPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-popover border-border">
-                          {member.invite_status === 'pending' && (
-                            <>
-                              <DropdownMenuItem
-                                className="text-xs gap-2"
-                                onClick={() => handleCopyLinkForMember(member.full_name, member.team_role, member.custom_role_name)}
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                                Copy invite link
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-xs gap-2"
-                                onClick={() => handleWhatsAppForMember(member.full_name, member.team_role, member.custom_role_name)}
-                              >
-                                <MessageCircle className="h-3.5 w-3.5" />
-                                Resend via WhatsApp
-                              </DropdownMenuItem>
-                            </>
-                          )}
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive text-xs gap-2"
                             onClick={() => removeMember(member.id)}
