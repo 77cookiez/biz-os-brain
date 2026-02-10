@@ -199,7 +199,7 @@ export function useTeamMembers() {
       `💡 AiBizOS helps teams manage tasks, collaborate, and grow smarter — all in one place.\n\n` +
       `See you inside! 🎯`
     );
-    return `https://wa.me/?text=${message}`;
+    return `https://web.whatsapp.com/send?text=${message}`;
   }, []);
 
   return {
