@@ -18,7 +18,7 @@ export function useBrainChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { businessContext, installedApps, currentWorkspace } = useWorkspace();
-  const { currentLanguage } = useLanguage();
+  const { currentLanguage, contentLocale } = useLanguage();
   const { user } = useAuth();
 
   /** Persist a single brain message to DB with a meaning object */
@@ -142,7 +142,7 @@ export function useBrainChat() {
           installedApps: installedApps.filter(a => a.is_active).map(a => a.app_id),
           workContext,
           action,
-          userLang: currentLanguage.code,
+          userLang: contentLocale || currentLanguage.code,
         }),
       });
 
@@ -224,7 +224,7 @@ export function useBrainChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, businessContext, installedApps, currentLanguage.code, persistMessage, fetchWorkContext]);
+  }, [messages, businessContext, installedApps, currentLanguage.code, contentLocale, persistMessage, fetchWorkContext]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
