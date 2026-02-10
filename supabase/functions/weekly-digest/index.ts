@@ -9,6 +9,7 @@ const corsHeaders = {
 
 const INSIGHTS_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/insights-get`;
 const BRAIN_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/brain-chat`;
+const SIGNALS_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/decision-signals`;
 
 interface DigestPayload {
   workspace_id: string;
@@ -248,7 +249,29 @@ ${factSheet}`,
       }
     }
 
-    // Step 4: Store digest (upsert for idempotency)
+    // Step 4: Fetch decision signals for digest teaser (Part 5)
+    let signalTeaser: string | null = null;
+    try {
+      const signalsResp = await fetch(SIGNALS_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+          apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify({ workspace_id, content_locale: targetLang }),
+      });
+      if (signalsResp.ok) {
+        const signalsData = await signalsResp.json();
+        if (signalsData.suggestions?.length > 0) {
+          signalTeaser = signalsData.suggestions[0].title || null;
+        }
+      }
+    } catch (e) {
+      console.error("Decision signals fetch failed (non-fatal):", e);
+    }
+
+    // Step 5: Store digest (upsert for idempotency)
     const { data: digest, error: insertError } = await supabase
       .from("weekly_digests")
       .upsert(
@@ -275,15 +298,20 @@ ${factSheet}`,
       );
     }
 
-    // Step 4b: Create in-app notification (idempotent via week_key unique constraint)
+    // Step 5b: Create in-app notification (idempotent via week_key unique constraint)
     const inAppEnabled = !prefs || prefs.in_app !== false;
     if (inAppEnabled) {
       const notifTitle = isEmpty
         ? "Nothing major this week"
         : `Your week: ${stats.tasks_completed} completed, ${stats.tasks_blocked} blocked`;
-      const notifBody = narrativeText || (isEmpty
+      let notifBody = narrativeText || (isEmpty
         ? "You're all set for the next week."
         : `${stats.tasks_created} tasks created, ${stats.goals_created} goals created.`);
+      
+      // Append signal teaser if available
+      if (signalTeaser) {
+        notifBody += ` 💡 ${signalTeaser}`;
+      }
 
       await supabase
         .from("notifications")

@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.weekly-digest-cron]
 verify_jwt = false
+
+[functions.decision-signals]
+verify_jwt = false

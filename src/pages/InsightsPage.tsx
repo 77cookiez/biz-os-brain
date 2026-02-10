@@ -13,6 +13,7 @@ import {
 import { useInsights } from '@/hooks/useInsights';
 import { ULLText } from '@/components/ull/ULLText';
 import { InsightsNarrative } from '@/components/insights/InsightsNarrative';
+import { DecisionSuggestions } from '@/components/insights/DecisionSuggestions';
 
 export default function InsightsPage() {
   const { t } = useTranslation();
@@ -263,6 +264,9 @@ export default function InsightsPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Section D — Decision Intelligence */}
+          <DecisionSuggestions />
         </>
       )}
     </div>
