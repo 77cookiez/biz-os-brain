@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, CheckCircle2, Circle, AlertCircle, Clock, Filter, Users, UserPlus } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, AlertCircle, Clock, Filter, Users, UserPlus, Mail, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
+import { useTeamMembers, PREDEFINED_ROLES, type TeamRole } from '@/hooks/useTeamMembers';
 
 type TaskStatus = 'backlog' | 'planned' | 'in_progress' | 'blocked' | 'done';
 
@@ -30,13 +31,6 @@ interface Task {
   assigned_to: string | null;
 }
 
-interface TeamMember {
-  id: string;
-  user_id: string;
-  team_role: string;
-  full_name?: string;
-}
-
 const statusConfig: Record<TaskStatus, { label: string; icon: React.ElementType; color: string }> = {
   backlog: { label: 'Backlog', icon: Circle, color: 'text-muted-foreground' },
   planned: { label: 'Planned', icon: Clock, color: 'text-blue-500' },
@@ -47,7 +41,6 @@ const statusConfig: Record<TaskStatus, { label: string; icon: React.ElementType;
 
 export default function TeamTasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [members, setMembers] = useState<TeamMember[]>([]);
   const [activeTab, setActiveTab] = useState<TaskStatus | 'all'>('all');
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -60,15 +53,17 @@ export default function TeamTasksPage() {
     assignedTo: '',
   });
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('member');
+  const [inviteRole, setInviteRole] = useState<TeamRole>('operations');
+  const [customRoleName, setCustomRoleName] = useState('');
+  const [inviting, setInviting] = useState(false);
   const { currentWorkspace, businessContext } = useWorkspace();
   const { user } = useAuth();
   const { currentLanguage } = useLanguage();
+  const { members, inviteMember, generateWhatsAppLink } = useTeamMembers();
 
   useEffect(() => {
     if (currentWorkspace) {
       fetchTasks();
-      fetchMembers();
     }
   }, [currentWorkspace?.id]);
 
@@ -81,29 +76,6 @@ export default function TeamTasksPage() {
       .order('is_priority', { ascending: false })
       .order('created_at', { ascending: false });
     setTasks((data as Task[]) || []);
-  };
-
-  const fetchMembers = async () => {
-    if (!currentWorkspace) return;
-    const { data } = await supabase
-      .from('workspace_members')
-      .select('id, user_id, team_role')
-      .eq('workspace_id', currentWorkspace.id);
-    
-    // Fetch profiles for member names
-    if (data) {
-      const userIds = data.map(m => m.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .in('user_id', userIds);
-      
-      const membersWithNames = data.map(m => ({
-        ...m,
-        full_name: profiles?.find(p => p.user_id === m.user_id)?.full_name || 'Unknown'
-      }));
-      setMembers(membersWithNames);
-    }
   };
 
   const createTask = async () => {
@@ -212,25 +184,54 @@ export default function TeamTasksPage() {
                     onChange={(e) => setInviteEmail(e.target.value)}
                     className="bg-input border-border text-foreground"
                   />
-                  <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as TeamRole)}>
                     <SelectTrigger className="bg-input border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
-                      <SelectItem value="operations">Operations</SelectItem>
-                      <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="finance">Finance</SelectItem>
+                      {PREDEFINED_ROLES.filter(r => r.value !== 'owner').map(r => (
+                        <SelectItem key={r.value} value={r.value}>{r.value.charAt(0).toUpperCase() + r.value.slice(1)}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {inviteRole === 'custom' && (
+                    <Input
+                      placeholder="Custom role name"
+                      value={customRoleName}
+                      onChange={(e) => setCustomRoleName(e.target.value)}
+                      className="bg-input border-border text-foreground"
+                    />
+                  )}
+                  <div className="flex gap-2">
+                    <Button 
+                      className="flex-1"
+                      disabled={inviting || !inviteEmail.trim()}
+                      onClick={async () => {
+                        setInviting(true);
+                        const ok = await inviteMember(inviteEmail.trim(), inviteRole, customRoleName.trim() || undefined);
+                        if (ok) {
+                          setInviteEmail('');
+                          setCustomRoleName('');
+                          setShowInviteDialog(false);
+                        }
+                        setInviting(false);
+                      }}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      {inviting ? 'Sending...' : 'Send Invitation'}
+                    </Button>
+                  </div>
                   <Button 
-                    className="w-full"
+                    variant="outline"
+                    className="w-full gap-2"
                     onClick={() => {
-                      toast.info('Invitation sent! (Demo mode)');
-                      setShowInviteDialog(false);
+                      if (currentWorkspace) {
+                        window.open(generateWhatsAppLink(currentWorkspace.name), '_blank');
+                      }
                     }}
                   >
-                    Send Invitation
+                    <MessageCircle className="h-4 w-4" />
+                    Invite via WhatsApp
                   </Button>
                 </div>
               </DialogContent>
