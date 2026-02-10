@@ -97,7 +97,7 @@ export function useTeamMembers() {
         if (errBody?.error === 'user_not_found') {
           toast.error(errBody.message || 'User not found. They need to sign up first.');
         } else if (errBody?.error === 'already_member') {
-          toast.error(errBody.message || 'Already a member');
+          toast.info('This person is already a member of this workspace. You can invite them to a different workspace instead.');
         } else {
           toast.error(errBody?.error || errBody?.message || 'Failed to send invitation');
         }
