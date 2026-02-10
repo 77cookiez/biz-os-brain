@@ -10,6 +10,24 @@ interface Message {
   content: string;
 }
 
+interface WorkTask {
+  id: string;
+  title: string;
+  status: string;
+  isPriority: boolean;
+  dueDate: string | null;
+  isOverdue: boolean;
+  blockedReason: string | null;
+}
+
+interface WorkGoal {
+  id: string;
+  title: string;
+  status: string;
+  dueDate: string | null;
+  kpi?: { name: string; current: number | null; target: number | null };
+}
+
 interface ChatRequest {
   messages: Message[];
   businessContext?: {
@@ -21,6 +39,10 @@ interface ChatRequest {
     hasTeam?: boolean;
   };
   installedApps?: string[];
+  workContext?: {
+    tasks: WorkTask[];
+    goals: WorkGoal[];
+  };
   action?: string;
   userLang?: string;
 }
@@ -31,7 +53,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, businessContext, installedApps, action, userLang } = await req.json() as ChatRequest;
+    const { messages, businessContext, installedApps, workContext, action, userLang } = await req.json() as ChatRequest;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -132,6 +154,41 @@ ${installedApps.join(', ')}`;
     } else {
       systemPrompt += `\n\nINSTALLED APPS: Only AI Business Brain (core planning)
 Note: For execution beyond planning, recommend activating relevant apps.`;
+    }
+
+    // Inject real work context for assistant mode
+    if (workContext) {
+      const today = new Date().toISOString().split('T')[0];
+      const overdue = workContext.tasks.filter(t => t.isOverdue);
+      const blocked = workContext.tasks.filter(t => t.status === 'blocked');
+      const priority = workContext.tasks.filter(t => t.isPriority);
+      const inProgress = workContext.tasks.filter(t => t.status === 'in_progress');
+
+      systemPrompt += `\n\n═══ CURRENT WORKBOARD SNAPSHOT (${today}) ═══`;
+      systemPrompt += `\nTotal open tasks: ${workContext.tasks.length}`;
+      systemPrompt += `\nOverdue: ${overdue.length} | Blocked: ${blocked.length} | Priority: ${priority.length} | In Progress: ${inProgress.length}`;
+
+      if (workContext.tasks.length > 0) {
+        systemPrompt += `\n\nTASKS:`;
+        for (const t of workContext.tasks) {
+          let line = `- [${t.status.toUpperCase()}] ${t.title}`;
+          if (t.isPriority) line += ' ⭐';
+          if (t.dueDate) line += ` (due: ${t.dueDate})`;
+          if (t.isOverdue) line += ' ⚠️ OVERDUE';
+          if (t.blockedReason) line += ` [blocked: ${t.blockedReason}]`;
+          systemPrompt += `\n${line}`;
+        }
+      }
+
+      if (workContext.goals.length > 0) {
+        systemPrompt += `\n\nACTIVE GOALS:`;
+        for (const g of workContext.goals) {
+          let line = `- ${g.title}`;
+          if (g.dueDate) line += ` (due: ${g.dueDate})`;
+          if (g.kpi) line += ` [KPI: ${g.kpi.name} ${g.kpi.current ?? 0}/${g.kpi.target ?? '?'}]`;
+          systemPrompt += `\n${line}`;
+        }
+      }
     }
 
     // Handle specific actions

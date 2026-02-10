@@ -60,6 +60,44 @@ export function useBrainChat() {
     }
   }, [currentWorkspace, user, currentLanguage.code]);
 
+  /** Fetch current tasks & goals snapshot for assistant context */
+  const fetchWorkContext = useCallback(async () => {
+    if (!currentWorkspace) return undefined;
+    const today = new Date().toISOString().split('T')[0];
+
+    const [tasksRes, goalsRes] = await Promise.all([
+      supabase.from('tasks').select('id, title, status, is_priority, due_date, blocked_reason')
+        .eq('workspace_id', currentWorkspace.id)
+        .in('status', ['backlog', 'planned', 'in_progress', 'blocked'])
+        .order('is_priority', { ascending: false })
+        .order('due_date', { ascending: true })
+        .limit(30),
+      supabase.from('goals').select('id, title, status, due_date, kpi_name, kpi_current, kpi_target')
+        .eq('workspace_id', currentWorkspace.id)
+        .eq('status', 'active')
+        .limit(10),
+    ]);
+
+    return {
+      tasks: (tasksRes.data || []).map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        isPriority: t.is_priority,
+        dueDate: t.due_date,
+        isOverdue: t.due_date ? t.due_date < today : false,
+        blockedReason: t.blocked_reason,
+      })),
+      goals: (goalsRes.data || []).map(g => ({
+        id: g.id,
+        title: g.title,
+        status: g.status,
+        dueDate: g.due_date,
+        kpi: g.kpi_name ? { name: g.kpi_name, current: g.kpi_current, target: g.kpi_target } : undefined,
+      })),
+    };
+  }, [currentWorkspace?.id]);
+
   const sendMessage = useCallback(async (input: string, action?: string) => {
     const userMsg: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
@@ -67,6 +105,9 @@ export function useBrainChat() {
 
     // Persist user message
     persistMessage('user', input);
+
+    // Fetch real work context
+    const workContext = await fetchWorkContext();
 
     let assistantSoFar = '';
     
@@ -99,6 +140,7 @@ export function useBrainChat() {
             hasTeam: businessContext.has_team,
           } : undefined,
           installedApps: installedApps.filter(a => a.is_active).map(a => a.app_id),
+          workContext,
           action,
           userLang: currentLanguage.code,
         }),
