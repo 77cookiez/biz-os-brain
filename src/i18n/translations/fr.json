@@ -12,7 +12,10 @@
     "next": "Suivant",
     "close": "Fermer",
     "search": "Rechercher",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "or": "ou",
+    "you": "Vous",
+    "insights": "Insights"
   },
   "greeting": {
     "morning": "Bonjour",
@@ -319,6 +322,11 @@
     "blocked": "{{count}} éléments actuellement bloqués",
     "decisions": "{{count}} décisions émergées des conversations",
     "openInsights": "Ouvrir les Insights",
+    "archive": "Archives",
+    "archiveTitle": "Archives des résumés hebdomadaires",
+    "archiveSubtitle": "Parcourez vos résumés hebdomadaires passés",
+    "archiveEmpty": "Pas encore de résumés",
+    "archiveEmptyDesc": "Les résumés hebdomadaires apparaîtront ici après votre première semaine d'activité.",
     "settingsTitle": "Résumé hebdomadaire",
     "settingsDesc": "Recevez un résumé calme et hebdomadaire de l'activité de votre espace de travail. Une fois par semaine, pas de spam.",
     "enabled": "Résumé hebdomadaire",
@@ -338,6 +346,16 @@
     "friday": "Vendredi",
     "saturday": "Samedi",
     "sunday": "Dimanche"
+  },
+  "decisions": {
+    "title": "À considérer",
+    "subtitle": "Tendances observées dans votre activité récente",
+    "loading": "Analyse des tendances...",
+    "confidence": {
+      "low": "Faible",
+      "medium": "Moyen",
+      "high": "Élevé"
+    }
   },
   "notifications": {
     "title": "Notifications",
