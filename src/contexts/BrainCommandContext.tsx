@@ -52,6 +52,25 @@ export function BrainCommandProvider({ children }: { children: ReactNode }) {
 
 export function useBrainCommand() {
   const ctx = useContext(BrainCommandContext);
-  if (!ctx) throw new Error('useBrainCommand must be used within BrainCommandProvider');
+  if (!ctx) {
+    // Return safe defaults when provider hasn't mounted yet (e.g. during error recovery)
+    return {
+      input: '',
+      setInput: () => {},
+      isOpen: false,
+      setIsOpen: () => {},
+      focusInput: () => {},
+      prefillAndFocus: () => {},
+      inputRef: { current: null } as React.RefObject<HTMLInputElement>,
+      messages: [] as { role: 'user' | 'assistant'; content: string }[],
+      isLoading: false,
+      sendMessage: async () => {},
+      clearMessages: () => {},
+      draftResponse: null as string | null,
+      setDraftResponse: () => {},
+      showDraft: false,
+      setShowDraft: () => {},
+    } satisfies BrainCommandContextType;
+  }
   return ctx;
 }
