@@ -106,7 +106,7 @@ serve(async (req) => {
             company_name: company_name || 'the team',
             team_role: roleName,
           },
-          redirectTo: `${req.headers.get('origin') || supabaseUrl}/auth`,
+          redirectTo: `${req.headers.get('origin') || 'https://biz-os-brain.lovable.app'}/auth`,
         });
 
       if (inviteError) {
