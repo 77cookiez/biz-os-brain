@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, CheckCircle2, Circle, AlertCircle, Clock, Filter, Users, UserPlus, Mail, MessageCircle } from 'lucide-react';
+import { ULLText } from '@/components/ull/ULLText';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +30,8 @@ interface Task {
   is_priority: boolean;
   due_date: string | null;
   assigned_to: string | null;
+  meaning_object_id?: string | null;
+  source_lang?: string;
 }
 
 const statusConfig: Record<TaskStatus, { label: string; icon: React.ElementType; color: string }> = {
@@ -374,7 +377,7 @@ export default function TeamTasksPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h3 className={`font-medium ${task.status === 'done' ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
-                              {task.title}
+                              <ULLText meaningId={task.meaning_object_id} table="tasks" id={task.id} field="title" fallback={task.title} sourceLang={task.source_lang || 'en'} />
                             </h3>
                             {task.is_priority && (
                               <Badge variant="default" className="text-xs">Priority</Badge>
@@ -382,7 +385,7 @@ export default function TeamTasksPage() {
                           </div>
                           
                           {task.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
+                            <ULLText table="tasks" id={task.id} field="description" fallback={task.description} sourceLang={task.source_lang || 'en'} className="text-sm text-muted-foreground mt-1" as="p" />
                           )}
                           
                           {task.status === 'blocked' && task.blocked_reason && (
