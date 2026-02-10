@@ -24,7 +24,7 @@ function meaningCacheKey(meaningId: string, targetLang: string) {
   return `meaning:${meaningId}:${targetLang}`;
 }
 
-// Pending meaning translation requests
+// Pending meaning translation requests — keyed by meaningId:targetLang
 const pendingMeaningRequests = new Set<string>();
 
 export function useULL() {
@@ -97,19 +97,25 @@ export function useULL() {
         }),
       });
 
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        // Clear pending so they can be retried
+        for (const id of ids) pendingMeaningRequests.delete(`${id}:${targetLang}`);
+        return;
+      }
 
       const data = await resp.json();
       const translations = data.translations as Record<string, string>;
 
       for (const [mId, translatedText] of Object.entries(translations)) {
         meaningCache.set(meaningCacheKey(mId, targetLang), translatedText);
-        pendingMeaningRequests.delete(mId);
+        pendingMeaningRequests.delete(`${mId}:${targetLang}`);
       }
+      // Clear any ids that weren't in the response
+      for (const id of ids) pendingMeaningRequests.delete(`${id}:${targetLang}`);
 
       forceUpdate(n => n + 1);
     } catch {
-      for (const id of ids) pendingMeaningRequests.delete(id);
+      for (const id of ids) pendingMeaningRequests.delete(`${id}:${targetLang}`);
     }
   }, [currentLanguage.code]);
 
@@ -120,12 +126,13 @@ export function useULL() {
   }, [flushBatch]);
 
   const scheduleMeaning = useCallback((meaningId: string) => {
-    if (pendingMeaningRequests.has(meaningId)) return;
-    pendingMeaningRequests.add(meaningId);
+    const pendingKey = `${meaningId}:${currentLanguage.code}`;
+    if (pendingMeaningRequests.has(pendingKey)) return;
+    pendingMeaningRequests.add(pendingKey);
     meaningQueue.current.push(meaningId);
     if (meaningTimer.current) clearTimeout(meaningTimer.current);
     meaningTimer.current = setTimeout(flushMeaningBatch, 50);
-  }, [flushMeaningBatch]);
+  }, [flushMeaningBatch, currentLanguage.code]);
 
   /**
    * Legacy Phase 0: Get translated text by table/id/field.

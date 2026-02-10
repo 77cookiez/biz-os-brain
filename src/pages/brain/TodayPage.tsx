@@ -9,6 +9,7 @@ import { useBrainCommand } from '@/contexts/BrainCommandContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ULLText } from '@/components/ull/ULLText';
 
 interface Task {
   id: string;
@@ -16,6 +17,8 @@ interface Task {
   status: string;
   due_date: string | null;
   is_priority: boolean;
+  meaning_object_id?: string | null;
+  source_lang?: string;
 }
 
 interface Insights {
@@ -61,7 +64,7 @@ export default function TodayPage() {
     const weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const { data } = await supabase
       .from('tasks')
-      .select('id, title, status, due_date, is_priority')
+      .select('id, title, status, due_date, is_priority, meaning_object_id, source_lang')
       .eq('workspace_id', currentWorkspace.id)
       .in('status', ['backlog', 'planned', 'in_progress', 'blocked'])
       .or(`is_priority.eq.true,due_date.lte.${weekFromNow}`)
@@ -178,7 +181,7 @@ export default function TodayPage() {
           <CardContent className="space-y-2">
             {priorityTasks.map(task => (
               <div key={task.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                <span className="text-sm text-foreground">{task.title}</span>
+                <ULLText meaningId={task.meaning_object_id} table="tasks" id={task.id} field="title" fallback={task.title} sourceLang={task.source_lang || 'en'} className="text-sm text-foreground" />
                 <Badge variant="outline" className="text-xs">
                   {task.status.replace('_', ' ')}
                 </Badge>
@@ -200,7 +203,7 @@ export default function TodayPage() {
           <CardContent className="space-y-2">
             {overdueTasks.map(task => (
               <div key={task.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-destructive/10">
-                <span className="text-sm text-foreground truncate">{task.title}</span>
+                <ULLText meaningId={task.meaning_object_id} table="tasks" id={task.id} field="title" fallback={task.title} sourceLang={task.source_lang || 'en'} className="text-sm text-foreground truncate" />
                 <span className="text-xs text-destructive whitespace-nowrap shrink-0">
                   {task.due_date && new Date(task.due_date).toLocaleDateString()}
                 </span>
@@ -222,7 +225,7 @@ export default function TodayPage() {
           <CardContent className="space-y-2">
             {upcomingTasks.map(task => (
               <div key={task.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/50 transition-colors">
-                <span className="text-sm text-foreground">{task.title}</span>
+                <ULLText meaningId={task.meaning_object_id} table="tasks" id={task.id} field="title" fallback={task.title} sourceLang={task.source_lang || 'en'} className="text-sm text-foreground" />
                 {task.due_date && (
                   <span className="text-xs text-muted-foreground">
                     {new Date(task.due_date).toLocaleDateString()}
