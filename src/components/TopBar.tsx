@@ -1,6 +1,6 @@
 import { Globe, ChevronDown, LogOut, Building2, Plus, Users, Sun, Moon, Monitor } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -24,6 +24,8 @@ export function TopBar() {
   const { currentLanguage, enabledLanguages, setCurrentLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isBrainPage = location.pathname === '/brain';
 
   const handleSignOut = async () => {
     await signOut();
@@ -36,8 +38,8 @@ export function TopBar() {
 
   return (
     <header className="flex h-14 items-center border-b border-border bg-card px-4 gap-4">
-      {/* Global Brain Command Bar */}
-      <BrainCommandBar />
+      {/* Global Brain Command Bar — hidden on /brain to avoid duplication */}
+      {!isBrainPage && <BrainCommandBar />}
 
       {/* Company & Workspace Switcher */}
       <DropdownMenu>
