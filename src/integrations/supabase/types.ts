@@ -430,6 +430,8 @@ export type Database = {
           enabled: boolean
           id: string
           in_app: boolean
+          schedule_day: number
+          schedule_hour: number
           updated_at: string
           user_id: string
           workspace_id: string
@@ -440,6 +442,8 @@ export type Database = {
           enabled?: boolean
           id?: string
           in_app?: boolean
+          schedule_day?: number
+          schedule_hour?: number
           updated_at?: string
           user_id: string
           workspace_id: string
@@ -450,6 +454,8 @@ export type Database = {
           enabled?: boolean
           id?: string
           in_app?: boolean
+          schedule_day?: number
+          schedule_hour?: number
           updated_at?: string
           user_id?: string
           workspace_id?: string
@@ -618,6 +624,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "meaning_objects_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          channels: string[]
+          created_at: string
+          data_json: Json | null
+          id: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+          week_key: string | null
+          workspace_id: string
+        }
+        Insert: {
+          body?: string | null
+          channels?: string[]
+          created_at?: string
+          data_json?: Json | null
+          id?: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+          week_key?: string | null
+          workspace_id: string
+        }
+        Update: {
+          body?: string | null
+          channels?: string[]
+          created_at?: string
+          data_json?: Json | null
+          id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+          week_key?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

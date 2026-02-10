@@ -339,6 +339,23 @@
     "inApp": "In-app",
     "inAppDesc": "Show digest card when you open the app",
     "email": "Email",
-    "emailDesc": "Receive a weekly email summary"
+    "emailDesc": "Receive a weekly email summary",
+    "schedule": "Delivery Schedule",
+    "scheduleDay": "Day",
+    "scheduleTime": "Time",
+    "scheduleNote": "Maximum one digest per week. Uses workspace timezone.",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "empty": "No notifications yet",
+    "settings": "Notification Settings"
   }
 }
