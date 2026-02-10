@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import { useBrainChat } from '@/hooks/useBrainChat';
+import { useBrainCommand } from '@/contexts/BrainCommandContext';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -210,6 +211,19 @@ export default function BrainPage() {
   const { user } = useAuth();
   const { currentLanguage } = useLanguage();
   const { isWorkboardInstalled, installWorkboard, createTasksFromPlan } = useBrainWorkboardIntegration();
+  const { pendingMessage, setPendingMessage } = useBrainCommand();
+
+  // Auto-send pending message from command bar
+  const pendingHandled = useRef(false);
+  useEffect(() => {
+    if (pendingMessage && !pendingHandled.current) {
+      pendingHandled.current = true;
+      const msg = pendingMessage;
+      setPendingMessage(null);
+      setInput('');
+      sendMessage(msg);
+    }
+  }, [pendingMessage, setPendingMessage, sendMessage]);
 
   // Voice input
   const { isListening, isSupported, confidence, startListening, stopListening } = useVoiceInput({
@@ -441,7 +455,7 @@ export default function BrainPage() {
                     {message.role === 'user' ? (
                       <p className="text-sm">{message.content}</p>
                     ) : (
-                      <div className="prose prose-sm max-w-none text-foreground [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_p]:text-foreground [&_li]:text-foreground [&_strong]:text-foreground [&_a]:text-primary [&_code]:text-primary [&_blockquote]:border-primary/30 [&_blockquote]:text-muted-foreground">
+                      <div dir="auto" className="prose max-w-none text-foreground leading-relaxed [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_p]:text-foreground [&_p]:leading-relaxed [&_li]:text-foreground [&_li]:leading-relaxed [&_strong]:text-foreground [&_a]:text-primary [&_code]:text-primary [&_blockquote]:border-primary/30 [&_blockquote]:text-muted-foreground [&_ul]:space-y-1 [&_ol]:space-y-1">
                         <ReactMarkdown>{cleanContent(message.content)}</ReactMarkdown>
                       </div>
                     )}

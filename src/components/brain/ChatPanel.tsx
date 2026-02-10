@@ -76,7 +76,7 @@ export function ChatPanel({ messages, isLoading, onSendMessage }: ChatPanelProps
                 {message.role === 'user' ? (
                   <p className="text-sm">{message.content}</p>
                 ) : (
-                  <div className="prose prose-sm prose-invert max-w-none">
+                  <div dir="auto" className="prose max-w-none text-foreground leading-relaxed [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_p]:text-foreground [&_p]:leading-relaxed [&_li]:text-foreground [&_li]:leading-relaxed [&_strong]:text-foreground [&_a]:text-primary [&_code]:text-primary [&_blockquote]:border-primary/30 [&_blockquote]:text-muted-foreground [&_ul]:space-y-1 [&_ol]:space-y-1">
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                 )}
