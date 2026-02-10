@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Sparkles,
   Send,
@@ -27,7 +27,14 @@ import { useTranslation } from 'react-i18next';
 import { useBrainChat } from '@/hooks/useBrainChat';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useBrainWorkboardIntegration } from '@/hooks/useBrainWorkboardIntegration';
+import { createMeaningObject, MeaningJsonV1Schema } from '@/lib/meaningObject';
+import type { MeaningJsonV1 } from '@/lib/meaningObject';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // ─── Smart Suggestions Logic ───
 interface SmartSuggestion {
@@ -95,8 +102,15 @@ function useSmartSuggestions(): SmartSuggestion[] {
 }
 
 // ─── Decision Panel ───
-function DecisionPanel({ content, t }: { content: string; t: (k: string) => string }) {
-  // Only show decision panel when the response contains structured suggestions
+interface DecisionPanelProps {
+  content: string;
+  t: (k: string) => string;
+  onSaveAsDraft: () => void;
+  onSendToWorkboard: () => void;
+  isSending: boolean;
+}
+
+function DecisionPanel({ content, t, onSaveAsDraft, onSendToWorkboard, isSending }: DecisionPanelProps) {
   const hasMeaning = content.includes('ULL_MEANING_V1');
   if (!hasMeaning) return null;
 
@@ -108,16 +122,12 @@ function DecisionPanel({ content, t }: { content: string; t: (k: string) => stri
           <span className="text-sm font-medium text-foreground">{t('brainPage.decisionPanel.title')}</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="text-xs">
+          <Button variant="outline" size="sm" className="text-xs" onClick={onSaveAsDraft} disabled={isSending}>
             <FileText className="h-3 w-3 mr-1" />
             {t('brainPage.decisionPanel.saveAsDraft')}
           </Button>
-          <Button variant="outline" size="sm" className="text-xs">
-            <Eye className="h-3 w-3 mr-1" />
-            {t('brainPage.decisionPanel.dryRun')}
-          </Button>
-          <Button variant="outline" size="sm" className="text-xs">
-            <ArrowRight className="h-3 w-3 mr-1" />
+          <Button variant="outline" size="sm" className="text-xs" onClick={onSendToWorkboard} disabled={isSending}>
+            {isSending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ArrowRight className="h-3 w-3 mr-1" />}
             {t('brainPage.decisionPanel.sendToWorkboard')}
           </Button>
         </div>
@@ -190,8 +200,14 @@ export default function BrainPage() {
   const { t } = useTranslation();
   const { messages, isLoading, sendMessage } = useBrainChat();
   const [input, setInput] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const suggestions = useSmartSuggestions();
+  const navigate = useNavigate();
+  const { currentWorkspace } = useWorkspace();
+  const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
+  const { isWorkboardInstalled, installWorkboard, createTasksFromPlan } = useBrainWorkboardIntegration();
 
   // Voice input
   const { isListening, isSupported, confidence, startListening, stopListening } = useVoiceInput({
@@ -231,6 +247,72 @@ export default function BrainPage() {
   };
 
   const hasMessages = messages.length > 0;
+
+  // Extract meaning blocks from AI response
+  const extractMeaningBlocks = useCallback((content: string): MeaningJsonV1[] => {
+    const regex = /```ULL_MEANING_V1\s*([\s\S]*?)```/g;
+    const blocks: MeaningJsonV1[] = [];
+    let match;
+    while ((match = regex.exec(content)) !== null) {
+      try {
+        const parsed = JSON.parse(match[1].trim());
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of items) {
+          const validated = MeaningJsonV1Schema.safeParse(item);
+          if (validated.success) blocks.push(validated.data);
+        }
+      } catch { /* skip invalid */ }
+    }
+    return blocks;
+  }, []);
+
+  const handleSendToWorkboard = useCallback(async () => {
+    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistant || !currentWorkspace || !user) return;
+
+    const meaningBlocks = extractMeaningBlocks(lastAssistant.content);
+    if (meaningBlocks.length === 0) {
+      toast.success(t('brain.noted'));
+      return;
+    }
+
+    if (!isWorkboardInstalled) {
+      await installWorkboard();
+    }
+
+    setIsSending(true);
+    try {
+      const items = [];
+      for (const meaning of meaningBlocks) {
+        const meaningId = await createMeaningObject({
+          workspaceId: currentWorkspace.id,
+          createdBy: user.id,
+          type: meaning.type as any,
+          sourceLang: 'en',
+          meaningJson: meaning,
+        });
+        if (meaning.type === 'TASK') {
+          items.push({
+            type: 'task' as const,
+            title: meaning.subject,
+            description: meaning.description,
+            status: 'backlog' as const,
+            meaning_object_id: meaningId,
+          });
+        }
+      }
+      if (items.length > 0) {
+        await createTasksFromPlan(items as any);
+        navigate('/apps/workboard/backlog');
+      }
+    } finally {
+      setIsSending(false);
+    }
+  }, [messages, currentWorkspace, user, extractMeaningBlocks, isWorkboardInstalled, installWorkboard, createTasksFromPlan, navigate, t]);
+
+  const handleSaveAsDraft = useCallback(() => {
+    toast.success(t('brain.noted'));
+  }, [t]);
 
   // Strip ULL_MEANING blocks from displayed content
   const cleanContent = (content: string) => {
@@ -311,7 +393,7 @@ export default function BrainPage() {
                 {/* Decision Panel after assistant messages */}
                 {message.role === 'assistant' && i === messages.length - 1 && (
                   <div className="mt-3 ml-11">
-                    <DecisionPanel content={message.content} t={t} />
+                    <DecisionPanel content={message.content} t={t} onSaveAsDraft={handleSaveAsDraft} onSendToWorkboard={handleSendToWorkboard} isSending={isSending} />
                   </div>
                 )}
               </div>
