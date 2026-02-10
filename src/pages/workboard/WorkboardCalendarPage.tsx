@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ULLText } from '@/components/ull/ULLText';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { cn } from '@/lib/utils';
 
@@ -106,7 +107,15 @@ export default function WorkboardCalendarPage() {
                   {dayTasks.slice(0, 3).map(t => (
                     <div key={t.id} className="flex items-center gap-1">
                       <div className={cn('h-1.5 w-1.5 rounded-full shrink-0', statusColors[t.status])} />
-                      <span className="text-[10px] text-foreground truncate">{t.title}</span>
+                      <ULLText
+                        meaningId={(t as any).meaning_object_id}
+                        table="tasks"
+                        id={t.id}
+                        field="title"
+                        fallback={t.title}
+                        sourceLang={(t as any).source_lang || 'en'}
+                        className="text-[10px] text-foreground truncate"
+                      />
                     </div>
                   ))}
                   {dayTasks.length > 3 && (

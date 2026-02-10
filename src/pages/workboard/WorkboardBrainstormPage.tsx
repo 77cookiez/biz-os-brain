@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Lightbulb, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
 import { TaskActions } from '@/components/workboard/TaskActions';
+import { ULLText } from '@/components/ull/ULLText';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,8 @@ interface Idea {
   source: string;
   status: string;
   created_at: string;
+  meaning_object_id?: string | null;
+  source_lang?: string;
 }
 
 export default function WorkboardBrainstormPage() {
@@ -221,10 +224,29 @@ export default function WorkboardBrainstormPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <Lightbulb className="h-4 w-4 text-yellow-500 shrink-0" />
-                      <span className="text-sm font-medium text-foreground">{idea.title}</span>
+                      <ULLText
+                        meaningId={idea.meaning_object_id}
+                        table="ideas"
+                        id={idea.id}
+                        field="title"
+                        fallback={idea.title}
+                        sourceLang={idea.source_lang || 'en'}
+                        className="text-sm font-medium text-foreground"
+                      />
                       {idea.source === 'brainstorm' && <Badge variant="outline" className="text-[10px]">AI</Badge>}
                     </div>
-                    {idea.description && <p className="text-xs text-muted-foreground mt-1 ml-6">{idea.description}</p>}
+                    {idea.description && (
+                      <ULLText
+                        meaningId={idea.meaning_object_id}
+                        table="ideas"
+                        id={idea.id}
+                        field="description"
+                        fallback={idea.description}
+                        sourceLang={idea.source_lang || 'en'}
+                        className="text-xs text-muted-foreground mt-1 ml-6"
+                        as="p"
+                      />
+                    )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button variant="ghost" size="sm" onClick={() => convertToTask(idea)} className="gap-1 text-xs">
@@ -248,7 +270,15 @@ export default function WorkboardBrainstormPage() {
               <CardContent className="py-3">
                 <div className="flex items-center gap-2">
                   <Lightbulb className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground line-through">{idea.title}</span>
+                  <ULLText
+                    meaningId={idea.meaning_object_id}
+                    table="ideas"
+                    id={idea.id}
+                    field="title"
+                    fallback={idea.title}
+                    sourceLang={idea.source_lang || 'en'}
+                    className="text-sm text-muted-foreground line-through"
+                  />
                   <Badge variant="secondary" className="text-[10px]">Converted</Badge>
                 </div>
               </CardContent>
