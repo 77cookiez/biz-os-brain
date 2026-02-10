@@ -65,7 +65,9 @@ export function useTeamMembers() {
   const inviteMember = useCallback(async (
     email: string,
     teamRole: TeamRole,
-    customRoleName?: string
+    customRoleName?: string,
+    inviterName?: string,
+    companyName?: string
   ): Promise<boolean> => {
     if (!currentWorkspace) return false;
 
@@ -76,6 +78,8 @@ export function useTeamMembers() {
           workspace_id: currentWorkspace.id,
           team_role: teamRole,
           custom_role_name: teamRole === 'custom' ? customRoleName : undefined,
+          inviter_name: inviterName,
+          company_name: companyName,
         },
       });
 
@@ -173,13 +177,27 @@ export function useTeamMembers() {
 
   const isOwner = members.some(m => m.user_id === user?.id && m.team_role === 'owner');
 
-  const generateWhatsAppLink = useCallback((workspaceName: string) => {
+  const generateWhatsAppLink = useCallback((
+    workspaceName: string,
+    inviterName?: string,
+    roleName?: string,
+    companyName?: string
+  ) => {
     const appUrl = window.location.origin;
+    const inviter = inviterName || 'Your teammate';
+    const company = companyName || workspaceName;
+    const role = roleName ? `\n📋 *Your Role:* ${roleName}` : '';
+
     const message = encodeURIComponent(
-      `🚀 You're invited to join "${workspaceName}" on AiBizOS!\n\n` +
-      `1. Sign up at: ${appUrl}/auth\n` +
-      `2. Once registered, the workspace owner will add you.\n\n` +
-      `Join now and collaborate with your team!`
+      `👋 Hi there!\n\n` +
+      `*${inviter}* has invited you to join *${company}* on AiBizOS — your AI-powered business operating system.\n` +
+      role + `\n\n` +
+      `🚀 *Getting Started:*\n` +
+      `1️⃣ Sign up here: ${appUrl}/auth\n` +
+      `2️⃣ Complete your profile\n` +
+      `3️⃣ You'll be added to the *${workspaceName}* workspace automatically\n\n` +
+      `💡 AiBizOS helps teams manage tasks, collaborate, and grow smarter — all in one place.\n\n` +
+      `See you inside! 🎯`
     );
     return `https://wa.me/?text=${message}`;
   }, []);
