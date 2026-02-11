@@ -383,5 +383,30 @@
     "markAllRead": "Mark all read",
     "empty": "No notifications yet",
     "settings": "Notification Settings"
+  },
+  "goalsPage": {
+    "subtitle": "90-day horizon planning",
+    "newPlan": "New Plan",
+    "newGoal": "New Goal",
+    "createPlanTitle": "Create Plan",
+    "createGoalTitle": "Create 90-Day Goal",
+    "createGoalBtn": "Create Goal",
+    "createGoalFailed": "Failed to create goal",
+    "goalCreated": "Goal created!",
+    "createPlanFailed": "Failed to create plan",
+    "planCreated": "Plan created!",
+    "planTitlePlaceholder": "Plan title",
+    "goalTitlePlaceholder": "Goal title",
+    "descriptionPlaceholder": "Description (optional)",
+    "kpiName": "KPI name (e.g., Revenue)",
+    "kpiTarget": "Target value",
+    "linkToGoal": "Link to goal (optional)",
+    "noGoal": "No goal",
+    "noGoals": "No goals yet",
+    "noGoalsDesc": "Create your first 90-day goal to get started",
+    "plans": "Plans",
+    "addPlan": "Add Plan",
+    "noPlansLinked": "No plans linked to this goal",
+    "standalonePlans": "Standalone Plans"
   }
 }

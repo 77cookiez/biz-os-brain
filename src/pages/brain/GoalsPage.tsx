@@ -11,10 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
+import { ULLText } from '@/components/ull/ULLText';
 
 interface Goal {
   id: string;
@@ -25,6 +27,8 @@ interface Goal {
   kpi_current: number | null;
   due_date: string | null;
   status: string;
+  meaning_object_id?: string | null;
+  source_lang?: string | null;
 }
 
 interface Plan {
@@ -34,6 +38,8 @@ interface Plan {
   description: string | null;
   plan_type: string;
   ai_generated: boolean;
+  meaning_object_id?: string | null;
+  source_lang?: string | null;
 }
 
 const planTypes = ['sales', 'marketing', 'operations', 'finance', 'team', 'custom'];
@@ -50,6 +56,7 @@ export default function GoalsPage() {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { currentLanguage } = useLanguage();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -62,7 +69,7 @@ export default function GoalsPage() {
     if (!currentWorkspace) return;
     const { data } = await supabase
       .from('goals')
-      .select('*')
+      .select('id, title, description, kpi_name, kpi_target, kpi_current, due_date, status, meaning_object_id, source_lang')
       .eq('workspace_id', currentWorkspace.id)
       .order('created_at', { ascending: false });
     setGoals(data || []);
@@ -72,7 +79,7 @@ export default function GoalsPage() {
     if (!currentWorkspace) return;
     const { data } = await supabase
       .from('plans')
-      .select('*')
+      .select('id, goal_id, title, description, plan_type, ai_generated, meaning_object_id, source_lang')
       .eq('workspace_id', currentWorkspace.id)
       .order('created_at', { ascending: false });
     setPlans(data || []);
@@ -108,9 +115,9 @@ export default function GoalsPage() {
     const { error } = await supabase.from('goals').insert(goalPayload as any);
 
     if (error) {
-      toast.error('Failed to create goal');
+      toast.error(t('goalsPage.createGoalFailed', 'Failed to create goal'));
     } else {
-      toast.success('Goal created!');
+      toast.success(t('goalsPage.goalCreated', 'Goal created!'));
       setShowGoalDialog(false);
       setNewGoal({ title: '', description: '', kpiName: '', kpiTarget: '', dueDate: '' });
       fetchGoals();
@@ -146,9 +153,9 @@ export default function GoalsPage() {
     const { error } = await supabase.from('plans').insert(planPayload as any);
 
     if (error) {
-      toast.error('Failed to create plan');
+      toast.error(t('goalsPage.createPlanFailed', 'Failed to create plan'));
     } else {
-      toast.success('Plan created!');
+      toast.success(t('goalsPage.planCreated', 'Plan created!'));
       setShowPlanDialog(false);
       setNewPlan({ title: '', description: '', planType: 'custom', goalId: '' });
       fetchPlans();
@@ -176,30 +183,30 @@ export default function GoalsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Goals & Plans</h1>
-          <p className="text-muted-foreground">90-day horizon planning</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('navigation.goalsPlans')}</h1>
+          <p className="text-muted-foreground">{t('goalsPage.subtitle', '90-day horizon planning')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Dialog open={showPlanDialog} onOpenChange={setShowPlanDialog}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                New Plan
+                {t('goalsPage.newPlan', 'New Plan')}
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-card border-border">
               <DialogHeader>
-                <DialogTitle className="text-foreground">Create Plan</DialogTitle>
+                <DialogTitle className="text-foreground">{t('goalsPage.createPlanTitle', 'Create Plan')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <Input
-                  placeholder="Plan title"
+                  placeholder={t('goalsPage.planTitlePlaceholder', 'Plan title')}
                   value={newPlan.title}
                   onChange={(e) => setNewPlan({ ...newPlan, title: e.target.value })}
                   className="bg-input border-border text-foreground"
                 />
                 <Textarea
-                  placeholder="Description (optional)"
+                  placeholder={t('goalsPage.descriptionPlaceholder', 'Description (optional)')}
                   value={newPlan.description}
                   onChange={(e) => setNewPlan({ ...newPlan, description: e.target.value })}
                   className="bg-input border-border text-foreground"
@@ -217,10 +224,10 @@ export default function GoalsPage() {
                 {goals.length > 0 && (
                   <Select value={newPlan.goalId} onValueChange={(v) => setNewPlan({ ...newPlan, goalId: v })}>
                     <SelectTrigger className="bg-input border-border text-foreground">
-                      <SelectValue placeholder="Link to goal (optional)" />
+                      <SelectValue placeholder={t('goalsPage.linkToGoal', 'Link to goal (optional)')} />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border">
-                      <SelectItem value="">No goal</SelectItem>
+                      <SelectItem value="">{t('goalsPage.noGoal', 'No goal')}</SelectItem>
                       {goals.map(goal => (
                         <SelectItem key={goal.id} value={goal.id}>{goal.title}</SelectItem>
                       ))}
@@ -228,7 +235,7 @@ export default function GoalsPage() {
                   </Select>
                 )}
                 <Button onClick={createPlan} disabled={!newPlan.title.trim()} className="w-full">
-                  Create Plan
+                  {t('goalsPage.createPlanTitle', 'Create Plan')}
                 </Button>
               </div>
             </DialogContent>
@@ -238,35 +245,35 @@ export default function GoalsPage() {
             <DialogTrigger asChild>
               <Button size="sm">
                 <Target className="h-4 w-4 mr-2" />
-                New Goal
+                {t('goalsPage.newGoal', 'New Goal')}
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-card border-border">
               <DialogHeader>
-                <DialogTitle className="text-foreground">Create 90-Day Goal</DialogTitle>
+                <DialogTitle className="text-foreground">{t('goalsPage.createGoalTitle', 'Create 90-Day Goal')}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 pt-4">
                 <Input
-                  placeholder="Goal title"
+                  placeholder={t('goalsPage.goalTitlePlaceholder', 'Goal title')}
                   value={newGoal.title}
                   onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
                   className="bg-input border-border text-foreground"
                 />
                 <Textarea
-                  placeholder="Description (optional)"
+                  placeholder={t('goalsPage.descriptionPlaceholder', 'Description (optional)')}
                   value={newGoal.description}
                   onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
                   className="bg-input border-border text-foreground"
                 />
                 <div className="grid grid-cols-2 gap-3">
                   <Input
-                    placeholder="KPI name (e.g., Revenue)"
+                    placeholder={t('goalsPage.kpiName', 'KPI name (e.g., Revenue)')}
                     value={newGoal.kpiName}
                     onChange={(e) => setNewGoal({ ...newGoal, kpiName: e.target.value })}
                     className="bg-input border-border text-foreground"
                   />
                   <Input
-                    placeholder="Target value"
+                    placeholder={t('goalsPage.kpiTarget', 'Target value')}
                     type="number"
                     value={newGoal.kpiTarget}
                     onChange={(e) => setNewGoal({ ...newGoal, kpiTarget: e.target.value })}
@@ -280,7 +287,7 @@ export default function GoalsPage() {
                   className="bg-input border-border text-foreground"
                 />
                 <Button onClick={createGoal} disabled={!newGoal.title.trim()} className="w-full">
-                  Create Goal
+                  {t('goalsPage.createGoalBtn', 'Create Goal')}
                 </Button>
               </div>
             </DialogContent>
@@ -294,11 +301,11 @@ export default function GoalsPage() {
           <Card className="border-border bg-card">
             <CardContent className="py-12 text-center">
               <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-medium text-foreground mb-2">No goals yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">Create your first 90-day goal to get started</p>
+              <h3 className="font-medium text-foreground mb-2">{t('goalsPage.noGoals', 'No goals yet')}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{t('goalsPage.noGoalsDesc', 'Create your first 90-day goal to get started')}</p>
               <Button onClick={() => setShowGoalDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Create Goal
+                {t('goalsPage.createGoalBtn', 'Create Goal')}
               </Button>
             </CardContent>
           </Card>
@@ -322,9 +329,27 @@ export default function GoalsPage() {
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                       <div>
-                        <CardTitle className="text-foreground">{goal.title}</CardTitle>
+                        <CardTitle className="text-foreground">
+                          <ULLText
+                            meaningId={goal.meaning_object_id}
+                            table="goals"
+                            id={goal.id}
+                            field="title"
+                            fallback={goal.title}
+                            sourceLang={goal.source_lang || 'en'}
+                          />
+                        </CardTitle>
                         {goal.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{goal.description}</p>
+                          <ULLText
+                            meaningId={goal.meaning_object_id}
+                            table="goals"
+                            id={goal.id}
+                            field="description"
+                            fallback={goal.description}
+                            sourceLang={goal.source_lang || 'en'}
+                            className="text-sm text-muted-foreground mt-1"
+                            as="p"
+                          />
                         )}
                       </div>
                     </button>
@@ -358,7 +383,7 @@ export default function GoalsPage() {
                   <CardContent className="pt-0">
                     <div className="border-t border-border pt-4 mt-2">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium text-muted-foreground">Plans</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground">{t('goalsPage.plans', 'Plans')}</h4>
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -368,18 +393,26 @@ export default function GoalsPage() {
                           }}
                         >
                           <Plus className="h-3 w-3 mr-1" />
-                          Add Plan
+                          {t('goalsPage.addPlan', 'Add Plan')}
                         </Button>
                       </div>
                       {goalPlans.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No plans linked to this goal</p>
+                        <p className="text-sm text-muted-foreground">{t('goalsPage.noPlansLinked', 'No plans linked to this goal')}</p>
                       ) : (
                         <div className="space-y-2">
                           {goalPlans.map(plan => (
                             <div key={plan.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
                               <div className="flex items-center gap-2">
                                 {plan.ai_generated && <Sparkles className="h-3 w-3 text-primary" />}
-                                <span className="text-sm text-foreground">{plan.title}</span>
+                                <ULLText
+                                  meaningId={plan.meaning_object_id}
+                                  table="plans"
+                                  id={plan.id}
+                                  field="title"
+                                  fallback={plan.title}
+                                  sourceLang={plan.source_lang || 'en'}
+                                  className="text-sm text-foreground"
+                                />
                               </div>
                               <Badge variant="outline" className="text-xs capitalize">{plan.plan_type}</Badge>
                             </div>
@@ -398,7 +431,7 @@ export default function GoalsPage() {
       {/* Unlinked Plans */}
       {plans.filter(p => !p.goal_id).length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Standalone Plans</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('goalsPage.standalonePlans', 'Standalone Plans')}</h2>
           <div className="grid gap-3">
             {plans.filter(p => !p.goal_id).map(plan => (
               <Card key={plan.id} className="border-border bg-card">
@@ -406,12 +439,29 @@ export default function GoalsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {plan.ai_generated && <Sparkles className="h-4 w-4 text-primary" />}
-                      <span className="font-medium text-foreground">{plan.title}</span>
+                      <ULLText
+                        meaningId={plan.meaning_object_id}
+                        table="plans"
+                        id={plan.id}
+                        field="title"
+                        fallback={plan.title}
+                        sourceLang={plan.source_lang || 'en'}
+                        className="font-medium text-foreground"
+                      />
                     </div>
                     <Badge variant="outline" className="capitalize">{plan.plan_type}</Badge>
                   </div>
                   {plan.description && (
-                    <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
+                    <ULLText
+                      meaningId={plan.meaning_object_id}
+                      table="plans"
+                      id={plan.id}
+                      field="description"
+                      fallback={plan.description}
+                      sourceLang={plan.source_lang || 'en'}
+                      className="text-sm text-muted-foreground mt-2"
+                      as="p"
+                    />
                   )}
                 </CardContent>
               </Card>
