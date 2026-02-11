@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const OIL_INGEST_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/oil-ingest`;
 
@@ -27,11 +28,15 @@ export function useOIL() {
     if (!currentWorkspace || events.length === 0) return;
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return; // Not authenticated, skip silently
+
       await fetch(OIL_INGEST_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           workspace_id: currentWorkspace.id,
