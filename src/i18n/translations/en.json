@@ -203,13 +203,15 @@
       }
     },
     "language": {
-      "title": "Language & Region",
-      "description": "Set language, timezone, and direction",
-      "languages": "Languages",
-      "singleMode": "Single language mode",
-      "multiMode": "{{count}} languages enabled - click language button in toolbar to switch",
-      "setActive": "Set Active Language",
-      "enableHint": "Enable multiple languages to switch between them using the language button in the toolbar."
+      "title": "Language Settings",
+      "description": "Choose your language preferences",
+      "yourLanguage": "Your Language",
+      "yourLanguageDesc": "Select the language you want to work in. All AI content, Brain responses, tasks, goals, and chat translations will appear in this language.",
+      "interfaceLanguage": "Interface Language",
+      "interfaceLanguageDesc": "Buttons and menus can display in:",
+      "interfaceLanguageHint": "If your chosen language above is English, Arabic, or French, the interface language is set automatically.",
+      "optional": "optional",
+      "contentLanguageSaved": "Language updated"
     },
     "notifications": {
       "title": "Notifications",
