@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useOIL } from '@/hooks/useOIL';
 import { toast } from 'sonner';
 import { createMeaningObject, updateMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
@@ -33,6 +34,7 @@ export function useWorkboardTasks() {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { currentLanguage } = useLanguage();
+  const { emitEvent } = useOIL();
 
   const fetchTasks = useCallback(async () => {
     if (!currentWorkspace) return;
@@ -100,6 +102,12 @@ export function useWorkboardTasks() {
       toast.error('Failed to create task');
     } else {
       toast.success('Task created');
+      emitEvent({
+        event_type: 'task.created',
+        object_type: 'task',
+        meaning_object_id: meaningId || undefined,
+        metadata: { status: task.status || 'backlog', has_goal: !!task.goal_id },
+      });
       fetchTasks();
     }
   };
@@ -141,11 +149,37 @@ export function useWorkboardTasks() {
     }
 
     await supabase.from('tasks').update(updates as any).eq('id', taskId);
+
+    // Emit OIL events for significant status changes
+    if (updates.status === 'done') {
+      const existingTask = tasks.find(t => t.id === taskId);
+      emitEvent({
+        event_type: 'task.completed',
+        object_type: 'task',
+        meaning_object_id: existingTask?.meaning_object_id || undefined,
+      });
+    } else if (updates.status === 'blocked') {
+      const existingTask = tasks.find(t => t.id === taskId);
+      emitEvent({
+        event_type: 'task.blocked',
+        object_type: 'task',
+        meaning_object_id: existingTask?.meaning_object_id || undefined,
+        severity_hint: 'warning',
+        metadata: { reason: updates.blocked_reason || null },
+      });
+    }
+
     fetchTasks();
   };
 
   const deleteTask = async (taskId: string) => {
+    const existingTask = tasks.find(t => t.id === taskId);
     await supabase.from('tasks').delete().eq('id', taskId);
+    emitEvent({
+      event_type: 'task.deleted',
+      object_type: 'task',
+      meaning_object_id: existingTask?.meaning_object_id || undefined,
+    });
     fetchTasks();
   };
 

@@ -11,6 +11,7 @@ import { ULLText } from '@/components/ull/ULLText';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useOIL } from '@/hooks/useOIL';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
@@ -37,6 +38,7 @@ export default function WorkboardGoalsPage() {
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { currentLanguage } = useLanguage();
+  const { emitEvent } = useOIL();
   const { tasks } = useWorkboardTasks();
 
   useEffect(() => {
@@ -79,6 +81,12 @@ export default function WorkboardGoalsPage() {
     const { error } = await supabase.from('goals').insert(insertPayload as any);
     if (error) { toast.error('Failed to create goal'); return; }
     toast.success('Goal created');
+    emitEvent({
+      event_type: 'goal.created',
+      object_type: 'goal',
+      meaning_object_id: meaningId || undefined,
+      metadata: { has_kpi: !!form.kpiName, has_due_date: !!form.dueDate },
+    });
     setShowDialog(false);
     setForm({ title: '', description: '', kpiName: '', kpiTarget: '', dueDate: '' });
     fetchGoals();
