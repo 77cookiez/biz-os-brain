@@ -93,7 +93,7 @@ export function TaskCard({ task, onStatusChange, onTogglePriority }: TaskCardPro
               className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
             >
               <MessageSquare className="h-3 w-3" />
-              <span>Discussed in TeamChat</span>
+              <span>{t('chat.discussedInChat')}</span>
             </button>
           )}
         </div>

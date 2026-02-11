@@ -368,6 +368,16 @@
       "high": "High"
     }
   },
+  "chat": {
+    "title": "TeamChat",
+    "selectThread": "Select a conversation or start a new one.",
+    "welcome": "Welcome to TeamChat",
+    "welcomeSubtitle": "Write in your own language.\nYour teammates will read it in theirs.",
+    "createTask": "Create Task",
+    "deleteMessage": "Delete",
+    "taskCreated": "Task created",
+    "discussedInChat": "Discussed in TeamChat"
+  },
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark all read",

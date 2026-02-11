@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ULLText } from '@/components/ull/ULLText';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ function shouldShowMeta(msg: ChatMessage, prev?: ChatMessage): boolean {
 }
 
 export function MessageView({ messages, loading, typingUsers = [], onDeleteMessage, onCreateTaskFromMessage, isAdmin, showWelcome }: MessageViewProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -73,10 +75,9 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
         {showWelcome && messages.length === 0 && (
           <div className="flex justify-center my-12">
             <div className="bg-muted/40 rounded-2xl px-6 py-5 text-center max-w-xs">
-              <p className="text-base font-semibold text-foreground">👋 Welcome to TeamChat</p>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                Write in your own language.<br />
-                Your teammates will read it in theirs.
+              <p className="text-base font-semibold text-foreground">👋 {t('chat.welcome')}</p>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed whitespace-pre-line">
+                {t('chat.welcomeSubtitle')}
               </p>
             </div>
           </div>
@@ -169,7 +170,7 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
                           onClick={() => handleCreateTask(msg)}
                         >
                           <ListPlus className="h-3.5 w-3.5 mr-2" />
-                          Create Task
+                          {t('chat.createTask')}
                         </DropdownMenuItem>
                       )}
                       {hasActions && onDeleteMessage && (
@@ -178,7 +179,7 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
                           onClick={() => onDeleteMessage(msg.id)}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" />
-                          Delete
+                          {t('chat.deleteMessage')}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -195,7 +196,7 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
                     )}
                   >
                     <CircleCheck className="h-3 w-3 text-emerald-500" />
-                    <span>Task created</span>
+                    <span>{t('chat.taskCreated')}</span>
                   </button>
                 )}
               </div>
