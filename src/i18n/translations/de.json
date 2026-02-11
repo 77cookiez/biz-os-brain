@@ -383,5 +383,30 @@
     "markAllRead": "Alle als gelesen markieren",
     "empty": "Noch keine Benachrichtigungen",
     "settings": "Benachrichtigungseinstellungen"
+  },
+  "goalsPage": {
+    "subtitle": "90-Tage-Horizont-Planung",
+    "newPlan": "Neuer Plan",
+    "newGoal": "Neues Ziel",
+    "createPlanTitle": "Plan erstellen",
+    "createGoalTitle": "90-Tage-Ziel erstellen",
+    "createGoalBtn": "Ziel erstellen",
+    "createGoalFailed": "Ziel konnte nicht erstellt werden",
+    "goalCreated": "Ziel erstellt!",
+    "createPlanFailed": "Plan konnte nicht erstellt werden",
+    "planCreated": "Plan erstellt!",
+    "planTitlePlaceholder": "Plantitel",
+    "goalTitlePlaceholder": "Zieltitel",
+    "descriptionPlaceholder": "Beschreibung (optional)",
+    "kpiName": "KPI-Name (z.B. Umsatz)",
+    "kpiTarget": "Zielwert",
+    "linkToGoal": "Mit Ziel verknüpfen (optional)",
+    "noGoal": "Kein Ziel",
+    "noGoals": "Noch keine Ziele",
+    "noGoalsDesc": "Erstelle dein erstes 90-Tage-Ziel, um loszulegen",
+    "plans": "Pläne",
+    "addPlan": "Plan hinzufügen",
+    "noPlansLinked": "Keine Pläne mit diesem Ziel verknüpft",
+    "standalonePlans": "Eigenständige Pläne"
   }
 }

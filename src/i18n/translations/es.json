@@ -383,5 +383,30 @@
     "markAllRead": "Marcar todo como leído",
     "empty": "Sin notificaciones aún",
     "settings": "Configuración de Notificaciones"
+  },
+  "goalsPage": {
+    "subtitle": "Planificación a 90 días",
+    "newPlan": "Nuevo Plan",
+    "newGoal": "Nuevo Objetivo",
+    "createPlanTitle": "Crear Plan",
+    "createGoalTitle": "Crear Objetivo a 90 Días",
+    "createGoalBtn": "Crear Objetivo",
+    "createGoalFailed": "Error al crear el objetivo",
+    "goalCreated": "¡Objetivo creado!",
+    "createPlanFailed": "Error al crear el plan",
+    "planCreated": "¡Plan creado!",
+    "planTitlePlaceholder": "Título del plan",
+    "goalTitlePlaceholder": "Título del objetivo",
+    "descriptionPlaceholder": "Descripción (opcional)",
+    "kpiName": "Nombre del KPI (ej., Ingresos)",
+    "kpiTarget": "Valor objetivo",
+    "linkToGoal": "Vincular a objetivo (opcional)",
+    "noGoal": "Sin objetivo",
+    "noGoals": "Sin objetivos aún",
+    "noGoalsDesc": "Crea tu primer objetivo a 90 días para empezar",
+    "plans": "Planes",
+    "addPlan": "Añadir Plan",
+    "noPlansLinked": "No hay planes vinculados a este objetivo",
+    "standalonePlans": "Planes Independientes"
   }
 }

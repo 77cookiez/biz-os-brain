@@ -383,5 +383,30 @@
     "markAllRead": "تحديد الكل كمقروء",
     "empty": "لا توجد إشعارات بعد",
     "settings": "إعدادات الإشعارات"
+  },
+  "goalsPage": {
+    "subtitle": "تخطيط أفق 90 يوماً",
+    "newPlan": "خطة جديدة",
+    "newGoal": "هدف جديد",
+    "createPlanTitle": "إنشاء خطة",
+    "createGoalTitle": "إنشاء هدف لـ 90 يوماً",
+    "createGoalBtn": "إنشاء هدف",
+    "createGoalFailed": "فشل إنشاء الهدف",
+    "goalCreated": "تم إنشاء الهدف!",
+    "createPlanFailed": "فشل إنشاء الخطة",
+    "planCreated": "تم إنشاء الخطة!",
+    "planTitlePlaceholder": "عنوان الخطة",
+    "goalTitlePlaceholder": "عنوان الهدف",
+    "descriptionPlaceholder": "الوصف (اختياري)",
+    "kpiName": "اسم المؤشر (مثال: الإيرادات)",
+    "kpiTarget": "القيمة المستهدفة",
+    "linkToGoal": "ربط بهدف (اختياري)",
+    "noGoal": "بدون هدف",
+    "noGoals": "لا توجد أهداف بعد",
+    "noGoalsDesc": "أنشئ أول هدف لـ 90 يوماً للبدء",
+    "plans": "الخطط",
+    "addPlan": "إضافة خطة",
+    "noPlansLinked": "لا توجد خطط مرتبطة بهذا الهدف",
+    "standalonePlans": "خطط مستقلة"
   }
 }
