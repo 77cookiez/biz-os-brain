@@ -1,78 +1,115 @@
 
 
-# تحسين خطوة الأولويات — زر "اقتراح ذكي" يملأ الحقول اليدوية
+# تحسين Team Tasks — إسناد المهام الذكي مع تتبع مصدر التعيين
 
 ## الفكرة
 
-حاليا الأولويات اليدوية (3 حقول نصية) فارغة دائما وتنتظر الكتابة. التحسين يضيف زر **"اقترح أولويات"** بجانب العنوان، يستدعي Brain مع سياق غني (OIL indicators + المهام المتأخرة/المحظورة + الأهداف + company_memory) ليملأ الحقول الثلاثة تلقائيا. المستخدم يعدّل أو يمسح أي حقل كما يشاء.
+حاليا يمكن إسناد مهمة لشخص يدويا عبر قائمة منسدلة، لكن لا يوجد تتبع لمن أسند المهمة ولا اقتراح ذكي. التحسين يضيف:
+
+1. **عمودين جديدين** في جدول `tasks`: من أسند المهمة (`assigned_by`) وكيف تم الإسناد (`assignment_source`: ai / manager / self)
+2. **زر "اقتراح ذكي"** يستخدم Brain لاقتراح الشخص الأنسب بناء على دوره ومهامه الحالية
+3. **شارة بصرية** على كل مهمة توضح مصدر التعيين (AI اقترح / المدير عيّن)
+4. **ترجمة كاملة** لصفحة Team Tasks (حاليا نصوص إنجليزية ثابتة)
 
 ## التغييرات المطلوبة
 
-### 1. StepPriorities.tsx — إضافة زر اقتراح للحقول اليدوية
+### 1. Migration — إضافة أعمدة تتبع الإسناد
 
-- إضافة زر Sparkles بجانب عنوان "أولوياتك" يستدعي `onSuggestManual`
-- عرض حالة تحميل أثناء الانتظار
-- الحقول تبقى قابلة للتعديل بالكامل بعد الملء
+```sql
+ALTER TABLE public.tasks
+  ADD COLUMN assigned_by uuid,
+  ADD COLUMN assignment_source text DEFAULT 'manager';
+-- القيم المقبولة: 'ai', 'manager', 'self'
+```
 
-### 2. WeeklyCheckinPage.tsx — منطق الاقتراح الذكي
+### 2. brain-chat Edge Function — إضافة action جديد `suggest_assignee`
 
-- إنشاء دالة `handleSuggestManualPriorities` تجمع السياق:
-  - مؤشرات OIL (scores + trends)
-  - المهام المتأخرة والمحظورة (من `taskStats` الموجود)
-  - الأهداف المتأخرة (من `goalReviews`)
-  - الإنجازات (من `completedItems`)
-  - القرارات المتخذة في خطوة IDS (من `issues`)
-- إرسال prompt غني لـ `brain-chat` بـ action `weekly_checkin_priorities`
-- تحليل الرد وملء `manualPriorities` بالنتائج
+- يستقبل: عنوان المهمة + وصفها + قائمة أعضاء الفريق (الاسم + الدور + عدد مهامهم الحالية)
+- يرجع: `user_id` العضو المقترح + سبب مختصر
+- القواعد: يراعي توزيع الحمل + تطابق الدور + المهام المحظورة
 
-### 3. brain-chat Edge Function — تحسين prompt الأولويات
+### 3. TeamTasksPage.tsx — تحسينات شاملة
 
-- تحديث prompt الـ `weekly_checkin_priorities` ليشمل بيانات OIL والسياق الكامل
-- التأكيد على إرجاع 3 أولويات فقط، كل واحدة في سطر مرقم، بدون شرح
+**أ. ترجمة كاملة (i18n):**
+- استبدال جميع النصوص الثابتة بمفاتيح ترجمة (`t('teamTasks.title')`, `t('teamTasks.addTask')`, etc.)
+
+**ب. إسناد ذكي عند إنشاء مهمة:**
+- إضافة زر Sparkles بجوار قائمة "Assign to"
+- عند النقر: يرسل سياق المهمة + بيانات الفريق لـ `brain-chat` مع action `suggest_assignee`
+- يملأ القائمة تلقائيا بالعضو المقترح
+- يحفظ `assignment_source = 'ai'` و `assigned_by = user.id`
+
+**ج. شارة مصدر التعيين:**
+- بجوار اسم العضو المسند إليه:
+  - شارة "AI" (بلون بنفسجي) إذا كان `assignment_source = 'ai'`
+  - شارة "Manager" (بلون أزرق) إذا كان `assignment_source = 'manager'`
 
 ### 4. ملفات الترجمة (5 لغات)
 
-- إضافة مفتاح `suggestManualPriorities` (مثل "اقترح لي أولويات")
+مفاتيح جديدة تحت `teamTasks`:
+
+```text
+teamTasks.title = "مهام الفريق"
+teamTasks.addTask = "إضافة مهمة"
+teamTasks.assignTo = "إسناد إلى"
+teamTasks.unassigned = "غير مسند"
+teamTasks.suggestAssignee = "اقتراح ذكي"
+teamTasks.assignedByAi = "اقتراح AI"
+teamTasks.assignedByManager = "تعيين المدير"
+teamTasks.inviteTeamMember = "دعوة عضو"
+teamTasks.createTask = "إنشاء مهمة"
+teamTasks.noTasks = "لا توجد مهام"
+teamTasks.soloMode = "وضع فردي"
+teamTasks.teamMembers = "{{count}} أعضاء فريق"
+teamTasks.taskTitle = "عنوان المهمة"
+teamTasks.description = "الوصف (اختياري)"
+teamTasks.definitionOfDone = "تعريف الإنجاز (اختياري)"
+teamTasks.inviteViaWhatsApp = "دعوة عبر واتساب"
+teamTasks.sendInvitation = "إرسال الدعوة"
+teamTasks.emailAddress = "البريد الإلكتروني"
+```
 
 ## التفاصيل التقنية
 
-### Prompt المحسّن
+### Prompt اقتراح الشخص المناسب
 
 ```text
-You are a business strategy advisor. Based on the following workspace data, 
-suggest exactly 3 priorities for next week.
+You are a team task assignment advisor. Based on the task details and team data,
+suggest the best team member to assign this task to.
 
-OIL INDICATORS:
-- ExecutionHealth: {score}/100 (trend: {trend})
-- DeliveryRisk: {score}/100 (trend: {trend})
-- GoalProgress: {score}/100 (trend: {trend})
+TASK:
+- Title: {title}
+- Description: {description}
 
-THIS WEEK:
-- Completed: {count} tasks
-- Overdue: {count} tasks
-- Blocked: {count} tasks
-- Off-track goals: [list]
-- IDS decisions taken: [list]
+TEAM MEMBERS:
+{members.map(m => `- ${m.name} (Role: ${m.role}, Active tasks: ${m.taskCount}, Blocked: ${m.blockedCount})`)}
 
 Rules:
-- Return ONLY 3 numbered lines (1. 2. 3.)
-- Each line is a specific, actionable task title
-- No explanations, no bullets, no markdown
-- Respond in the user's language
+- Return ONLY a JSON object: {"user_id": "...", "reason": "..."}
+- Consider role match, current workload balance, and blocked tasks
+- Reason must be 1 sentence max
+- No markdown, no code blocks
 ```
 
-### تعديل Props في StepPriorities
+### تدفق الإسناد الذكي
 
 ```text
-// إضافة:
-+ onSuggestManual: () => void;
-+ manualSuggestionsLoading: boolean;
+User clicks "Suggest" button
+  -> Gather: task title + description + team members + their task counts
+  -> Call brain-chat with action "suggest_assignee"
+  -> Parse JSON response
+  -> Auto-select member in dropdown
+  -> Set assignment_source = "ai"
+  -> Show purple "AI" badge
+
+User manually selects member
+  -> Set assignment_source = "manager"
+  -> Show blue "Manager" badge
 ```
 
 ### الملفات المتأثرة
 
-1. `src/components/checkin/StepPriorities.tsx` — زر اقتراح + حالة تحميل
-2. `src/pages/brain/WeeklyCheckinPage.tsx` — منطق جمع السياق وملء الحقول
-3. `supabase/functions/brain-chat/index.ts` — تحسين prompt الأولويات
-4. `src/i18n/translations/{en,ar,fr,es,de}.json` — مفتاح جديد
-
+1. `supabase/migrations/` — عمودين جديدين `assigned_by` و `assignment_source`
+2. `supabase/functions/brain-chat/index.ts` — action جديد `suggest_assignee`
+3. `src/pages/brain/TeamTasksPage.tsx` — ترجمة كاملة + زر اقتراح ذكي + شارات المصدر
+4. `src/i18n/translations/{en,ar,fr,es,de}.json` — مفاتيح جديدة تحت `teamTasks`
