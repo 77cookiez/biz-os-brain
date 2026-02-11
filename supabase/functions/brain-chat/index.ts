@@ -202,6 +202,7 @@ Note: For execution beyond planning, recommend activating relevant apps.`;
     }
 
     // ─── OIL: Organizational Intelligence Layer Context ───
+    // RULES: Non-intrusive — only inject when thresholds crossed or daily brief mode
     if (workspaceId) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -216,25 +217,46 @@ Note: For execution beyond planning, recommend activating relevant apps.`;
             .order("confidence", { ascending: false }).limit(5),
         ]);
 
-        if (indicators && indicators.length > 0) {
-          systemPrompt += `\n\n═══ ORGANIZATIONAL INTELLIGENCE (OIL) ═══`;
-          systemPrompt += `\nOIL is a leadership augmentation layer. It amplifies judgment, shortens learning curves, and exposes hidden risks — especially for first-time founders, growing SMEs, and non-specialist managers.`;
-          systemPrompt += `\nUse these indicators to inform your responses naturally. Do NOT present raw scores. Weave insights into advice.`;
-          systemPrompt += `\n\nINDICATORS:`;
-          for (const ind of indicators) {
-            systemPrompt += `\n- ${ind.indicator_key}: ${ind.score}/100 (${ind.trend}) — ${(ind.drivers as string[]).join(", ")}`;
-          }
-        }
+        // 2-tier indicator system
+        const coreKeys = ["ExecutionHealth", "DeliveryRisk", "GoalProgress"];
+        const coreIndicators = (indicators || []).filter(i => coreKeys.includes(i.indicator_key));
+        const secondaryIndicators = (indicators || []).filter(i => !coreKeys.includes(i.indicator_key));
+        const hasThresholdCrossed = coreIndicators.some(i => i.score < 40 || i.score > 85 || i.trend === "down");
+        const hasHighConfidenceMemory = (memory || []).some((m: any) => m.confidence >= 0.7);
 
-        if (memory && memory.length > 0) {
-          systemPrompt += `\n\nORGANIZATIONAL MEMORY (learned patterns):`;
-          for (const m of memory) {
-            systemPrompt += `\n- [${m.memory_type}] ${m.statement} (confidence: ${m.confidence})`;
+        // Non-intrusive: only inject when meaningful
+        if (hasThresholdCrossed || hasHighConfidenceMemory || coreIndicators.length > 0) {
+          systemPrompt += `\n\n═══ ORGANIZATIONAL INTELLIGENCE (OIL) ═══`;
+          systemPrompt += `\nOIL is a leadership augmentation layer. It amplifies judgment and exposes hidden risks.`;
+          systemPrompt += `\nDISPLAY RULES:`;
+          systemPrompt += `\n- ONLY mention insights when relevant to the user's question or during daily briefs`;
+          systemPrompt += `\n- Do NOT present raw scores — weave insights naturally`;
+          systemPrompt += `\n- Every insight MUST include: reason (drivers), confidence, and a DRAFT suggestion (not a command)`;
+          systemPrompt += `\n- NEVER reference any individual person — all insights are team/org level only`;
+
+          if (coreIndicators.length > 0) {
+            systemPrompt += `\n\nCORE INDICATORS:`;
+            for (const ind of coreIndicators) {
+              systemPrompt += `\n- ${ind.indicator_key}: ${ind.score}/100 (${ind.trend}) — ${(ind.drivers as string[]).join(", ")}`;
+            }
+          }
+
+          if (secondaryIndicators.length > 0) {
+            systemPrompt += `\n\nSECONDARY (detail only):`;
+            for (const ind of secondaryIndicators) {
+              systemPrompt += `\n- ${ind.indicator_key}: ${ind.score}/100 (${ind.trend}) — ${(ind.drivers as string[]).join(", ")}`;
+            }
+          }
+
+          if (memory && memory.length > 0) {
+            systemPrompt += `\n\nORG MEMORY (patterns — org-level only):`;
+            for (const m of memory) {
+              systemPrompt += `\n- [${m.memory_type}] ${m.statement} (confidence: ${m.confidence})`;
+            }
           }
         }
       } catch (oilErr) {
         console.warn("OIL context fetch failed:", oilErr);
-        // Non-fatal — Brain continues without OIL context
       }
     }
 
