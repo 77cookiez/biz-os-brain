@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Lightbulb, Loader2, Check, X } from 'lucide-react';
+import { Lightbulb, Loader2, Check, X, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 
-// Strip ULL_MEANING_V1 and other code blocks from AI responses
 function cleanAIResponse(text: string): string {
   return text
     .replace(/```ULL_MEANING_V1[\s\S]*?```/gi, '')
@@ -27,10 +27,29 @@ interface Props {
   onRequestSolution: (issueId: string) => void;
   onAcceptResolution: (issueId: string) => void;
   onSkipResolution: (issueId: string) => void;
+  onEditResolution?: (issueId: string, newText: string) => void;
 }
 
-export default function StepIDS({ issues, onRequestSolution, onAcceptResolution, onSkipResolution }: Props) {
+export default function StepIDS({ issues, onRequestSolution, onAcceptResolution, onSkipResolution, onEditResolution }: Props) {
   const { t } = useTranslation();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+
+  const startEditing = (item: IssueItem) => {
+    setEditingId(item.id);
+    setEditText(cleanAIResponse(item.resolution || ''));
+  };
+
+  const saveEdit = (issueId: string) => {
+    onEditResolution?.(issueId, editText);
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+  };
 
   return (
     <Card className="border-border bg-card">
@@ -74,20 +93,47 @@ export default function StepIDS({ issues, onRequestSolution, onAcceptResolution,
 
               {item.resolution && !item.loading && (
                 <div className="space-y-2">
-                  <div className="p-2 rounded bg-primary/5 text-sm prose prose-sm prose-invert max-w-none">
-                    <ReactMarkdown>{cleanAIResponse(item.resolution)}</ReactMarkdown>
-                  </div>
-                  {item.accepted === undefined && (
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => onAcceptResolution(item.id)}>
-                        <Check className="h-3.5 w-3.5 mr-1" />
-                        {t('workboard.checkinPage.acceptSolution')}
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => onSkipResolution(item.id)}>
-                        <X className="h-3.5 w-3.5 mr-1" />
-                        {t('workboard.checkinPage.skip')}
-                      </Button>
+                  {editingId === item.id ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        className="min-h-[80px] text-sm"
+                        dir="auto"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit(item.id)}>
+                          <Check className="h-3.5 w-3.5 mr-1" />
+                          {t('workboard.checkinPage.saveEdit', 'حفظ')}
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={cancelEdit}>
+                          <X className="h-3.5 w-3.5 mr-1" />
+                          {t('workboard.checkinPage.cancelEdit', 'إلغاء')}
+                        </Button>
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="p-2 rounded bg-primary/5 text-sm prose prose-sm prose-invert max-w-none">
+                        <ReactMarkdown>{cleanAIResponse(item.resolution)}</ReactMarkdown>
+                      </div>
+                      {item.accepted === undefined && (
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => onAcceptResolution(item.id)}>
+                            <Check className="h-3.5 w-3.5 mr-1" />
+                            {t('workboard.checkinPage.acceptSolution')}
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => startEditing(item)}>
+                            <Pencil className="h-3.5 w-3.5 mr-1" />
+                            {t('workboard.checkinPage.editSolution', 'تعديل')}
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => onSkipResolution(item.id)}>
+                            <X className="h-3.5 w-3.5 mr-1" />
+                            {t('workboard.checkinPage.skip')}
+                          </Button>
+                        </div>
+                      )}
+                    </>
                   )}
                   {item.accepted === true && (
                     <span className="text-xs text-emerald-500 flex items-center gap-1">
