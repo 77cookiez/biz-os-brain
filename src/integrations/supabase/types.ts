@@ -984,7 +984,9 @@ export type Database = {
       }
       tasks: {
         Row: {
+          assigned_by: string | null
           assigned_to: string | null
+          assignment_source: string | null
           blocked_reason: string | null
           completed_at: string | null
           created_at: string
@@ -1006,7 +1008,9 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          assigned_by?: string | null
           assigned_to?: string | null
+          assignment_source?: string | null
           blocked_reason?: string | null
           completed_at?: string | null
           created_at?: string
@@ -1028,7 +1032,9 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          assigned_by?: string | null
           assigned_to?: string | null
+          assignment_source?: string | null
           blocked_reason?: string | null
           completed_at?: string | null
           created_at?: string
