@@ -11,7 +11,7 @@ import { ContentLanguagePicker } from "@/components/settings/ContentLanguagePick
 export default function LanguageSettingsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { currentLanguage, contentLocale, setContentLocale, setCurrentLanguage } = useLanguage();
+  const { currentLanguage, contentLocale, setContentLocale } = useLanguage();
 
   const handleContentLanguageChange = (code: string) => {
     setContentLocale(code);
@@ -56,36 +56,10 @@ export default function LanguageSettingsPage() {
         />
       </div>
 
-      {/* Step 2 — Interface Language */}
-      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-medium text-foreground">
-            {t('settings.language.interfaceLanguage', 'Interface Language')}
-          </h3>
-          <Badge variant="outline" className="text-[10px]">
-            {t('settings.language.optional', 'optional')}
-          </Badge>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          {t('settings.language.interfaceLanguageDesc', 'Buttons and menus can display in:')}
-        </p>
-
-        <div className="flex flex-wrap gap-2">
-          {AVAILABLE_LANGUAGES.map((lang) => (
-            <Button
-              key={lang.code}
-              variant={currentLanguage.code === lang.code ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentLanguage(lang)}
-            >
-              {lang.nativeName}
-            </Button>
-          ))}
-        </div>
-
-        <p className="text-[11px] text-muted-foreground">
-          {t('settings.language.interfaceLanguageHint', 'If your chosen language above is English, Arabic, or French, the interface language is set automatically.')}
+      {/* Auto-sync note */}
+      <div className="rounded-xl border border-border bg-card/50 p-4">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {t('settings.language.autoSyncNote', 'If you choose a language other than English, Arabic, French, Spanish, or German, all AI content will appear in your language, while buttons and menus will display in the closest supported language.')}
         </p>
       </div>
 

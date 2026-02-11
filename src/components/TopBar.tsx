@@ -3,7 +3,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage, AVAILABLE_LANGUAGES } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import { BrainCommandBar } from "@/components/brain/BrainCommandBar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -22,7 +22,7 @@ export function TopBar() {
   const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const { currentCompany, currentWorkspace, companies, workspaces, setCurrentCompany, setCurrentWorkspace } = useWorkspace();
-  const { currentLanguage, setCurrentLanguage } = useLanguage();
+  const { currentLanguage, contentLocale, setContentLocale } = useLanguage();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -102,14 +102,36 @@ export function TopBar() {
       {/* Notifications */}
       <NotificationBell />
 
-      {/* Language */}
-      <button 
-        onClick={() => navigate('/settings/language')}
-        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors"
-      >
-        <Globe className="h-4 w-4" />
-        <span className="hidden sm:inline text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
-      </button>
+      {/* Language Quick Switcher */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors">
+            <Globe className="h-4 w-4" />
+            <span className="hidden sm:inline text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52 bg-popover border-border">
+          <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{t('settings.language.yourLanguage')}</div>
+          {AVAILABLE_LANGUAGES.map(lang => (
+            <DropdownMenuItem
+              key={lang.code}
+              onClick={() => setContentLocale(lang.code)}
+              className={cn(
+                (contentLocale || currentLanguage.code) === lang.code ? 'bg-secondary' : ''
+              )}
+            >
+              <span className="flex-1">{lang.nativeName}</span>
+              {(contentLocale || currentLanguage.code) === lang.code && (
+                <span className="text-primary text-xs">✓</span>
+              )}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => navigate('/settings/language')}>
+            <span className="text-xs text-muted-foreground">{t('topbar.moreLanguages', 'More languages...')}</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* User */}
       <DropdownMenu>

@@ -42,7 +42,8 @@
     "newWorkspace": "Nuevo Espacio",
     "signOut": "Cerrar Sesión",
     "businessSetup": "Configuración del Negocio",
-    "teamRoles": "Equipo y Roles"
+    "teamRoles": "Equipo y Roles",
+    "moreLanguages": "Más idiomas..."
   },
   "brain": {
     "confirm": "Confirmar",
@@ -206,11 +207,8 @@
       "title": "Configuración de Idioma",
       "description": "Elige tus preferencias de idioma",
       "yourLanguage": "Tu Idioma",
-      "yourLanguageDesc": "Selecciona el idioma en el que quieres trabajar. Todo el contenido de IA, respuestas del Cerebro, tareas, objetivos y traducciones del chat aparecerán en este idioma.",
-      "interfaceLanguage": "Idioma de la Interfaz",
-      "interfaceLanguageDesc": "Los botones y menús pueden mostrarse en:",
-      "interfaceLanguageHint": "Si tu idioma elegido arriba es uno de los idiomas de interfaz soportados, se configura automáticamente.",
-      "optional": "opcional",
+      "yourLanguageDesc": "Elige el idioma para toda tu experiencia. Todo el contenido de IA, respuestas del Cerebro, tareas, objetivos y traducciones del chat aparecerán en este idioma.",
+      "autoSyncNote": "Si eliges un idioma distinto al inglés, árabe, francés, español o alemán, todo el contenido de IA aparecerá en tu idioma, mientras que los botones y menús se mostrarán en el idioma de interfaz más cercano.",
       "contentLanguageSaved": "Idioma actualizado"
     },
     "notifications": {
