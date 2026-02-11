@@ -120,7 +120,7 @@ serve(async (req) => {
         });
       }
     }
-    if (action && !["create_plan", "setup_business"].includes(action)) {
+    if (action && !["create_plan", "setup_business", "strategic_analysis", "business_planning", "business_coaching", "risk_analysis", "reprioritize", "unblock_tasks", "set_goals"].includes(action)) {
       return new Response(JSON.stringify({ error: "Invalid action" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -506,6 +506,73 @@ Ask about:
 3. Team size (solo or number of team members)
 4. Top 1-3 goals for the next 90 days
 Keep it conversational and friendly.`;
+          break;
+        case 'strategic_analysis':
+          systemPrompt += `\n\nCURRENT TASK: Strategic Analysis.
+Analyze the current state of the business using available OIL indicators, workboard data, and business context.
+Provide:
+1. A concise assessment of the current situation (2-3 lines)
+2. Key risks or gaps detected (if any)
+3. 2-3 strategic recommendations as actionable drafts
+Focus on what matters most RIGHT NOW. Be specific, not generic.
+If OIL data is limited, base analysis on workboard tasks and goals.`;
+          break;
+        case 'business_planning':
+          systemPrompt += `\n\nCURRENT TASK: Business Planning.
+Evaluate the current goals and tasks landscape.
+If goals exist: assess progress and suggest a draft action plan to accelerate them.
+If no goals exist: ask ONE question about the user's top priority for the next 90 days, then draft a plan.
+Structure any plan as:
+1. Clear objective
+2. 3-5 actionable steps
+3. Suggested timeline
+All suggestions are DRAFTS for user review.`;
+          break;
+        case 'business_coaching':
+          systemPrompt += `\n\nCURRENT TASK: Business Coaching.
+Based on the current workboard data and any OIL indicators:
+1. Identify ONE specific pattern in the user's work habits (completion rate, recurring blockers, task distribution)
+2. Provide ONE actionable tip based on best practices
+3. Keep it encouraging and practical — never judgmental
+Use phrasing like "In similar situations, teams often…" or "A commonly effective approach is…"
+Maximum 5-6 lines total. Be concise and specific.`;
+          break;
+        case 'risk_analysis':
+          systemPrompt += `\n\nCURRENT TASK: Risk Analysis.
+Focus specifically on delivery risks and potential issues:
+1. Analyze overdue tasks, blocked items, and declining indicators
+2. Identify the TOP 2-3 risks to the business right now
+3. For each risk, suggest one concrete mitigation action
+Be direct but not alarming. Frame risks as "areas that need attention."
+All suggestions are DRAFTS.`;
+          break;
+        case 'reprioritize':
+          systemPrompt += `\n\nCURRENT TASK: Task Reprioritization.
+Review the current task list, especially overdue and in-progress items.
+Suggest a reprioritized order:
+1. What should be done TODAY (max 3 tasks)
+2. What can be moved to this week
+3. What can be deferred or delegated
+Use clear reasoning for each suggestion. Present as a DRAFT plan.`;
+          break;
+        case 'unblock_tasks':
+          systemPrompt += `\n\nCURRENT TASK: Resolve Blocked Tasks.
+Review any blocked tasks and their blocked reasons.
+For each blocked task:
+1. Acknowledge the blocker
+2. Suggest a practical resolution or workaround
+3. If the blocker requires a decision, frame it clearly
+Keep suggestions actionable and concise.`;
+          break;
+        case 'set_goals':
+          systemPrompt += `\n\nCURRENT TASK: Goal Setting.
+Help the user define clear, measurable 90-day goals.
+Start by asking about their top business priority right now.
+Then help structure 1-3 goals with:
+1. Clear title
+2. Measurable KPI (if applicable)
+3. Target date
+Present as DRAFTS that can be sent to the Goals section.`;
           break;
       }
     }

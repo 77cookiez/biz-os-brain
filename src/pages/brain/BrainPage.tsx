@@ -41,6 +41,7 @@ import { toast } from 'sonner';
 import { OILPulseStrip } from '@/components/oil/OILPulseStrip';
 import { OILInsightCard } from '@/components/oil/OILInsightCard';
 import { useOILIndicators, getDotColor } from '@/hooks/useOILIndicators';
+import { useSmartCapabilities } from '@/hooks/useSmartCapabilities';
 
 // ─── Smart Suggestions Logic ───
 interface SmartSuggestion {
@@ -177,12 +178,8 @@ function ContextStrip({ t }: { t: (k: string) => string }) {
 }
 
 // ─── Empty State ───
-function EmptyState({ t }: { t: (k: string) => string }) {
-  const capabilities = [
-    { icon: Brain, titleKey: 'brainPage.capability.advisor', descKey: 'brainPage.capability.advisorDesc' },
-    { icon: Target, titleKey: 'brainPage.capability.planning', descKey: 'brainPage.capability.planningDesc' },
-    { icon: Lightbulb, titleKey: 'brainPage.capability.coaching', descKey: 'brainPage.capability.coachingDesc' },
-  ];
+function EmptyState({ t, onCapabilityClick }: { t: (k: string) => string; onCapabilityClick: (promptKey: string, action: string) => void }) {
+  const capabilities = useSmartCapabilities();
 
   return (
     <div className="flex flex-col items-center justify-center py-16 space-y-8">
@@ -196,13 +193,18 @@ function EmptyState({ t }: { t: (k: string) => string }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl">
         {capabilities.map((cap) => (
-          <Card key={cap.titleKey} className="border-border bg-card hover:border-primary/30 transition-colors">
+          <Card
+            key={cap.id}
+            className="border-border bg-card hover:border-primary/30 hover:bg-secondary/50 transition-all cursor-pointer group"
+            onClick={() => onCapabilityClick(cap.promptKey, cap.action)}
+          >
             <CardContent className="p-5 text-center space-y-2">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
                 <cap.icon className="h-5 w-5 text-primary" />
               </div>
               <h3 className="text-sm font-medium text-foreground">{t(cap.titleKey)}</h3>
               <p className="text-xs text-muted-foreground">{t(cap.descKey)}</p>
+              <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto opacity-0 group-hover:opacity-100 transition-opacity" />
             </CardContent>
           </Card>
         ))}
@@ -285,6 +287,11 @@ export default function BrainPage() {
     setInput(text);
   };
 
+  const handleCapabilityClick = (promptKey: string, action: string) => {
+    const prompt = t(promptKey);
+    sendMessage(prompt, action);
+  };
+
   const hasMessages = messages.length > 0;
 
   // Extract meaning blocks from AI response
@@ -363,7 +370,7 @@ export default function BrainPage() {
       {/* Reasoning Stream / Empty State */}
       <ScrollArea className="flex-1 px-1 pt-4" ref={scrollRef}>
         {!hasMessages ? (
-          <EmptyState t={t} />
+          <EmptyState t={t} onCapabilityClick={handleCapabilityClick} />
         ) : (
           <div className="space-y-4 pb-4">
             {messages.map((message, i) => (
