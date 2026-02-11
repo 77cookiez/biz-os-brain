@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
@@ -32,6 +32,11 @@ export default function WeeklyCheckinPage() {
   const [saving, setSaving] = useState(false);
   const [taskStats, setTaskStats] = useState({ completed: 0, total: 0, blocked: 0, overdue: 0 });
 
+  // Track which request is pending to match responses correctly
+  const pendingRequestRef = useRef<'ids' | 'priorities_suggested' | 'priorities_manual' | 'summary' | null>(null);
+  const pendingIssueIdRef = useRef<string | null>(null);
+  const lastProcessedMsgIdRef = useRef<string | null>(null);
+
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { sendMessage, messages, isLoading } = useBrainChat();
@@ -52,7 +57,6 @@ export default function WeeklyCheckinPage() {
   const fetchAllData = async () => {
     if (!currentWorkspace) return;
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const today = new Date().toISOString();
 
     const [completedRes, blockedRes, allTasksRes, goalsRes] = await Promise.all([
       supabase.from('tasks').select('id, title, status')
@@ -75,7 +79,6 @@ export default function WeeklyCheckinPage() {
     const overdue = allTasks.filter(t => t.due_date && new Date(t.due_date) < new Date());
     setTaskStats({ completed: completed.length, total: allTasks.length, blocked: blocked.length, overdue: overdue.length });
 
-    // Goal reviews
     setGoalReviews(goals.map(g => ({
       goalId: g.id,
       title: g.title,
@@ -85,7 +88,6 @@ export default function WeeklyCheckinPage() {
       kpiName: g.kpi_name,
     })));
 
-    // IDS: blocked tasks become issues
     const blockedIssues: IssueItem[] = blocked.map(t => ({
       id: `blocked-${t.id}`,
       issue: `${t.title}${t.blocked_reason ? ` — ${t.blocked_reason}` : ''}`,
@@ -94,7 +96,6 @@ export default function WeeklyCheckinPage() {
     setIssues(blockedIssues);
   };
 
-  // When goals are marked off-track, add to issues
   const handleGoalStatusUpdate = (goalId: string, status: 'on_track' | 'off_track') => {
     setGoalReviews(prev => prev.map(g => g.goalId === goalId ? { ...g, status } : g));
     if (status === 'off_track') {
@@ -117,6 +118,9 @@ export default function WeeklyCheckinPage() {
     const issue = issues.find(i => i.id === issueId);
     if (!issue) return;
 
+    pendingRequestRef.current = 'ids';
+    pendingIssueIdRef.current = issueId;
+
     const prompt = `You are helping with a weekly business review (IDS — Identify, Discuss, Solve).
 
 The issue is: "${issue.issue}"
@@ -125,26 +129,56 @@ Source: ${issue.source === 'blocked' ? 'This is a blocked task' : 'This is an of
 Suggest ONE practical, actionable solution in 2-3 lines maximum. Be specific, not generic. Respond in the user's language.`;
 
     await sendMessage(prompt, 'weekly_checkin_ids');
-
-    // Get the AI response
-    setTimeout(() => {
-      const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-      setIssues(prev => prev.map(i =>
-        i.id === issueId ? { ...i, loading: false, resolution: lastMsg?.content || '' } : i
-      ));
-    }, 500);
+    // Response is handled by the unified useEffect below
   };
 
-  // Watch for new AI messages to update IDS resolutions
+  // Single unified effect to process AI responses based on pending request type
   useEffect(() => {
-    const loadingIssue = issues.find(i => i.loading);
-    if (!isLoading && loadingIssue) {
-      const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-      if (lastMsg) {
+    if (isLoading) return; // Still streaming
+
+    const assistantMsgs = messages.filter(m => m.role === 'assistant');
+    const lastMsg = assistantMsgs[assistantMsgs.length - 1];
+    if (!lastMsg || !lastMsg.content) return;
+
+    // Create a stable ID from content + timestamp to avoid reprocessing
+    const msgKey = `${lastMsg.content.slice(0, 50)}-${assistantMsgs.length}`;
+    if (lastProcessedMsgIdRef.current === msgKey) return;
+
+    const pendingType = pendingRequestRef.current;
+    if (!pendingType) return;
+
+    // Mark as processed and clear the pending request
+    lastProcessedMsgIdRef.current = msgKey;
+    pendingRequestRef.current = null;
+
+    if (pendingType === 'ids') {
+      const issueId = pendingIssueIdRef.current;
+      pendingIssueIdRef.current = null;
+      if (issueId) {
         setIssues(prev => prev.map(i =>
-          i.loading ? { ...i, loading: false, resolution: lastMsg.content } : i
+          i.id === issueId ? { ...i, loading: false, resolution: lastMsg.content } : i
         ));
       }
+    } else if (pendingType === 'priorities_suggested') {
+      const lines = lastMsg.content.split('\n').filter(l => l.trim()).slice(0, 3);
+      const parsed = lines.map((line, i) => ({
+        id: `sp-${i}`,
+        title: line.replace(/^\d+[\.\)]\s*/, '').trim(),
+        accepted: undefined as boolean | undefined,
+      }));
+      if (parsed.length > 0 && parsed[0].title) {
+        setSuggestedPriorities(parsed);
+      }
+    } else if (pendingType === 'priorities_manual') {
+      const lines = lastMsg.content.split('\n').filter(l => l.trim()).slice(0, 3);
+      const parsed = lines.map(line => line.replace(/^\d+[\.\)]\s*/, '').trim());
+      if (parsed.length > 0 && parsed[0]) {
+        const updated = ['', '', ''];
+        parsed.forEach((p, i) => { if (i < 3) updated[i] = p; });
+        setManualPriorities(updated);
+      }
+    } else if (pendingType === 'summary') {
+      setSummary(lastMsg.content);
     }
   }, [isLoading, messages]);
 
@@ -167,6 +201,8 @@ Suggest ONE practical, actionable solution in 2-3 lines maximum. Be specific, no
   // Priorities: request AI suggestions (top card)
   const handleRequestPriorities = async () => {
     setSuggestionsLoading(true);
+    pendingRequestRef.current = 'priorities_suggested';
+
     const prompt = `Based on the current business context, suggest exactly 3 priorities for next week. 
 Each priority should be a specific, actionable task title (one line each).
 Format: Return each priority on a separate line, numbered 1-3. No explanations needed.`;
@@ -181,8 +217,8 @@ Format: Return each priority on a separate line, numbered 1-3. No explanations n
       setManualPriorities(['', '', '']);
     }
     setManualSuggestionsLoading(true);
+    pendingRequestRef.current = 'priorities_manual';
 
-    // Build rich context
     const oilContext = coreIndicators.map(ind =>
       `- ${ind.indicator_key}: ${ind.score}/100 (trend: ${ind.trend})`
     ).join('\n');
@@ -218,39 +254,6 @@ Rules:
     setManualSuggestionsLoading(false);
   };
 
-  // Watch for manual suggestion results — parse AI response into manual priority fields
-  useEffect(() => {
-    if (!isLoading && !manualSuggestionsLoading) {
-      const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-      if (lastMsg?.content && step === 5 && manualPriorities.every(p => p === '')) {
-        const lines = lastMsg.content.split('\n').filter(l => l.trim()).slice(0, 3);
-        const parsed = lines.map(line => line.replace(/^\d+[\.\)]\s*/, '').trim());
-        if (parsed.length > 0 && parsed[0]) {
-          const updated = ['', '', ''];
-          parsed.forEach((p, i) => { if (i < 3) updated[i] = p; });
-          setManualPriorities(updated);
-        }
-      }
-    }
-  }, [isLoading, messages, manualSuggestionsLoading, step, manualPriorities]);
-
-  useEffect(() => {
-    if (!suggestionsLoading && suggestedPriorities.length === 0) {
-      const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-      if (lastMsg?.content && step === 5) {
-        const lines = lastMsg.content.split('\n').filter(l => l.trim()).slice(0, 3);
-        const parsed = lines.map((line, i) => ({
-          id: `sp-${i}`,
-          title: line.replace(/^\d+[\.\)]\s*/, '').trim(),
-          accepted: undefined as boolean | undefined,
-        }));
-        if (parsed.length > 0 && parsed[0].title) {
-          setSuggestedPriorities(parsed);
-        }
-      }
-    }
-  }, [isLoading, messages, step]);
-
   const handleAcceptPriority = (id: string) => {
     setSuggestedPriorities(prev => prev.map(p => p.id === id ? { ...p, accepted: true } : p));
     const p = suggestedPriorities.find(x => x.id === id);
@@ -270,8 +273,8 @@ Rules:
   // Step 6: Generate summary
   const handleGenerateSummary = async () => {
     setSummaryLoading(true);
+    pendingRequestRef.current = 'summary';
 
-    // Collect all manual priorities that have text
     const manualItems = manualPriorities.filter(p => p.trim());
     manualItems.forEach(p => {
       if (!actionItems.some(a => a.title === p)) {
@@ -293,21 +296,11 @@ Keep it brief and actionable. Focus on decisions made, not data collected.`;
     setSummaryLoading(false);
   };
 
-  useEffect(() => {
-    if (!summaryLoading && !summary && step === 6) {
-      const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-      if (lastMsg?.content) {
-        setSummary(lastMsg.content);
-      }
-    }
-  }, [isLoading, messages, step]);
-
   // Save & Apply
   const handleSaveAndApply = async () => {
     if (!currentWorkspace || !user) return;
     setSaving(true);
 
-    // Create tasks from accepted action items
     const tasksToCreate = actionItems.filter(a => a.type === 'task' && !a.applied);
     for (const item of tasksToCreate) {
       await supabase.from('tasks').insert({
@@ -320,13 +313,11 @@ Keep it brief and actionable. Focus on decisions made, not data collected.`;
     }
     setActionItems(prev => prev.map(a => ({ ...a, applied: true })));
 
-    // Build OIL snapshot
     const oilSnapshot: Record<string, any> = {};
     coreIndicators.forEach(ind => {
       oilSnapshot[ind.indicator_key] = { score: ind.score, trend: ind.trend };
     });
 
-    // Save checkin
     const { error } = await supabase.from('weekly_checkins').insert({
       workspace_id: currentWorkspace.id,
       week_start: weekStart.toISOString().split('T')[0],
