@@ -218,7 +218,8 @@ Note: For execution beyond planning, recommend activating relevant apps.`;
 
         if (indicators && indicators.length > 0) {
           systemPrompt += `\n\n═══ ORGANIZATIONAL INTELLIGENCE (OIL) ═══`;
-          systemPrompt += `\nThese are system-computed organizational health indicators. Use them to inform your responses when relevant, but do NOT present them as raw scores to the user. Instead, weave insights naturally.`;
+          systemPrompt += `\nOIL is a leadership augmentation layer. It amplifies judgment, shortens learning curves, and exposes hidden risks — especially for first-time founders, growing SMEs, and non-specialist managers.`;
+          systemPrompt += `\nUse these indicators to inform your responses naturally. Do NOT present raw scores. Weave insights into advice.`;
           systemPrompt += `\n\nINDICATORS:`;
           for (const ind of indicators) {
             systemPrompt += `\n- ${ind.indicator_key}: ${ind.score}/100 (${ind.trend}) — ${(ind.drivers as string[]).join(", ")}`;
