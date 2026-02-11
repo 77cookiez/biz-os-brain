@@ -167,6 +167,7 @@ export default function StepPriorities({
             <div
               key={i}
               className={`flex items-center gap-3 ${priority.trim() ? 'animate-fade-in' : ''}`}
+              style={priority.trim() ? { animationDelay: `${i * 150}ms`, animationFillMode: 'both' } : undefined}
             >
               <span className="text-lg font-bold text-primary">{i + 1}</span>
               <Textarea
