@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -45,6 +45,7 @@ interface ChatRequest {
   };
   action?: string;
   userLang?: string;
+  workspaceId?: string;
 }
 
 serve(async (req) => {
@@ -53,7 +54,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, businessContext, installedApps, workContext, action, userLang } = await req.json() as ChatRequest;
+    const { messages, businessContext, installedApps, workContext, action, userLang, workspaceId } = await req.json() as ChatRequest;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -200,7 +201,42 @@ Note: For execution beyond planning, recommend activating relevant apps.`;
       }
     }
 
-    // Handle specific actions
+    // ─── OIL: Organizational Intelligence Layer Context ───
+    if (workspaceId) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const sb = createClient(supabaseUrl, supabaseKey);
+
+        const [{ data: indicators }, { data: memory }] = await Promise.all([
+          sb.from("org_indicators").select("indicator_key, score, trend, drivers")
+            .eq("workspace_id", workspaceId),
+          sb.from("company_memory").select("memory_type, statement, confidence")
+            .eq("workspace_id", workspaceId).eq("status", "active")
+            .order("confidence", { ascending: false }).limit(5),
+        ]);
+
+        if (indicators && indicators.length > 0) {
+          systemPrompt += `\n\n═══ ORGANIZATIONAL INTELLIGENCE (OIL) ═══`;
+          systemPrompt += `\nThese are system-computed organizational health indicators. Use them to inform your responses when relevant, but do NOT present them as raw scores to the user. Instead, weave insights naturally.`;
+          systemPrompt += `\n\nINDICATORS:`;
+          for (const ind of indicators) {
+            systemPrompt += `\n- ${ind.indicator_key}: ${ind.score}/100 (${ind.trend}) — ${(ind.drivers as string[]).join(", ")}`;
+          }
+        }
+
+        if (memory && memory.length > 0) {
+          systemPrompt += `\n\nORGANIZATIONAL MEMORY (learned patterns):`;
+          for (const m of memory) {
+            systemPrompt += `\n- [${m.memory_type}] ${m.statement} (confidence: ${m.confidence})`;
+          }
+        }
+      } catch (oilErr) {
+        console.warn("OIL context fetch failed:", oilErr);
+        // Non-fatal — Brain continues without OIL context
+      }
+    }
+
     if (action) {
       switch (action) {
         case 'create_plan':

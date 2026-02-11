@@ -388,6 +388,50 @@ export type Database = {
         }
         Relationships: []
       }
+      company_memory: {
+        Row: {
+          confidence: number
+          created_at: string
+          evidence_refs: Json
+          id: string
+          last_seen_at: string
+          memory_type: string
+          statement: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          evidence_refs?: Json
+          id?: string
+          last_seen_at?: string
+          memory_type: string
+          statement: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          evidence_refs?: Json
+          id?: string
+          last_seen_at?: string
+          memory_type?: string
+          statement?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_memory_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_translations: {
         Row: {
           created_at: string
@@ -674,6 +718,95 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          meaning_object_id: string | null
+          metadata: Json | null
+          object_type: string
+          severity_hint: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          meaning_object_id?: string | null
+          metadata?: Json | null
+          object_type: string
+          severity_hint?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          meaning_object_id?: string | null
+          metadata?: Json | null
+          object_type?: string
+          severity_hint?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_events_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_indicators: {
+        Row: {
+          created_at: string
+          drivers: Json
+          id: string
+          indicator_key: string
+          score: number
+          trend: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          drivers?: Json
+          id?: string
+          indicator_key: string
+          score?: number
+          trend?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          drivers?: Json
+          id?: string
+          indicator_key?: string
+          score?: number
+          trend?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_indicators_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
