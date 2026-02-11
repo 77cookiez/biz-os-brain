@@ -1,95 +1,104 @@
 
+# Top Bar Language Button + Settings Page — Best Practice Redesign
 
-# Unified Language Settings — Single Flow, No Duplication
+## Current Problems
+1. The Globe button in the top bar navigates to `/settings/language` — feels like a dead-end click with no immediate feedback
+2. The settings page has two sections ("Your Language" + "Interface Language") which feels like choosing a language twice
+3. No quick-access language switching from the top bar
 
-## Problem
-The current `/settings/language` page has two separate language pickers that confuse users:
-1. **UI Language** section (EN / AR / FR) with enable/disable toggles
-2. **Content Language (ULL Projection)** section with 30+ world languages
+## Global Best Practice (What major apps do)
 
-This feels like picking a language twice. The user wants one clear flow.
+Apps like Google, Twitter/X, Notion, and Slack follow a common pattern:
+- **Top bar**: A small dropdown that lets you quickly switch language right there (no navigation away)
+- **Settings page**: Full language preferences with explanations (for users who want more control)
 
-## Proposed Design (Best Practice)
+Our case is special because we have TWO language concepts (content language via ULL + UI language). The best approach is to **hide this complexity** from the user.
 
-Restructure the page into a single, intuitive flow:
+## Proposed Design
+
+### Top Bar: Quick Language Dropdown (not a navigation link)
+
+Instead of navigating to settings, the Globe button opens a small dropdown right there:
+
+```text
+  [Globe AR v]
+       |
+       +---------------------------+
+       |  Your Language             |
+       |                           |
+       |  * العربية  (Arabic)  [✓] |
+       |    English                |
+       |    Français               |
+       |    Español                |
+       |    Deutsch                |
+       |    More languages...      |
+       |                           |
+       |  [Language Settings ->]   |
+       +---------------------------+
+```
+
+- Shows the top 5 UI-supported languages for quick switching
+- "More languages..." opens the full ContentLanguagePicker in settings
+- "Language Settings" link at the bottom for advanced options
+- Selecting a language instantly changes BOTH content locale AND interface language (for the 5 supported ones)
+- This gives immediate feedback — the user clicks, the UI changes, done
+
+### Settings Page: Simplified Single Section
+
+Merge the two sections into ONE clean flow:
 
 ```text
 +--------------------------------------------------+
 |  Language Settings                          [ULL] |
-|  Choose your language preferences                 |
 +--------------------------------------------------+
 |                                                   |
 |  YOUR LANGUAGE                                    |
-|  "Select the language you want to work in"        |
+|  "Choose the language for your entire experience" |
 |                                                   |
 |  [Search languages...]                            |
-|  +----------------------------------------------+ |
-|  | EN  English           English                | |
-|  | AR  Arabic            العربية          [✓]   | |
-|  | FR  French            Français               | |
-|  | ES  Spanish           Español                | |
-|  | HI  Hindi             हिन्दी                  | |
-|  | UR  Urdu              اردو                    | |
-|  | ... (all 30 languages)                       | |
-|  +----------------------------------------------+ |
-|  Selected: العربية (ar)                           |
+|  | English                                      | |
+|  | العربية (Arabic)                        [✓]  | |
+|  | Français (French)                            | |
+|  | Español (Spanish)                            | |
+|  | Deutsch (German)                             | |
+|  | हिन्दी (Hindi)                                | |
+|  | ... (30 languages)                           | |
+|                                                   |
+|  Note: If you choose a language other than       |
+|  English, Arabic, French, Spanish, or German,    |
+|  all AI content will appear in your language,    |
+|  while buttons and menus will display in the     |
+|  closest supported language.                     |
 |                                                   |
 +--------------------------------------------------+
-|                                                   |
-|  INTERFACE LANGUAGE (optional)                    |
-|  "Buttons and menus can display in:"              |
-|                                                   |
-|  [English] [العربية ✓] [Français]                 |
-|                                                   |
-|  Hint: If your language above is EN/AR/FR,        |
-|  this is set automatically.                       |
-|                                                   |
-+--------------------------------------------------+
-|                                                   |
-|  ULL Status   [System]                            |
-|  ... (existing status panel, unchanged)           |
-|                                                   |
+|  ULL Status (system panel, unchanged)            |
 +--------------------------------------------------+
 ```
 
-### How it works:
-
-1. **Step 1 — "Your Language"**: User picks any language from the full world languages list. This sets `content_locale` (ULL projection target). All AI content, Brain responses, tasks, goals, chat translations render in this language.
-
-2. **Step 2 — "Interface Language"**: A small secondary section shows 3 buttons (EN / AR / FR). This sets `preferred_locale` (i18n UI strings). If the user chose AR, FR, or EN in step 1, the interface language auto-matches and this section can be collapsed or hidden.
-
-3. **ULL Status**: Remains at the bottom, unchanged.
-
-### Key behavior:
-- If user picks "Urdu" as their language, content renders in Urdu via ULL, and interface stays in the closest supported UI language (or their manual choice of EN/AR/FR)
-- If user picks "Arabic", both content AND interface switch to Arabic automatically
-- The "enable/disable multiple languages" toggle system is removed (it was confusing and rarely used)
+- Remove the separate "Interface Language" section entirely
+- The auto-sync logic already handles it: picking EN/AR/FR/ES/DE sets both; picking any other language sets content locale only and keeps the current UI language
+- One explanatory note replaces the confusing two-step process
 
 ## Technical Changes
 
-### File: `src/pages/settings/LanguageSettingsPage.tsx`
-- Remove the "Enabled Languages" toggle list and "Active Language Selection" section
-- Replace with the `ContentLanguagePicker` as the PRIMARY picker (Step 1)
-- Add a compact "Interface Language" row with 3 buttons below (Step 2)
-- Auto-set `preferred_locale` when user picks EN/AR/FR as content language
-- Keep ULL Status panel and Developer Contract link as-is
+### 1. `src/components/TopBar.tsx`
+- Replace the plain Globe button (which navigates to settings) with a `DropdownMenu`
+- Show 5 supported languages as quick-switch options
+- Add "More languages..." item that navigates to `/settings/language`
+- Add "Language Settings" link at the bottom
+- Clicking a language calls `setContentLocale(code)` which auto-syncs UI language via existing logic
 
-### File: `src/contexts/LanguageContext.tsx`
-- Simplify: remove `enabledLanguages`, `toggleLanguage`, `cycleLanguage` (unused complexity)
-- Keep `currentLanguage` (UI), `contentLocale` (ULL), `setCurrentLanguage`, `setContentLocale`
-- When `setContentLocale` is called with 'en'/'ar'/'fr', auto-sync `currentLanguage` to match
+### 2. `src/pages/settings/LanguageSettingsPage.tsx`
+- Remove the entire "Interface Language" section (Step 2 card with the 5 buttons)
+- Keep only the "Your Language" ContentLanguagePicker as the single primary picker
+- Add an explanatory note below the picker about how interface language is handled automatically
+- Keep ULL Status panel and Developer Contract link unchanged
 
-### Files: `src/i18n/translations/{en,ar,fr}.json`
-- Update translation keys for new section labels ("Your Language", "Interface Language", etc.)
-
-### Files to check for removed API usage:
-- `src/components/TopBar.tsx` — may reference `cycleLanguage` or `enabledLanguages`
-- Any component importing `toggleLanguage` or `enabledLanguages` from `useLanguage()`
+### 3. `src/i18n/translations/{en,ar,fr,es,de}.json`
+- Update/add keys for the new explanatory note
+- Remove unused `interfaceLanguage`, `interfaceLanguageDesc`, `interfaceLanguageHint`, `optional` keys
 
 ### No changes needed:
-- `ContentLanguagePicker.tsx` — already has the right UX (search + full list)
-- `useULL.ts` — already reads `contentLocale` correctly
-- `WorkspaceLanguageSettingsPage.tsx` — stays separate (admin-level workspace default)
-- Edge functions — no changes needed
-- Database schema — no changes needed
-
+- `LanguageContext.tsx` — auto-sync logic already works correctly
+- `ContentLanguagePicker.tsx` — already has the right UX
+- Edge functions, database — no changes
