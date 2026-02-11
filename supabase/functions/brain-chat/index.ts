@@ -120,7 +120,7 @@ serve(async (req) => {
         });
       }
     }
-    if (action && !["create_plan", "setup_business", "strategic_analysis", "business_planning", "business_coaching", "risk_analysis", "reprioritize", "unblock_tasks", "set_goals"].includes(action)) {
+    if (action && !["create_plan", "setup_business", "strategic_analysis", "business_planning", "business_coaching", "risk_analysis", "reprioritize", "unblock_tasks", "set_goals", "weekly_checkin", "weekly_checkin_ids", "weekly_checkin_priorities"].includes(action)) {
       return new Response(JSON.stringify({ error: "Invalid action" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -573,6 +573,32 @@ Then help structure 1-3 goals with:
 2. Measurable KPI (if applicable)
 3. Target date
 Present as DRAFTS that can be sent to the Goals section.`;
+          break;
+        case 'weekly_checkin':
+          systemPrompt += `\n\nCURRENT TASK: Weekly Check-in Summary.
+Generate a concise weekly check-in summary (3-4 lines MAXIMUM).
+Focus on:
+1. Key accomplishments and their impact
+2. Most important decisions made
+3. One forward-looking recommendation
+Do NOT list raw data. Synthesize and provide insight. Be brief and actionable.`;
+          break;
+        case 'weekly_checkin_ids':
+          systemPrompt += `\n\nCURRENT TASK: Problem Solving (IDS — Identify, Discuss, Solve).
+The user is reviewing a specific issue during their weekly check-in.
+Your job: suggest ONE practical, actionable solution in 2-3 lines maximum.
+Be specific and concrete — not generic advice.
+If the issue is a blocked task, suggest how to unblock it.
+If the issue is an off-track goal, suggest one corrective action.`;
+          break;
+        case 'weekly_checkin_priorities':
+          systemPrompt += `\n\nCURRENT TASK: Suggest Next Week Priorities.
+Based on the current workboard data, goals, and business context:
+Suggest exactly 3 priorities for next week.
+Each priority should be a specific, actionable task title (one line each).
+Format: Return each priority on a separate line, numbered 1-3.
+No explanations, no bullet points — just the priority titles.
+Base suggestions on: overdue items, goal progress, blocked tasks, and business context.`;
           break;
       }
     }
