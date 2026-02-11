@@ -1,104 +1,102 @@
 
-# Top Bar Language Button + Settings Page — Best Practice Redesign
 
-## Current Problems
-1. The Globe button in the top bar navigates to `/settings/language` — feels like a dead-end click with no immediate feedback
-2. The settings page has two sections ("Your Language" + "Interface Language") which feels like choosing a language twice
-3. No quick-access language switching from the top bar
+# Surface OIL Outputs on Brain and Today Pages
 
-## Global Best Practice (What major apps do)
+## Overview
 
-Apps like Google, Twitter/X, Notion, and Slack follow a common pattern:
-- **Top bar**: A small dropdown that lets you quickly switch language right there (no navigation away)
-- **Settings page**: Full language preferences with explanations (for users who want more control)
+Currently, the Brain page and Today page don't display any OIL (Organizational Intelligence Layer) data. The OIL tables (`org_indicators`, `company_memory`) exist and are populated via events, but their outputs are invisible to users. This plan adds two new components that fetch and display OIL data in a calm, non-intrusive, human-first way.
 
-Our case is special because we have TWO language concepts (content language via ULL + UI language). The best approach is to **hide this complexity** from the user.
+## What Will Change
 
-## Proposed Design
+### 1. New Hook: `useOILIndicators`
 
-### Top Bar: Quick Language Dropdown (not a navigation link)
+A React Query hook that fetches data from `org_indicators` and `company_memory` tables for the current workspace. It returns:
+- Core indicators (ExecutionHealth, DeliveryRisk, GoalProgress) with score, trend, and drivers
+- Secondary indicators (FinancialPressure, TeamAlignment)
+- Active company memory patterns (high-confidence statements)
 
-Instead of navigating to settings, the Globe button opens a small dropdown right there:
+This hook respects OIL settings (`useOILSettings`) -- if visibility is `minimal`, it returns empty data.
 
+### 2. New Component: `OILPulseStrip`
+
+A compact, single-row visual strip showing organizational health at a glance. Appears on both Brain (empty state) and Today pages.
+
+- Shows 3 core indicator pills: each with a label, a small colored dot (green/amber/red based on score thresholds), and a subtle trend arrow
+- Only renders if `show_indicator_strip` is enabled in OIL settings AND visibility is not `minimal`
+- Clicking the strip navigates to `/insights` for deeper exploration
+- No raw numbers shown to users -- uses semantic labels like "Steady", "Needs Attention", "Strong"
+
+Visual style:
 ```text
-  [Globe AR v]
-       |
-       +---------------------------+
-       |  Your Language             |
-       |                           |
-       |  * العربية  (Arabic)  [✓] |
-       |    English                |
-       |    Français               |
-       |    Español                |
-       |    Deutsch                |
-       |    More languages...      |
-       |                           |
-       |  [Language Settings ->]   |
-       +---------------------------+
+[ Execution: Steady ^  |  Delivery Risk: Low v  |  Goals: On Track - ]
 ```
 
-- Shows the top 5 UI-supported languages for quick switching
-- "More languages..." opens the full ContentLanguagePicker in settings
-- "Language Settings" link at the bottom for advanced options
-- Selecting a language instantly changes BOTH content locale AND interface language (for the 5 supported ones)
-- This gives immediate feedback — the user clicks, the UI changes, done
+### 3. New Component: `OILInsightCard`
 
-### Settings Page: Simplified Single Section
+A dismissible card that surfaces one high-confidence company memory pattern when relevant. Follows the Daily Brief philosophy.
 
-Merge the two sections into ONE clean flow:
+- Shows only ONE insight at a time (the highest confidence active memory)
+- Uses calm, advisory language: "A pattern worth noting..." 
+- Includes a brief explanation (the `statement` from company_memory)
+- Dismiss button marks it as seen (local state, not persisted)
+- Only appears when visibility is `balanced` or `proactive`
+- Only appears if there is a memory with confidence >= 0.7
 
-```text
-+--------------------------------------------------+
-|  Language Settings                          [ULL] |
-+--------------------------------------------------+
-|                                                   |
-|  YOUR LANGUAGE                                    |
-|  "Choose the language for your entire experience" |
-|                                                   |
-|  [Search languages...]                            |
-|  | English                                      | |
-|  | العربية (Arabic)                        [✓]  | |
-|  | Français (French)                            | |
-|  | Español (Spanish)                            | |
-|  | Deutsch (German)                             | |
-|  | हिन्दी (Hindi)                                | |
-|  | ... (30 languages)                           | |
-|                                                   |
-|  Note: If you choose a language other than       |
-|  English, Arabic, French, Spanish, or German,    |
-|  all AI content will appear in your language,    |
-|  while buttons and menus will display in the     |
-|  closest supported language.                     |
-|                                                   |
-+--------------------------------------------------+
-|  ULL Status (system panel, unchanged)            |
-+--------------------------------------------------+
-```
+### 4. Brain Page Changes (`BrainPage.tsx`)
 
-- Remove the separate "Interface Language" section entirely
-- The auto-sync logic already handles it: picking EN/AR/FR/ES/DE sets both; picking any other language sets content locale only and keeps the current UI language
-- One explanatory note replaces the confusing two-step process
+In the empty state (before any messages), add:
+- `OILPulseStrip` below the capability cards -- gives the user organizational context before they start a conversation
+- `OILInsightCard` below the pulse strip if a relevant pattern exists
 
-## Technical Changes
+In the context strip (existing `ContextStrip` component), add indicator status dot showing overall health color.
 
-### 1. `src/components/TopBar.tsx`
-- Replace the plain Globe button (which navigates to settings) with a `DropdownMenu`
-- Show 5 supported languages as quick-switch options
-- Add "More languages..." item that navigates to `/settings/language`
-- Add "Language Settings" link at the bottom
-- Clicking a language calls `setContentLocale(code)` which auto-syncs UI language via existing logic
+### 5. Today Page Changes (`TodayPage.tsx`)
 
-### 2. `src/pages/settings/LanguageSettingsPage.tsx`
-- Remove the entire "Interface Language" section (Step 2 card with the 5 buttons)
-- Keep only the "Your Language" ContentLanguagePicker as the single primary picker
-- Add an explanatory note below the picker about how interface language is handled automatically
-- Keep ULL Status panel and Developer Contract link unchanged
+- Add `OILPulseStrip` between the greeting and the Weekly Digest Card -- first thing users see is a calm organizational health summary
+- Add `OILInsightCard` after the insights grid (overdue/blocked/completion) -- surfaces actionable company memory when relevant
+- Add `DecisionSuggestions` component (already exists) below OIL insight -- the "Worth a Look" patterns
 
-### 3. `src/i18n/translations/{en,ar,fr,es,de}.json`
-- Update/add keys for the new explanatory note
-- Remove unused `interfaceLanguage`, `interfaceLanguageDesc`, `interfaceLanguageHint`, `optional` keys
+### 6. Translation Keys
 
-### No changes needed:
-- `LanguageContext.tsx` — auto-sync logic already works correctly
-- `ContentLanguagePicker.tsx` — already has the right UX
-- Edge functions, database — no changes
+Add new i18n keys to all 5 language files (en, ar, fr, es, de):
+- `oil.pulse.executionHealth`, `oil.pulse.deliveryRisk`, `oil.pulse.goalProgress`
+- `oil.pulse.steady`, `oil.pulse.needsAttention`, `oil.pulse.strong`, `oil.pulse.low`, `oil.pulse.onTrack`
+- `oil.pulse.trendUp`, `oil.pulse.trendDown`, `oil.pulse.trendStable`
+- `oil.insight.title`, `oil.insight.patternNoticed`, `oil.insight.dismiss`
+
+## Design Principles
+
+- **Non-intrusive**: All OIL surfaces are optional, dismissible, and gated by settings
+- **No raw numbers**: Scores are converted to human-readable labels
+- **Calm tone**: No alarm language, no urgency unless thresholds are crossed
+- **Settings-aware**: Respects `insights_visibility`, `show_indicator_strip`, and `show_in_brain_only`
+- **Leadership augmentation**: Surfaces blind spots gently without implying incompetence
+
+## Technical Details
+
+### Score-to-Label Mapping
+| Score Range | Label | Color |
+|---|---|---|
+| 0-39 | Needs Attention | Red/Destructive |
+| 40-69 | Steady | Amber/Orange |
+| 70-100 | Strong | Green/Emerald |
+
+### Trend Display
+- `up` = small upward arrow icon
+- `down` = small downward arrow icon  
+- `stable` = dash icon
+
+### Files to Create
+- `src/hooks/useOILIndicators.ts`
+- `src/components/oil/OILPulseStrip.tsx`
+- `src/components/oil/OILInsightCard.tsx`
+
+### Files to Modify
+- `src/pages/brain/BrainPage.tsx` -- add OIL components to empty state
+- `src/pages/brain/TodayPage.tsx` -- add OIL components to dashboard
+- `src/i18n/translations/en.json` -- add oil keys
+- `src/i18n/translations/ar.json` -- add oil keys
+- `src/i18n/translations/fr.json` -- add oil keys
+- `src/i18n/translations/es.json` -- add oil keys
+- `src/i18n/translations/de.json` -- add oil keys
+
