@@ -350,6 +350,7 @@
     "markAsPriority": "Marcar como prioridad",
     "createTask": "Crear Tarea",
     "tabs": {
+      "tasks": "Tareas",
       "today": "Hoy",
       "thisWeek": "Esta semana",
       "backlog": "Pendientes",
@@ -358,6 +359,16 @@
       "calendar": "Calendario",
       "checkin": "Revisión",
       "brainstorm": "Lluvia de ideas"
+    },
+    "views": {
+      "today": "Hoy",
+      "week": "Semana",
+      "all": "Todo"
+    },
+    "filters": {
+      "all": "Todo",
+      "myTasks": "Mis tareas",
+      "teamTasks": "Equipo"
     },
     "addTask": "Agregar tarea",
     "loading": "Cargando...",

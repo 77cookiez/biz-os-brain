@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { CalendarDays, CheckSquare, Inbox, Target, Calendar, Lightbulb, Users, ClipboardCheck } from 'lucide-react';
+import { CheckSquare, Target, Calendar, Lightbulb, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
@@ -7,11 +7,8 @@ export default function WorkboardLayout() {
   const { t } = useTranslation();
 
   const tabs = [
-    { labelKey: 'workboard.tabs.today', icon: CheckSquare, path: '/apps/workboard' },
-    { labelKey: 'workboard.tabs.thisWeek', icon: CalendarDays, path: '/apps/workboard/week' },
-    { labelKey: 'workboard.tabs.backlog', icon: Inbox, path: '/apps/workboard/backlog' },
+    { labelKey: 'workboard.tabs.tasks', icon: CheckSquare, path: '/apps/workboard' },
     { labelKey: 'workboard.tabs.goals', icon: Target, path: '/apps/workboard/goals' },
-    { labelKey: 'workboard.tabs.teamTasks', icon: Users, path: '/apps/workboard/tasks' },
     { labelKey: 'workboard.tabs.calendar', icon: Calendar, path: '/apps/workboard/calendar' },
     { labelKey: 'workboard.tabs.checkin', icon: ClipboardCheck, path: '/apps/workboard/checkin' },
     { labelKey: 'workboard.tabs.brainstorm', icon: Lightbulb, path: '/apps/workboard/brainstorm' },

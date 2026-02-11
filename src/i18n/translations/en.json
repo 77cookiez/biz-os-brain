@@ -354,6 +354,7 @@
     "markAsPriority": "Mark as priority",
     "createTask": "Create Task",
     "tabs": {
+      "tasks": "Tasks",
       "today": "Today",
       "thisWeek": "This Week",
       "backlog": "Backlog",
@@ -362,6 +363,16 @@
       "calendar": "Calendar",
       "checkin": "Check-in",
       "brainstorm": "Brainstorm"
+    },
+    "views": {
+      "today": "Today",
+      "week": "Week",
+      "all": "All"
+    },
+    "filters": {
+      "all": "All",
+      "myTasks": "My Tasks",
+      "teamTasks": "Team"
     },
     "addTask": "Add Task",
     "loading": "Loading...",

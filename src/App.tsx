@@ -34,9 +34,7 @@ import WorkspaceLanguageSettingsPage from "@/pages/settings/WorkspaceLanguageSet
 import ULLDeveloperContractPage from "@/pages/docs/ULLDeveloperContractPage";
 import NotFound from "./pages/NotFound";
 import WorkboardLayout from "@/pages/workboard/WorkboardLayout";
-import WorkboardTodayPage from "@/pages/workboard/WorkboardTodayPage";
-import WorkboardWeekPage from "@/pages/workboard/WorkboardWeekPage";
-import WorkboardBacklogPage from "@/pages/workboard/WorkboardBacklogPage";
+import UnifiedTasksPage from "@/pages/workboard/UnifiedTasksPage";
 import WorkboardGoalsPage from "@/pages/workboard/WorkboardGoalsPage";
 import WorkboardCalendarPage from "@/pages/workboard/WorkboardCalendarPage";
 import WorkboardBrainstormPage from "@/pages/workboard/WorkboardBrainstormPage";
@@ -158,14 +156,15 @@ const AppRoutes = () => (
       <Route path="/settings/workspace/language" element={<WorkspaceLanguageSettingsPage />} />
       <Route path="/docs/system/ull" element={<ULLDeveloperContractPage />} />
       <Route path="/apps/workboard" element={<WorkboardLayout />}>
-        <Route index element={<WorkboardTodayPage />} />
-        <Route path="week" element={<WorkboardWeekPage />} />
-        <Route path="backlog" element={<WorkboardBacklogPage />} />
+        <Route index element={<UnifiedTasksPage />} />
         <Route path="goals" element={<WorkboardGoalsPage />} />
-        <Route path="tasks" element={<TeamTasksPage />} />
         <Route path="calendar" element={<WorkboardCalendarPage />} />
         <Route path="checkin" element={<WeeklyCheckinPage />} />
         <Route path="brainstorm" element={<WorkboardBrainstormPage />} />
+        {/* Redirects for old routes */}
+        <Route path="week" element={<Navigate to="/apps/workboard" replace />} />
+        <Route path="backlog" element={<Navigate to="/apps/workboard" replace />} />
+        <Route path="tasks" element={<Navigate to="/apps/workboard" replace />} />
       </Route>
       <Route path="/apps/chat" element={<ChatPage />} />
     </Route>
