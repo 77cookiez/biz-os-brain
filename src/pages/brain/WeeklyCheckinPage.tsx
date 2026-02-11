@@ -214,22 +214,21 @@ Rules:
     setManualSuggestionsLoading(false);
   };
 
-  // Watch for manual suggestion results
+  // Watch for manual suggestion results — parse AI response into manual priority fields
   useEffect(() => {
-    if (!manualSuggestionsLoading && step === 5) {
-      // Only fill manual if they are all empty (fresh suggestion)
+    if (!isLoading && !manualSuggestionsLoading) {
       const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-      if (lastMsg?.content && manualPriorities.every(p => p === '')) {
+      if (lastMsg?.content && step === 5) {
         const lines = lastMsg.content.split('\n').filter(l => l.trim()).slice(0, 3);
         const parsed = lines.map(line => line.replace(/^\d+[\.\)]\s*/, '').trim());
-        if (parsed.length > 0 && parsed[0]) {
+        if (parsed.length > 0 && parsed[0] && manualPriorities.every(p => p === '')) {
           const updated = ['', '', ''];
           parsed.forEach((p, i) => { if (i < 3) updated[i] = p; });
           setManualPriorities(updated);
         }
       }
     }
-  }, [isLoading, messages]);
+  }, [isLoading, messages, manualSuggestionsLoading, step, manualPriorities]);
 
   useEffect(() => {
     if (!suggestionsLoading && suggestedPriorities.length === 0) {
