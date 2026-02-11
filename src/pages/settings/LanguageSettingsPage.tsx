@@ -1,55 +1,26 @@
-import { ArrowLeft, Check, Globe, Shield, Server, Database, Zap, Languages } from "lucide-react";
+import { ArrowLeft, Globe, Shield, Server, Database, Zap, Languages } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { useLanguage, AVAILABLE_LANGUAGES, Language } from "@/contexts/LanguageContext";
+import { useLanguage, AVAILABLE_LANGUAGES } from "@/contexts/LanguageContext";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { ContentLanguagePicker } from "@/components/settings/ContentLanguagePicker";
-
-
 
 export default function LanguageSettingsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { currentLanguage, enabledLanguages, setCurrentLanguage, toggleLanguage, contentLocale, setContentLocale } = useLanguage();
-  const { user } = useAuth();
-  
+  const { currentLanguage, contentLocale, setContentLocale, setCurrentLanguage } = useLanguage();
 
-  const isEnabled = (lang: Language) => 
-    enabledLanguages.some(l => l.code === lang.code);
-
-  const isCurrent = (lang: Language) => 
-    currentLanguage.code === lang.code;
-
-  const handleSetActive = async (lang: Language) => {
-    setCurrentLanguage(lang);
-    // Persist to profiles.preferred_locale
-    if (user) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ preferred_locale: lang.code })
-        .eq('user_id', user.id);
-      if (error) {
-        console.error('[ULL] Failed to persist locale:', error.message);
-      }
-    }
-  };
-
-  const handleToggle = (lang: Language) => {
-    toggleLanguage(lang);
-    // If toggling on and it's the only one, also set as active
-    if (!isEnabled(lang)) {
-      // Will be enabled
-    }
+  const handleContentLanguageChange = (code: string) => {
+    setContentLocale(code);
+    toast.success(t('settings.language.contentLanguageSaved', 'Language updated'));
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="shrink-0">
           <ArrowLeft className="h-5 w-5" />
@@ -66,84 +37,57 @@ export default function LanguageSettingsPage() {
         </div>
       </div>
 
-      {/* Enabled Languages */}
+      {/* Step 1 — Your Language (Content Language) */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            {t('settings.language.languages')}
+        <div className="flex items-center gap-2">
+          <Languages className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-medium text-foreground">
+            {t('settings.language.yourLanguage', 'Your Language')}
           </h3>
-          <p className="text-xs text-muted-foreground">
-            {enabledLanguages.length === 1 
-              ? t('settings.language.singleMode')
-              : t('settings.language.multiMode', { count: enabledLanguages.length })}
-          </p>
         </div>
-        
-        <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          {t('settings.language.yourLanguageDesc', 'Select the language you want to work in. All AI content, Brain responses, tasks, goals, and chat translations will appear in this language.')}
+        </p>
+
+        <ContentLanguagePicker
+          value={contentLocale || currentLanguage.code}
+          onChange={handleContentLanguageChange}
+          placeholder={t('common.search', 'Search languages...')}
+        />
+      </div>
+
+      {/* Step 2 — Interface Language */}
+      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-medium text-foreground">
+            {t('settings.language.interfaceLanguage', 'Interface Language')}
+          </h3>
+          <Badge variant="outline" className="text-[10px]">
+            {t('settings.language.optional', 'optional')}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t('settings.language.interfaceLanguageDesc', 'Buttons and menus can display in:')}
+        </p>
+
+        <div className="flex flex-wrap gap-2">
           {AVAILABLE_LANGUAGES.map((lang) => (
-            <div
+            <Button
               key={lang.code}
-              className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-all cursor-pointer",
-                isEnabled(lang)
-                  ? "border-primary/50 bg-primary/5"
-                  : "border-border hover:border-primary/30 hover:bg-secondary/50"
-              )}
-              onClick={() => handleToggle(lang)}
+              variant={currentLanguage.code === lang.code ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCurrentLanguage(lang)}
             >
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold",
-                  isEnabled(lang) ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"
-                )}>
-                  {lang.code.toUpperCase()}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{lang.name}</p>
-                  <p className="text-xs text-muted-foreground">{lang.nativeName} • {lang.dir.toUpperCase()}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {isCurrent(lang) && (
-                  <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                    Active
-                  </span>
-                )}
-                {isEnabled(lang) && (
-                  <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-                    <Check className="h-4 w-4 text-primary-foreground" />
-                  </div>
-                )}
-              </div>
-            </div>
+              {lang.nativeName}
+            </Button>
           ))}
         </div>
 
-        <p className="text-xs text-muted-foreground pt-2">
-          {t('settings.language.enableHint')}
+        <p className="text-[11px] text-muted-foreground">
+          {t('settings.language.interfaceLanguageHint', 'If your chosen language above is English, Arabic, or French, the interface language is set automatically.')}
         </p>
       </div>
-
-      {/* Active Language Selection */}
-      {enabledLanguages.length > 1 && (
-        <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-          <h3 className="text-sm font-medium text-foreground">{t('settings.language.setActive')}</h3>
-          <div className="flex flex-wrap gap-2">
-            {enabledLanguages.map((lang) => (
-              <Button
-                key={lang.code}
-                variant={isCurrent(lang) ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleSetActive(lang)}
-              >
-                {lang.nativeName}
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ULL Status Panel */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
@@ -192,37 +136,6 @@ export default function LanguageSettingsPage() {
           </div>
         </div>
       </div>
-
-      {/* Content Language (ULL Projection) */}
-      <div className="rounded-xl border border-border bg-card p-6 space-y-4">
-        <div className="flex items-center gap-2">
-          <Languages className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-medium text-foreground">
-            {t('settings.language.contentLanguageTitle', 'Content Language (ULL Projection)')}
-          </h3>
-          <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">ULL</Badge>
-        </div>
-
-        <p className="text-xs text-muted-foreground">
-          {t('settings.language.contentLanguageDesc', 'This controls the language for AI-generated content, Brain responses, and ULL-translated text. This is separate from the UI language (which only supports English, Arabic, and French).')}
-        </p>
-
-        <ContentLanguagePicker
-          value={contentLocale || currentLanguage.code}
-          onChange={(code) => {
-            setContentLocale(code);
-            toast.success(t('settings.language.contentLanguageSaved', 'Content language updated'));
-          }}
-          placeholder={t('common.search', 'Search languages...')}
-        />
-
-        <p className="text-[11px] text-muted-foreground border-t border-border pt-3 mt-3">
-          {t('settings.language.contentLanguageFallback', 'Fallback chain: Content Language → UI Language → Workspace Default → English')}
-        </p>
-      </div>
-
-
-
 
       {/* Developer docs link */}
       <button

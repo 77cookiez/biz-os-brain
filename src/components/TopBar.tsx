@@ -22,7 +22,7 @@ export function TopBar() {
   const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const { currentCompany, currentWorkspace, companies, workspaces, setCurrentCompany, setCurrentWorkspace } = useWorkspace();
-  const { currentLanguage, enabledLanguages, setCurrentLanguage } = useLanguage();
+  const { currentLanguage, setCurrentLanguage } = useLanguage();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -103,40 +103,13 @@ export function TopBar() {
       <NotificationBell />
 
       {/* Language */}
-      {enabledLanguages.length > 1 ? (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors">
-              <Globe className="h-4 w-4" />
-              <span className="hidden sm:inline text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 bg-popover border-border">
-            {enabledLanguages.map((lang) => (
-              <DropdownMenuItem
-                key={lang.code}
-                onClick={() => setCurrentLanguage(lang)}
-                className={cn(
-                  "flex items-center justify-between",
-                  currentLanguage.code === lang.code && "bg-secondary"
-                )}
-              >
-                <span>{lang.nativeName}</span>
-                <span className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ) : (
-        <button 
-          onClick={() => navigate('/settings/language')}
-          className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors"
-        >
-          <Globe className="h-4 w-4" />
-          <span className="hidden sm:inline text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
-        </button>
-      )}
+      <button 
+        onClick={() => navigate('/settings/language')}
+        className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors"
+      >
+        <Globe className="h-4 w-4" />
+        <span className="hidden sm:inline text-xs font-medium">{currentLanguage.code.toUpperCase()}</span>
+      </button>
 
       {/* User */}
       <DropdownMenu>

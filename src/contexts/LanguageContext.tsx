@@ -10,51 +10,35 @@ export interface Language {
   dir: 'ltr' | 'rtl';
 }
 
+/** Languages that have full UI translations (i18n) */
 export const AVAILABLE_LANGUAGES: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', dir: 'rtl' },
   { code: 'fr', name: 'French', nativeName: 'Français', dir: 'ltr' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español', dir: 'ltr' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch', dir: 'ltr' },
 ];
+
+/** UI language codes that have full i18n support */
+const UI_LANGUAGE_CODES = new Set(AVAILABLE_LANGUAGES.map(l => l.code));
 
 interface LanguageContextType {
   currentLanguage: Language;
-  enabledLanguages: Language[];
   contentLocale: string | null;
   setCurrentLanguage: (lang: Language) => void;
-  setEnabledLanguages: (languages: Language[]) => void;
-  toggleLanguage: (lang: Language) => void;
-  cycleLanguage: () => void;
   setContentLocale: (code: string | null) => void;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 const STORAGE_KEY_CURRENT = 'app_current_language';
-const STORAGE_KEY_ENABLED = 'app_enabled_languages';
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation();
   const [currentLanguage, setCurrentLanguageState] = useState<Language>(AVAILABLE_LANGUAGES[0]);
-  const [enabledLanguages, setEnabledLanguagesState] = useState<Language[]>([AVAILABLE_LANGUAGES[0]]);
   const [contentLocale, setContentLocaleState] = useState<string | null>(null);
 
   // Load from DB profile first, then localStorage fallback
   useEffect(() => {
     const loadPreferences = async () => {
-      // Load enabled languages from localStorage
-      const storedEnabled = localStorage.getItem(STORAGE_KEY_ENABLED);
-      if (storedEnabled) {
-        try {
-          const parsed = JSON.parse(storedEnabled);
-          const enabled = AVAILABLE_LANGUAGES.filter(lang => parsed.includes(lang.code));
-          if (enabled.length > 0) setEnabledLanguagesState(enabled);
-        } catch (e) {
-          console.error('Failed to parse enabled languages', e);
-        }
-      }
-
       // Try loading preferred_locale + content_locale from profile
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -93,14 +77,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dir = currentLanguage.dir;
     document.documentElement.lang = currentLanguage.code;
-    // Sync with i18next
     i18n.changeLanguage(currentLanguage.code);
   }, [currentLanguage, i18n]);
 
   const setCurrentLanguage = async (lang: Language) => {
     setCurrentLanguageState(lang);
     localStorage.setItem(STORAGE_KEY_CURRENT, lang.code);
-    clearULLCache(); // Force fresh translations for the new language
+    clearULLCache();
     
     // Persist to DB profile
     const { data: { user } } = await supabase.auth.getUser();
@@ -112,45 +95,28 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const setEnabledLanguages = (languages: Language[]) => {
-    setEnabledLanguagesState(languages);
-    localStorage.setItem(STORAGE_KEY_ENABLED, JSON.stringify(languages.map(l => l.code)));
-    
-    // If current language is not in enabled list, switch to first enabled
-    if (!languages.find(l => l.code === currentLanguage.code) && languages.length > 0) {
-      setCurrentLanguage(languages[0]);
-    }
-  };
-
-  const toggleLanguage = (lang: Language) => {
-    const isEnabled = enabledLanguages.find(l => l.code === lang.code);
-    
-    if (isEnabled) {
-      // Don't allow removing the last language
-      if (enabledLanguages.length > 1) {
-        setEnabledLanguages(enabledLanguages.filter(l => l.code !== lang.code));
-      }
-    } else {
-      setEnabledLanguages([...enabledLanguages, lang]);
-    }
-  };
-
-  const cycleLanguage = () => {
-    if (enabledLanguages.length <= 1) return;
-    
-    const currentIndex = enabledLanguages.findIndex(l => l.code === currentLanguage.code);
-    const nextIndex = (currentIndex + 1) % enabledLanguages.length;
-    setCurrentLanguage(enabledLanguages[nextIndex]);
-  };
-
   const setContentLocale = async (code: string | null) => {
     setContentLocaleState(code);
-    clearULLCache(); // Force fresh translations for the new content language
+    clearULLCache();
+
+    // Auto-sync UI language if the chosen content locale has a UI translation
+    if (code && UI_LANGUAGE_CODES.has(code)) {
+      const matchedLang = AVAILABLE_LANGUAGES.find(l => l.code === code);
+      if (matchedLang && matchedLang.code !== currentLanguage.code) {
+        setCurrentLanguageState(matchedLang);
+        localStorage.setItem(STORAGE_KEY_CURRENT, matchedLang.code);
+      }
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       await supabase
         .from('profiles')
-        .update({ content_locale: code } as any)
+        .update({ 
+          content_locale: code,
+          // Also persist the auto-synced UI language
+          ...(code && UI_LANGUAGE_CODES.has(code) ? { preferred_locale: code } : {})
+        } as any)
         .eq('user_id', user.id);
     }
   };
@@ -158,12 +124,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   return (
     <LanguageContext.Provider value={{
       currentLanguage,
-      enabledLanguages,
       contentLocale,
       setCurrentLanguage,
-      setEnabledLanguages,
-      toggleLanguage,
-      cycleLanguage,
       setContentLocale,
     }}>
       {children}
