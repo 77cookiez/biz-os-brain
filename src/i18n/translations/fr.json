@@ -209,7 +209,7 @@
       "yourLanguageDesc": "Sélectionnez la langue dans laquelle vous souhaitez travailler. Tout le contenu IA, les réponses Brain, les tâches, les objectifs et les traductions de chat apparaîtront dans cette langue.",
       "interfaceLanguage": "Langue de l'interface",
       "interfaceLanguageDesc": "Les boutons et menus peuvent s'afficher en :",
-      "interfaceLanguageHint": "Si votre langue choisie ci-dessus est l'anglais, l'arabe ou le français, la langue de l'interface est définie automatiquement.",
+      "interfaceLanguageHint": "Si votre langue choisie ci-dessus est une des langues d'interface supportées, elle est définie automatiquement.",
       "optional": "optionnel",
       "contentLanguageSaved": "Langue mise à jour"
     },

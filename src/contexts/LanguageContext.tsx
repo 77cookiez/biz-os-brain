@@ -15,6 +15,8 @@ export const AVAILABLE_LANGUAGES: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr' },
   { code: 'ar', name: 'Arabic', nativeName: 'العربية', dir: 'rtl' },
   { code: 'fr', name: 'French', nativeName: 'Français', dir: 'ltr' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', dir: 'ltr' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', dir: 'ltr' },
 ];
 
 /** UI language codes that have full i18n support */
