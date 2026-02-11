@@ -229,6 +229,50 @@
       "dark": "Dunkel",
       "light": "Hell",
       "system": "System"
+    },
+    "intelligence": {
+      "title": "Organisatorische Intelligenz",
+      "description": "Konfigurieren Sie, wie OIL Ihre Organisation beobachtet und stärkt",
+      "visibility": {
+        "title": "Sichtbarkeit und Timing",
+        "description": "Steuern Sie, wann und wie Erkenntnisse angezeigt werden",
+        "level": "Sichtbarkeit der Erkenntnisse",
+        "minimal": "Minimal — Tagesbericht + nur kritische Risiken",
+        "balanced": "Ausgewogen — Tagesbericht + wöchentliche Muster",
+        "proactive": "Proaktiv — sofortige Warnungen bei Schwellenwertüberschreitung",
+        "brainOnly": "Erkenntnisse nur in Brain anzeigen",
+        "brainOnlyDesc": "Erkenntnisse erscheinen nur in Brain-Gesprächen",
+        "indicatorStrip": "Indikatorleiste im Dashboard anzeigen",
+        "indicatorStripDesc": "Kompakte Gesundheitsleiste im Haupt-Dashboard anzeigen"
+      },
+      "guidance": {
+        "title": "Beratungsstil",
+        "description": "Beeinflusst nur den Ton, nicht die Analysetiefe",
+        "conservative": "Konservativ — nur Erkenntnisse mit hoher Konfidenz",
+        "advisory": "Beratend — klare, professionelle Vorschläge",
+        "challenging": "Herausfordernd — frühe Risikoerkennung, direkte Fragen"
+      },
+      "leadership": {
+        "title": "Führungsunterstützung",
+        "description": "Funktionen zur Führungsunterstützung konfigurieren",
+        "enabled": "Führungsberatung aktivieren",
+        "bestPractice": "Best-Practice-Vergleiche anzeigen",
+        "explainWhy": "Immer erkl\u00e4ren, warum das wichtig ist",
+        "blindSpots": "Automatische Erkennung blinder Flecken",
+        "blindSpotsDesc": "Empfohlen — erkennt proaktiv organisatorische blinde Flecken"
+      },
+      "knowledge": {
+        "title": "Wissen und Trendbeobachtung",
+        "description": "Externe Wissensquellen steuern",
+        "level": "Externes Wissensbewusstsein",
+        "off": "Aus — nur internes Verhalten",
+        "conditional": "Bedingt — durch Indikatoren ausgelöst",
+        "onDemand": "Auf Anfrage — wenn Sie danach fragen",
+        "benchmarks": "Branchen-Benchmarks einbeziehen",
+        "bestPractices": "Operative Best Practices einbeziehen",
+        "excludeNews": "Marktnachrichten und Trends ausschließen",
+        "excludeNewsDesc": "Verhindert Störungen durch Trendthemen"
+      }
     }
   },
   "today": {

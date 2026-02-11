@@ -229,6 +229,50 @@
       "dark": "Oscuro",
       "light": "Claro",
       "system": "Sistema"
+    },
+    "intelligence": {
+      "title": "Inteligencia Organizacional",
+      "description": "Configura cómo OIL observa y fortalece tu organización",
+      "visibility": {
+        "title": "Visibilidad y Timing",
+        "description": "Controla cuándo y cómo aparecen los insights",
+        "level": "Visibilidad de insights",
+        "minimal": "Mínimo — resumen diario + riesgos críticos solamente",
+        "balanced": "Equilibrado — resumen diario + patrones semanales",
+        "proactive": "Proactivo — alertas inmediatas al cruzar umbrales",
+        "brainOnly": "Mostrar insights solo dentro de Brain",
+        "brainOnlyDesc": "Los insights aparecen solo en conversaciones de Brain",
+        "indicatorStrip": "Mostrar barra de indicadores en el panel",
+        "indicatorStripDesc": "Muestra una barra de salud compacta en el panel principal"
+      },
+      "guidance": {
+        "title": "Estilo de Orientación",
+        "description": "Afecta solo el tono, no la profundidad del análisis",
+        "conservative": "Conservador — solo insights de alta confianza",
+        "advisory": "Asesor — sugerencias claras y profesionales",
+        "challenging": "Desafiante — detección temprana de riesgos, preguntas directas"
+      },
+      "leadership": {
+        "title": "Soporte de Liderazgo",
+        "description": "Configura las funciones de apoyo al liderazgo",
+        "enabled": "Activar orientación de liderazgo",
+        "bestPractice": "Mostrar comparaciones de mejores prácticas",
+        "explainWhy": "Siempre explicar \"por qué esto importa\"",
+        "blindSpots": "Detección automática de puntos ciegos",
+        "blindSpotsDesc": "Recomendado — detecta proactivamente puntos ciegos organizacionales"
+      },
+      "knowledge": {
+        "title": "Conocimiento y Tendencias",
+        "description": "Controla las fuentes de conocimiento externo",
+        "level": "Conocimiento externo",
+        "off": "Desactivado — solo comportamiento interno",
+        "conditional": "Condicional — activado por indicadores",
+        "onDemand": "Bajo demanda — cuando lo solicites",
+        "benchmarks": "Incluir benchmarks de la industria",
+        "bestPractices": "Incluir mejores prácticas operacionales",
+        "excludeNews": "Excluir noticias y tendencias del mercado",
+        "excludeNewsDesc": "Evita el ruido de temas tendencia"
+      }
     }
   },
   "today": {
