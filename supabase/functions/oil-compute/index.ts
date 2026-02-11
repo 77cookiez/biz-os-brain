@@ -10,14 +10,15 @@ const corsHeaders = {
 /**
  * OIL Compute — Pattern Mining + Indicator Computation + Memory Updates
  *
- * This function:
- * 1. Reads recent org_events for a workspace
- * 2. Computes organizational health indicators (ExecutionHealth, DeliveryRisk, etc.)
- * 3. Uses AI to detect patterns and create/update company_memory
- * 4. Returns current indicators and active memory for Brain consumption
+ * AUDIT RULES ENFORCED:
+ * - No individual profiling (all analysis is org-level)
+ * - Compute is throttled (min 6h between runs per workspace)
+ * - AI calls are gated (min 5 events required)
+ * - All indicator/memory changes are audit-logged
+ * - Indicators are 2-tier: 3 Core + 2 Secondary
  *
  * GET ?workspace_id=xxx — Returns current indicators + active memory
- * POST { workspace_id, recompute: true } — Triggers full recomputation
+ * POST { workspace_id, recompute: true } — Triggers full recomputation (throttled)
  */
 
 interface ComputeRequest {
@@ -25,13 +26,23 @@ interface ComputeRequest {
   recompute?: boolean;
 }
 
-const INDICATOR_KEYS = [
+/** Core indicators — always surfaced in briefs */
+const CORE_INDICATOR_KEYS = [
   "ExecutionHealth",
   "DeliveryRisk",
-  "FinancialPressure",
   "GoalProgress",
+];
+
+/** Secondary indicators — shown in detail views only */
+const SECONDARY_INDICATOR_KEYS = [
+  "FinancialPressure",
   "TeamAlignment",
 ];
+
+const ALL_INDICATOR_KEYS = [...CORE_INDICATOR_KEYS, ...SECONDARY_INDICATOR_KEYS];
+
+/** Minimum hours between recompute runs per workspace */
+const RECOMPUTE_COOLDOWN_HOURS = 6;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -63,12 +74,19 @@ serve(async (req) => {
       );
     }
 
-    // If recompute requested, run the computation pipeline
+    let skippedRecompute = false;
+
+    // If recompute requested, check cooldown first
     if (recompute && apiKey) {
-      await computeIndicators(supabase, workspaceId, apiKey);
+      const canRun = await checkCooldown(supabase, workspaceId);
+      if (canRun) {
+        await computeIndicators(supabase, workspaceId, apiKey);
+      } else {
+        skippedRecompute = true;
+      }
     }
 
-    // Return current state
+    // Return current state with tier info
     const [{ data: indicators }, { data: memory }] = await Promise.all([
       supabase
         .from("org_indicators")
@@ -84,11 +102,19 @@ serve(async (req) => {
         .limit(20),
     ]);
 
+    // Tag indicators with tier
+    const taggedIndicators = (indicators || []).map(ind => ({
+      ...ind,
+      tier: CORE_INDICATOR_KEYS.includes(ind.indicator_key) ? "core" : "secondary",
+    }));
+
     return new Response(
       JSON.stringify({
-        indicators: indicators || [],
+        indicators: taggedIndicators,
         memory: memory || [],
         last_computed: indicators?.[0]?.updated_at || null,
+        skipped_recompute: skippedRecompute,
+        cooldown_hours: RECOMPUTE_COOLDOWN_HOURS,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -100,6 +126,51 @@ serve(async (req) => {
     );
   }
 });
+
+// ═══ Cooldown Check ═══
+
+async function checkCooldown(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("org_indicators")
+    .select("updated_at")
+    .eq("workspace_id", workspaceId)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  if (!data || data.length === 0) return true; // First run
+
+  const lastUpdate = new Date(data[0].updated_at);
+  const hoursSince = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+  return hoursSince >= RECOMPUTE_COOLDOWN_HOURS;
+}
+
+// ═══ Audit Logger ═══
+
+async function logAudit(
+  supabase: ReturnType<typeof createClient>,
+  workspaceId: string,
+  action: string,
+  metadata: Record<string, unknown>
+) {
+  try {
+    await supabase.from("org_events").insert({
+      workspace_id: workspaceId,
+      event_type: `oil.${action}`,
+      object_type: "oil_system",
+      severity_hint: "info",
+      metadata: {
+        ...metadata,
+        audit: true,
+        computed_at: new Date().toISOString(),
+      },
+    });
+  } catch (err) {
+    console.warn("OIL audit log failed:", err);
+  }
+}
 
 // ═══ Indicator Computation Pipeline ═══
 
@@ -119,7 +190,7 @@ async function computeIndicators(
   ] = await Promise.all([
     supabase
       .from("org_events")
-      .select("*")
+      .select("event_type, object_type, severity_hint, created_at, metadata")
       .eq("workspace_id", workspaceId)
       .gte("created_at", twoWeeksAgo.toISOString())
       .order("created_at", { ascending: false })
@@ -135,6 +206,9 @@ async function computeIndicators(
       .eq("workspace_id", workspaceId),
   ]);
 
+  // NOTE: We intentionally do NOT select assigned_to, created_by, or any actor fields.
+  // OIL operates at the organizational level only — no individual profiling.
+
   const allTasks = tasks || [];
   const allGoals = goals || [];
   const allEvents = events || [];
@@ -142,7 +216,7 @@ async function computeIndicators(
   // 2. Compute each indicator deterministically
   const indicators: Record<string, { score: number; trend: string; drivers: string[] }> = {};
 
-  // ── ExecutionHealth ──
+  // ── ExecutionHealth (Core) ──
   const openTasks = allTasks.filter(t => t.status !== "done");
   const completedRecently = allTasks.filter(
     t => t.status === "done" && t.completed_at && new Date(t.completed_at) >= twoWeeksAgo
@@ -176,9 +250,9 @@ async function computeIndicators(
     drivers: executionDrivers.slice(0, 3),
   };
 
-  // ── DeliveryRisk ──
+  // ── DeliveryRisk (Core) ──
   const riskDrivers: string[] = [];
-  let riskScore = 20; // Low risk by default
+  let riskScore = 20;
   if (overdueTasks.length > 3) {
     riskScore += 30;
     riskDrivers.push(`${overdueTasks.length} overdue tasks`);
@@ -198,7 +272,7 @@ async function computeIndicators(
     drivers: riskDrivers.slice(0, 3),
   };
 
-  // ── GoalProgress ──
+  // ── GoalProgress (Core) ──
   const goalDrivers: string[] = [];
   let goalScore = 50;
   const activeGoals = allGoals.filter(g => g.status === "active");
@@ -227,14 +301,14 @@ async function computeIndicators(
     drivers: goalDrivers.slice(0, 3),
   };
 
-  // ── FinancialPressure (placeholder — no finance app yet) ──
+  // ── FinancialPressure (Secondary — placeholder) ──
   indicators.FinancialPressure = {
     score: 30,
     trend: "stable",
     drivers: ["Finance app not yet active — baseline score"],
   };
 
-  // ── TeamAlignment (placeholder — basic signal from events) ──
+  // ── TeamAlignment (Secondary — placeholder) ──
   indicators.TeamAlignment = {
     score: 50,
     trend: "stable",
@@ -256,8 +330,9 @@ async function computeIndicators(
     }
   }
 
-  // 4. Upsert indicators
+  // 4. Upsert indicators + audit log changes
   for (const [key, val] of Object.entries(indicators)) {
+    const prev = existingMap.get(key);
     await supabase.from("org_indicators").upsert(
       {
         workspace_id: workspaceId,
@@ -269,12 +344,31 @@ async function computeIndicators(
       },
       { onConflict: "workspace_id,indicator_key" }
     );
+
+    // Audit: log every indicator change
+    if (prev !== undefined && prev !== val.score) {
+      await logAudit(supabase, workspaceId, "indicator_updated", {
+        indicator_key: key,
+        previous_score: prev,
+        new_score: val.score,
+        trend: val.trend,
+        drivers: val.drivers,
+      });
+    }
   }
 
-  // 5. Pattern Mining → company_memory via AI
+  // 5. Pattern Mining → company_memory via AI (gated: min 5 events)
   if (allEvents.length >= 5) {
     await minePatterns(supabase, workspaceId, allEvents, indicators, apiKey);
   }
+
+  // 6. Audit log the compute run itself
+  await logAudit(supabase, workspaceId, "compute_completed", {
+    event_count: allEvents.length,
+    task_count: allTasks.length,
+    goal_count: allGoals.length,
+    indicators_computed: Object.keys(indicators),
+  });
 }
 
 // ═══ Pattern Mining Agent ═══
@@ -286,7 +380,7 @@ async function minePatterns(
   indicators: Record<string, { score: number; trend: string; drivers: string[] }>,
   apiKey: string
 ) {
-  // Build a factual summary for AI
+  // Build a factual summary for AI — NO actor/individual data
   const eventSummary = events.reduce((acc: Record<string, number>, e: any) => {
     acc[e.event_type] = (acc[e.event_type] || 0) + 1;
     return acc;
@@ -304,12 +398,13 @@ ${Object.entries(eventSummary).map(([k, v]) => `${k}: ${v}`).join("\n")}
 INDICATORS:
 ${indicatorSummary}
 
-RULES:
-- Each pattern must be organizational-level, NOT about individuals
+CRITICAL RULES:
+- Each pattern must be ORGANIZATIONAL-LEVEL only
+- NEVER mention, reference, or imply any individual person, user, team member, or role holder
 - Each must be a short, abstracted statement (1 sentence)
 - Include a memory_type: PROCESS, RISK, FINANCE, OPERATIONS, or CULTURE
 - Include confidence (0.0-1.0)
-- Return ONLY a JSON array
+- Return ONLY a JSON array, no other text
 
 Example output:
 [
@@ -325,7 +420,7 @@ Example output:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: prompt },
           { role: "user", content: "Analyze and return patterns." },
@@ -352,11 +447,17 @@ Example output:
       return;
     }
 
-    // Upsert into company_memory
+    // Validate and sanitize: reject any pattern mentioning individuals
+    const individualPatterns = /\b(user|person|employee|member|manager|he |she |his |her |their name)\b/i;
+
     for (const p of patterns) {
       if (!p.statement || !p.memory_type) continue;
+      if (individualPatterns.test(p.statement)) {
+        console.warn("OIL: Rejected pattern referencing individual:", p.statement);
+        continue;
+      }
 
-      // Check if similar memory exists (by type + partial match)
+      // Check if similar memory exists
       const { data: existing } = await supabase
         .from("company_memory")
         .select("id, statement")
@@ -370,21 +471,34 @@ Example output:
       );
 
       if (duplicate) {
-        // Update last_seen_at and confidence
+        const newConfidence = Math.min(p.confidence + 0.1, 1);
         await supabase
           .from("company_memory")
           .update({
-            confidence: Math.min(p.confidence + 0.1, 1),
+            confidence: newConfidence,
             last_seen_at: new Date().toISOString(),
           })
           .eq("id", duplicate.id);
+
+        await logAudit(supabase, workspaceId, "memory_reinforced", {
+          memory_id: duplicate.id,
+          memory_type: p.memory_type,
+          new_confidence: newConfidence,
+        });
       } else {
-        await supabase.from("company_memory").insert({
+        const { data: inserted } = await supabase.from("company_memory").insert({
           workspace_id: workspaceId,
           memory_type: p.memory_type,
           statement: p.statement,
           confidence: p.confidence,
           evidence_refs: [],
+        }).select("id").single();
+
+        await logAudit(supabase, workspaceId, "memory_created", {
+          memory_id: inserted?.id,
+          memory_type: p.memory_type,
+          confidence: p.confidence,
+          statement_preview: p.statement.slice(0, 60),
         });
       }
     }

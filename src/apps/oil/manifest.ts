@@ -31,7 +31,14 @@ export const OIL_MANIFEST = {
     'oil:indicators',   // Compute & expose health indicators
     'oil:memory',       // Organizational memory (patterns, risks)
     'oil:guidance',     // Contextual guidance drafts for Brain
+    'oil:audit',        // Audit logging of all OIL changes
   ],
+
+  /** Indicator tiers — keeps UX lightweight */
+  indicatorTiers: {
+    core: ['ExecutionHealth', 'DeliveryRisk', 'GoalProgress'] as const,
+    secondary: ['FinancialPressure', 'TeamAlignment'] as const,
+  },
 
   /** OIL has NO user-facing routes — it is invisible in sidebar */
   settingsRoutes: [],
