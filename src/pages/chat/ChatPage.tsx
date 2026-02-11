@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MessageSquarePlus } from 'lucide-react';
+import { MessageSquarePlus, ArrowLeft } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { ThreadList } from '@/components/chat/ThreadList';
 import { MessageView } from '@/components/chat/MessageView';
 import { MessageComposer } from '@/components/chat/MessageComposer';
@@ -46,6 +49,10 @@ export default function ChatPage() {
   const { createTaskFromMessage, createGoalFromThread } = useChatToWork();
   const [showWelcome, setShowWelcome] = useState(false);
   const [creatingGoal, setCreatingGoal] = useState(false);
+  const isMobile = useIsMobile();
+
+  // On mobile, show thread list when no thread selected
+  const showingMessages = isMobile && selectedThreadId !== null;
 
   // Determine if welcome should show
   useEffect(() => {
@@ -114,8 +121,11 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full bg-background rounded-lg border border-border overflow-hidden">
-      {/* Thread list */}
-      <div className="w-72 shrink-0">
+      {/* Thread list — hidden on mobile when viewing messages */}
+      <div className={cn(
+        "shrink-0 border-r border-border",
+        isMobile ? (showingMessages ? "hidden" : "w-full") : "w-72"
+      )}>
         <ThreadList
           threads={threads}
           selectedThreadId={selectedThreadId}
@@ -134,14 +144,24 @@ export default function ChatPage() {
       </div>
 
       {/* Message area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background">
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 bg-background",
+        isMobile && !showingMessages ? "hidden" : ""
+      )}>
         {selectedThreadId ? (
           <>
-            <ChatThreadHeader
-              threadTitle={threadTitle}
-              onCreateGoal={handleCreateGoal}
-              creatingGoal={creatingGoal}
-            />
+            <div className="flex items-center">
+              {isMobile && (
+                <Button variant="ghost" size="icon" className="shrink-0 ml-1" onClick={() => setSelectedThreadId(null)}>
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              )}
+              <ChatThreadHeader
+                threadTitle={threadTitle}
+                onCreateGoal={handleCreateGoal}
+                creatingGoal={creatingGoal}
+              />
+            </div>
             <MessageView
               messages={messages}
               loading={messagesLoading}

@@ -1,4 +1,4 @@
-import { Globe, ChevronDown, LogOut, Building2, Plus, Users, Sun, Moon, Monitor } from "lucide-react";
+import { Globe, ChevronDown, LogOut, Building2, Plus, Users, Sun, Moon, Monitor, Menu } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,8 +17,13 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
+import { Button } from "@/components/ui/button";
 
-export function TopBar() {
+interface TopBarProps {
+  onMenuToggle?: () => void;
+}
+
+export function TopBar({ onMenuToggle }: TopBarProps) {
   const { t } = useTranslation();
   const { user, profile, signOut } = useAuth();
   const { currentCompany, currentWorkspace, companies, workspaces, setCurrentCompany, setCurrentWorkspace } = useWorkspace();
@@ -38,9 +43,16 @@ export function TopBar() {
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   return (
-    <header className="flex h-14 items-center border-b border-border bg-card px-4 gap-4">
+    <header className="flex h-14 items-center border-b border-border bg-card px-2 md:px-4 gap-2 md:gap-4">
+      {/* Mobile hamburger */}
+      {onMenuToggle && (
+        <Button variant="ghost" size="icon" className="md:hidden shrink-0" onClick={onMenuToggle}>
+          <Menu className="h-5 w-5" />
+        </Button>
+      )}
+
       {/* Global Brain Command Bar — hidden on /brain to avoid duplication */}
-      {!isBrainPage && <BrainCommandBar />}
+      {!isBrainPage && <div className="hidden md:block"><BrainCommandBar /></div>}
 
       {/* Company & Workspace Switcher */}
       <DropdownMenu>

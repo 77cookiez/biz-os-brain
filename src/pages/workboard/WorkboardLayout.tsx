@@ -17,7 +17,7 @@ export default function WorkboardLayout() {
   return (
     <div className="flex flex-col h-full">
       <nav className="border-b border-border bg-card px-4">
-        <div className="flex items-center gap-1 overflow-x-auto">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
           {tabs.map(tab => (
             <NavLink
               key={tab.path}
@@ -33,7 +33,7 @@ export default function WorkboardLayout() {
               }
             >
               <tab.icon className="h-4 w-4" />
-              {t(tab.labelKey)}
+              <span className="hidden sm:inline">{t(tab.labelKey)}</span>
             </NavLink>
           ))}
         </div>
