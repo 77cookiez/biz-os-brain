@@ -1,115 +1,100 @@
 
 
-# تحسين Team Tasks — إسناد المهام الذكي مع تتبع مصدر التعيين
+# اعادة تنظيم قائمة Workboard — تقليل التبويبات وازالة التكرار
 
-## الفكرة
+## المشاكل الحالية
 
-حاليا يمكن إسناد مهمة لشخص يدويا عبر قائمة منسدلة، لكن لا يوجد تتبع لمن أسند المهمة ولا اقتراح ذكي. التحسين يضيف:
+1. **8 تبويبات** وهو عدد كبير يصعب التنقل (الممارسة العالمية: 5-7 كحد أقصى)
+2. **تكرار واضح**: صفحة "قائمة الانتظار (Backlog)" وصفحة "مهام الفريق (Team Tasks)" تعرضان نفس البيانات من جدول `tasks` مع فلاتر متشابهة (backlog, blocked, planned مقابل all, backlog, in_progress, blocked, done)
+3. **"اليوم" و"هذا الأسبوع" و"قائمة الانتظار"** كلها عروض مختلفة لنفس المهام مفلترة حسب الوقت
+4. **"المراجعة الأسبوعية" و"العصف الذهني"** أدوات استراتيجية دورية وليست عروض يومية
 
-1. **عمودين جديدين** في جدول `tasks`: من أسند المهمة (`assigned_by`) وكيف تم الإسناد (`assignment_source`: ai / manager / self)
-2. **زر "اقتراح ذكي"** يستخدم Brain لاقتراح الشخص الأنسب بناء على دوره ومهامه الحالية
-3. **شارة بصرية** على كل مهمة توضح مصدر التعيين (AI اقترح / المدير عيّن)
-4. **ترجمة كاملة** لصفحة Team Tasks (حاليا نصوص إنجليزية ثابتة)
+## الحل المقترح — 5 تبويبات رئيسية
 
-## التغييرات المطلوبة
+### الهيكل الجديد:
 
-### 1. Migration — إضافة أعمدة تتبع الإسناد
+| التبويب | الأيقونة | المحتوى |
+|---------|----------|---------|
+| **المهام (Tasks)** | CheckSquare | يدمج: اليوم + هذا الأسبوع + قائمة الانتظار + مهام الفريق. عرض واحد بفلاتر داخلية ذكية |
+| **الأهداف (Goals)** | Target | يبقى كما هو — الأهداف والخطط |
+| **التقويم (Calendar)** | Calendar | يبقى كما هو — العرض الشهري |
+| **المراجعة (Check-in)** | ClipboardCheck | يبقى كما هو — المراجعة الأسبوعية |
+| **العصف الذهني (Brainstorm)** | Lightbulb | يبقى كما هو — الأفكار والاقتراحات |
 
-```sql
-ALTER TABLE public.tasks
-  ADD COLUMN assigned_by uuid,
-  ADD COLUMN assignment_source text DEFAULT 'manager';
--- القيم المقبولة: 'ai', 'manager', 'self'
-```
+### صفحة "المهام" الموحدة — التصميم الداخلي
 
-### 2. brain-chat Edge Function — إضافة action جديد `suggest_assignee`
+الصفحة الموحدة ستحتوي على **3 طبقات تصفية**:
 
-- يستقبل: عنوان المهمة + وصفها + قائمة أعضاء الفريق (الاسم + الدور + عدد مهامهم الحالية)
-- يرجع: `user_id` العضو المقترح + سبب مختصر
-- القواعد: يراعي توزيع الحمل + تطابق الدور + المهام المحظورة
+**أ. شريط العرض (View Switcher):**
+- **اليوم** — الأولويات والمتأخرات ومهام اليوم (نفس المنطق الحالي)
+- **الأسبوع** — مجموعة حسب الأيام (نفس المنطق الحالي)
+- **الكل** — جميع المهام مع فلاتر الحالة (backlog/planned/in_progress/blocked/done)
 
-### 3. TeamTasksPage.tsx — تحسينات شاملة
-
-**أ. ترجمة كاملة (i18n):**
-- استبدال جميع النصوص الثابتة بمفاتيح ترجمة (`t('teamTasks.title')`, `t('teamTasks.addTask')`, etc.)
-
-**ب. إسناد ذكي عند إنشاء مهمة:**
-- إضافة زر Sparkles بجوار قائمة "Assign to"
-- عند النقر: يرسل سياق المهمة + بيانات الفريق لـ `brain-chat` مع action `suggest_assignee`
-- يملأ القائمة تلقائيا بالعضو المقترح
-- يحفظ `assignment_source = 'ai'` و `assigned_by = user.id`
+**ب. فلتر "إسناد إلى" (Assignment Filter):**
+- الكل / مهامي / مهام أعضاء الفريق (يظهر فقط إذا كان هناك فريق)
 
 **ج. شارة مصدر التعيين:**
-- بجوار اسم العضو المسند إليه:
-  - شارة "AI" (بلون بنفسجي) إذا كان `assignment_source = 'ai'`
-  - شارة "Manager" (بلون أزرق) إذا كان `assignment_source = 'manager'`
+- تبقى كما هي (AI / المدير)
+
+هذا يحل مشكلة التكرار لأن:
+- "قائمة الانتظار" تصبح عرض "الكل" مع فلتر الحالة = backlog
+- "مهام الفريق" تصبح عرض "الكل" مع فلتر الإسناد = أعضاء الفريق
+
+## التغييرات التقنية المطلوبة
+
+### 1. WorkboardLayout.tsx — تقليص التبويبات من 8 الى 5
+
+```
+التبويبات الجديدة:
+/apps/workboard          -> صفحة المهام الموحدة (Tasks)
+/apps/workboard/goals    -> الأهداف (Goals)
+/apps/workboard/calendar -> التقويم (Calendar)
+/apps/workboard/checkin  -> المراجعة (Check-in)
+/apps/workboard/brainstorm -> العصف الذهني (Brainstorm)
+```
+
+حذف المسارات القديمة: `/apps/workboard/week`, `/apps/workboard/backlog`, `/apps/workboard/tasks`
+
+### 2. صفحة UnifiedTasksPage.tsx — صفحة جديدة تدمج 4 صفحات
+
+- تحتوي على **View Switcher** (اليوم / الأسبوع / الكل) كأزرار صغيرة في الأعلى
+- تحتوي على **Assignment Filter** (الكل / مهامي / الفريق) في الأعلى أيضا
+- عرض "اليوم": نفس منطق `WorkboardTodayPage` (الأولويات + المتأخرات + مهام اليوم)
+- عرض "الأسبوع": نفس منطق `WorkboardWeekPage` (أيام الأسبوع)
+- عرض "الكل": نفس منطق `TeamTasksPage` (فلاتر الحالة + إنشاء مهمة + إسناد ذكي + شارات المصدر)
+- زر إنشاء مهمة متاح في كل العروض مع دعم الإسناد الذكي
+
+### 3. App.tsx — تحديث المسارات
+
+- حذف المسارات القديمة (`week`, `backlog`, `tasks`)
+- اضافة redirect من المسارات القديمة الى `/apps/workboard` لمنع الروابط المكسورة
 
 ### 4. ملفات الترجمة (5 لغات)
 
-مفاتيح جديدة تحت `teamTasks`:
-
-```text
-teamTasks.title = "مهام الفريق"
-teamTasks.addTask = "إضافة مهمة"
-teamTasks.assignTo = "إسناد إلى"
-teamTasks.unassigned = "غير مسند"
-teamTasks.suggestAssignee = "اقتراح ذكي"
-teamTasks.assignedByAi = "اقتراح AI"
-teamTasks.assignedByManager = "تعيين المدير"
-teamTasks.inviteTeamMember = "دعوة عضو"
-teamTasks.createTask = "إنشاء مهمة"
-teamTasks.noTasks = "لا توجد مهام"
-teamTasks.soloMode = "وضع فردي"
-teamTasks.teamMembers = "{{count}} أعضاء فريق"
-teamTasks.taskTitle = "عنوان المهمة"
-teamTasks.description = "الوصف (اختياري)"
-teamTasks.definitionOfDone = "تعريف الإنجاز (اختياري)"
-teamTasks.inviteViaWhatsApp = "دعوة عبر واتساب"
-teamTasks.sendInvitation = "إرسال الدعوة"
-teamTasks.emailAddress = "البريد الإلكتروني"
+مفاتيح جديدة:
+```
+workboard.tabs.tasks = "المهام" (بدل today)
+workboard.views.today = "اليوم"
+workboard.views.week = "الأسبوع"
+workboard.views.all = "الكل"
+workboard.filters.all = "الكل"
+workboard.filters.myTasks = "مهامي"
+workboard.filters.teamTasks = "مهام الفريق"
 ```
 
-## التفاصيل التقنية
+### 5. حذف الصفحات القديمة
 
-### Prompt اقتراح الشخص المناسب
-
-```text
-You are a team task assignment advisor. Based on the task details and team data,
-suggest the best team member to assign this task to.
-
-TASK:
-- Title: {title}
-- Description: {description}
-
-TEAM MEMBERS:
-{members.map(m => `- ${m.name} (Role: ${m.role}, Active tasks: ${m.taskCount}, Blocked: ${m.blockedCount})`)}
-
-Rules:
-- Return ONLY a JSON object: {"user_id": "...", "reason": "..."}
-- Consider role match, current workload balance, and blocked tasks
-- Reason must be 1 sentence max
-- No markdown, no code blocks
-```
-
-### تدفق الإسناد الذكي
-
-```text
-User clicks "Suggest" button
-  -> Gather: task title + description + team members + their task counts
-  -> Call brain-chat with action "suggest_assignee"
-  -> Parse JSON response
-  -> Auto-select member in dropdown
-  -> Set assignment_source = "ai"
-  -> Show purple "AI" badge
-
-User manually selects member
-  -> Set assignment_source = "manager"
-  -> Show blue "Manager" badge
-```
+- `WorkboardTodayPage.tsx` — يتم دمج منطقها في الصفحة الموحدة
+- `WorkboardWeekPage.tsx` — يتم دمج منطقها في الصفحة الموحدة
+- `WorkboardBacklogPage.tsx` — يتم دمج منطقها في الصفحة الموحدة
+- `TeamTasksPage.tsx` — يتم دمج منطق الإسناد والفلترة في الصفحة الموحدة
 
 ### الملفات المتأثرة
 
-1. `supabase/migrations/` — عمودين جديدين `assigned_by` و `assignment_source`
-2. `supabase/functions/brain-chat/index.ts` — action جديد `suggest_assignee`
-3. `src/pages/brain/TeamTasksPage.tsx` — ترجمة كاملة + زر اقتراح ذكي + شارات المصدر
-4. `src/i18n/translations/{en,ar,fr,es,de}.json` — مفاتيح جديدة تحت `teamTasks`
+1. `src/pages/workboard/WorkboardLayout.tsx` — تقليص التبويبات
+2. `src/pages/workboard/UnifiedTasksPage.tsx` — صفحة جديدة موحدة
+3. `src/App.tsx` — تحديث المسارات
+4. `src/i18n/translations/{en,ar,fr,es,de}.json` — مفاتيح جديدة
+5. حذف: `WorkboardTodayPage.tsx`, `WorkboardWeekPage.tsx`, `WorkboardBacklogPage.tsx`
+6. نقل منطق `TeamTasksPage.tsx` (الإسناد الذكي + دعوة الفريق) الى الصفحة الموحدة
+
