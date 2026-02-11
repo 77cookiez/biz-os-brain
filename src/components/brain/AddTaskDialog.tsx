@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useOIL } from '@/hooks/useOIL';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
@@ -27,8 +28,8 @@ export function AddTaskDialog({ open, onOpenChange, onTaskCreated }: AddTaskDial
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [saving, setSaving] = useState(false);
-
   const { currentLanguage } = useLanguage();
+  const { emitEvent } = useOIL();
 
   const handleSave = async () => {
     if (!title.trim() || !currentWorkspace || !user) return;
@@ -64,6 +65,12 @@ export function AddTaskDialog({ open, onOpenChange, onTaskCreated }: AddTaskDial
       toast.error(t('common.error'));
     } else {
       toast.success(t('common.success'));
+      emitEvent({
+        event_type: 'task.created',
+        object_type: 'task',
+        meaning_object_id: meaningId || undefined,
+        metadata: { source: 'brain' },
+      });
       setTitle('');
       setDescription('');
       setDueDate('');
