@@ -143,6 +143,7 @@ export function useBrainChat() {
           workContext,
           action,
           userLang: contentLocale || currentLanguage.code,
+          workspaceId: currentWorkspace?.id,
         }),
       });
 
