@@ -202,20 +202,34 @@ Note: For execution beyond planning, recommend activating relevant apps.`;
     }
 
     // ─── OIL: Organizational Intelligence Layer Context ───
-    // RULES: Non-intrusive — only inject when thresholds crossed or daily brief mode
     if (workspaceId) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
         const sb = createClient(supabaseUrl, supabaseKey);
 
-        const [{ data: indicators }, { data: memory }] = await Promise.all([
-          sb.from("org_indicators").select("indicator_key, score, trend, drivers")
-            .eq("workspace_id", workspaceId),
+        // Fetch OIL settings + indicators + memory in parallel
+        const [{ data: oilSettingsRow }, { data: indicators }, { data: memory }] = await Promise.all([
+          sb.from("oil_settings").select("*").eq("workspace_id", workspaceId).maybeSingle(),
+          sb.from("org_indicators").select("indicator_key, score, trend, drivers").eq("workspace_id", workspaceId),
           sb.from("company_memory").select("memory_type, statement, confidence")
             .eq("workspace_id", workspaceId).eq("status", "active")
             .order("confidence", { ascending: false }).limit(5),
         ]);
+
+        // OIL settings with defaults
+        const oil = {
+          insights_visibility: oilSettingsRow?.insights_visibility || "minimal",
+          guidance_style: oilSettingsRow?.guidance_style || "advisory",
+          leadership_guidance_enabled: oilSettingsRow?.leadership_guidance_enabled ?? true,
+          show_best_practice_comparisons: oilSettingsRow?.show_best_practice_comparisons ?? true,
+          always_explain_why: oilSettingsRow?.always_explain_why ?? true,
+          auto_surface_blind_spots: oilSettingsRow?.auto_surface_blind_spots ?? true,
+          external_knowledge: oilSettingsRow?.external_knowledge || "conditional",
+          include_industry_benchmarks: oilSettingsRow?.include_industry_benchmarks ?? false,
+          include_operational_best_practices: oilSettingsRow?.include_operational_best_practices ?? true,
+          exclude_market_news: oilSettingsRow?.exclude_market_news ?? true,
+        };
 
         // 2-tier indicator system
         const coreKeys = ["ExecutionHealth", "DeliveryRisk", "GoalProgress"];
@@ -224,15 +238,49 @@ Note: For execution beyond planning, recommend activating relevant apps.`;
         const hasThresholdCrossed = coreIndicators.some(i => i.score < 40 || i.score > 85 || i.trend === "down");
         const hasHighConfidenceMemory = (memory || []).some((m: any) => m.confidence >= 0.7);
 
-        // Non-intrusive: only inject when meaningful
-        if (hasThresholdCrossed || hasHighConfidenceMemory || coreIndicators.length > 0) {
+        // Visibility gating based on settings
+        let shouldInject = false;
+        if (oil.insights_visibility === "proactive") {
+          shouldInject = coreIndicators.length > 0;
+        } else if (oil.insights_visibility === "balanced") {
+          shouldInject = hasThresholdCrossed || hasHighConfidenceMemory || coreIndicators.length > 0;
+        } else {
+          // minimal: only critical thresholds
+          shouldInject = hasThresholdCrossed || hasHighConfidenceMemory;
+        }
+
+        if (shouldInject) {
           systemPrompt += `\n\n═══ ORGANIZATIONAL INTELLIGENCE (OIL) ═══`;
-          systemPrompt += `\nOIL is a leadership augmentation layer. It amplifies judgment and exposes hidden risks.`;
+
+          // Guidance style instructions
+          const styleMap: Record<string, string> = {
+            conservative: "Only surface HIGH-confidence insights. Be cautious and understated.",
+            advisory: "Provide clear, professional suggestions as DRAFTS. Balanced tone.",
+            challenging: "Surface risks earlier. Ask direct probing questions. Be forthright.",
+          };
+          systemPrompt += `\nGUIDANCE STYLE: ${styleMap[oil.guidance_style] || styleMap.advisory}`;
+
           systemPrompt += `\nDISPLAY RULES:`;
           systemPrompt += `\n- ONLY mention insights when relevant to the user's question or during daily briefs`;
           systemPrompt += `\n- Do NOT present raw scores — weave insights naturally`;
-          systemPrompt += `\n- Every insight MUST include: reason (drivers), confidence, and a DRAFT suggestion (not a command)`;
+          systemPrompt += `\n- Every insight is a DRAFT suggestion, not a command`;
           systemPrompt += `\n- NEVER reference any individual person — all insights are team/org level only`;
+
+          if (oil.always_explain_why) {
+            systemPrompt += `\n- ALWAYS explain "why this matters" for every insight`;
+          }
+          if (oil.leadership_guidance_enabled) {
+            systemPrompt += `\n- Act as a leadership augmentation layer — shorten learning curves, expose blind spots`;
+          }
+          if (oil.show_best_practice_comparisons) {
+            systemPrompt += `\n- When relevant, compare with industry best practices`;
+          }
+          if (oil.auto_surface_blind_spots) {
+            systemPrompt += `\n- Proactively surface organizational blind spots when detected`;
+          }
+          if (oil.exclude_market_news) {
+            systemPrompt += `\n- NEVER include market news or trending topics — only principles, checklists, and warnings`;
+          }
 
           if (coreIndicators.length > 0) {
             systemPrompt += `\n\nCORE INDICATORS:`;
@@ -249,9 +297,13 @@ Note: For execution beyond planning, recommend activating relevant apps.`;
           }
 
           if (memory && memory.length > 0) {
-            systemPrompt += `\n\nORG MEMORY (patterns — org-level only):`;
-            for (const m of memory) {
-              systemPrompt += `\n- [${m.memory_type}] ${m.statement} (confidence: ${m.confidence})`;
+            const minConfidence = oil.guidance_style === "conservative" ? 0.7 : 0.5;
+            const filteredMemory = memory.filter((m: any) => m.confidence >= minConfidence);
+            if (filteredMemory.length > 0) {
+              systemPrompt += `\n\nORG MEMORY (patterns — org-level only):`;
+              for (const m of filteredMemory) {
+                systemPrompt += `\n- [${m.memory_type}] ${m.statement} (confidence: ${m.confidence})`;
+              }
             }
           }
         }
