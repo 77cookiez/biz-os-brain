@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ULLText } from '@/components/ull/ULLText';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export default function WorkboardCalendarPage() {
   const { tasks, loading } = useWorkboardTasks();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { t } = useTranslation();
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -48,7 +49,7 @@ export default function WorkboardCalendarPage() {
     return map;
   }, [tasks]);
 
-  if (loading) return <div className="flex items-center justify-center py-12 text-muted-foreground">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-12 text-muted-foreground">{t('workboard.loading')}</div>;
 
   const statusColors: Record<string, string> = {
     backlog: 'bg-muted-foreground',
@@ -58,27 +59,36 @@ export default function WorkboardCalendarPage() {
     done: 'bg-green-500',
   };
 
+  const dayNames = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+    // Generate day names starting from Monday
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(2024, 0, i + 1); // Jan 1 2024 is Monday
+      return formatter.format(d);
+    });
+  }, []);
+
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground">Calendar</h1>
+        <h1 className="text-xl font-bold text-foreground">{t('workboard.tabs.calendar')}</h1>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month - 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium text-foreground min-w-[140px] text-center">
-            {currentMonth.toLocaleDateString('en', { month: 'long', year: 'numeric' })}
+            {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
           </span>
           <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(new Date(year, month + 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>Today</Button>
+          <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>{t('workboard.weekPage.todayLabel')}</Button>
         </div>
       </div>
 
       <div className="border border-border rounded-lg overflow-hidden">
         <div className="grid grid-cols-7 bg-muted">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+          {dayNames.map(d => (
             <div key={d} className="text-xs font-medium text-muted-foreground text-center py-2">{d}</div>
           ))}
         </div>
@@ -119,7 +129,7 @@ export default function WorkboardCalendarPage() {
                     </div>
                   ))}
                   {dayTasks.length > 3 && (
-                    <span className="text-[10px] text-muted-foreground">+{dayTasks.length - 3} more</span>
+                    <span className="text-[10px] text-muted-foreground">+{dayTasks.length - 3}</span>
                   )}
                 </div>
               </div>

@@ -3,13 +3,13 @@ import { Calendar, CheckCircle2, AlertTriangle, Target, ArrowRight, Sparkles, Lo
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBrainChat } from '@/hooks/useBrainChat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 
 interface Task {
   id: string;
@@ -36,15 +36,15 @@ export default function WeeklyCheckinPage() {
   const [newBlockedTask, setNewBlockedTask] = useState('');
   const [newBlockedReason, setNewBlockedReason] = useState('');
   const [newRisk, setNewRisk] = useState('');
-  const [aiSummary, setAiSummary] = useState('');
   const [generating, setGenerating] = useState(false);
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { sendMessage, messages, isLoading } = useBrainChat();
+  const { t } = useTranslation();
 
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const weekLabel = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const weekLabel = weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
   useEffect(() => {
     if (currentWorkspace) {
@@ -139,9 +139,9 @@ Please provide:
     });
 
     if (error) {
-      toast.error('Failed to save check-in');
+      toast.error(t('workboard.checkinPage.checkinFailed'));
     } else {
-      toast.success('Weekly check-in saved!');
+      toast.success(t('workboard.checkinPage.checkinSaved'));
     }
   };
 
@@ -154,8 +154,8 @@ Please provide:
         <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary/10 mb-3">
           <Calendar className="h-7 w-7 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-foreground">Weekly Check-in</h1>
-        <p className="text-muted-foreground">Week of {weekLabel} • ~15 minutes</p>
+        <h1 className="text-2xl font-bold text-foreground">{t('workboard.checkinPage.title')}</h1>
+        <p className="text-muted-foreground">{t('workboard.checkinPage.weekOf', { week: weekLabel })}</p>
       </div>
 
       {/* Progress */}
@@ -176,13 +176,13 @@ Please provide:
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
-              What was completed this week?
+              {t('workboard.checkinPage.completedThisWeek')}
             </CardTitle>
-            <CardDescription>Tasks marked as done in the last 7 days</CardDescription>
+            <CardDescription>{t('workboard.checkinPage.completedDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {checkinData.completedItems.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No tasks were completed this week.</p>
+              <p className="text-muted-foreground text-sm">{t('workboard.checkinPage.noTasksCompleted')}</p>
             ) : (
               checkinData.completedItems.map((item, i) => (
                 <div key={i} className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10">
@@ -201,32 +201,32 @@ Please provide:
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              What's blocked and why?
+              {t('workboard.checkinPage.blockedAndWhy')}
             </CardTitle>
-            <CardDescription>Identify blockers so we can address them</CardDescription>
+            <CardDescription>{t('workboard.checkinPage.identifyBlockers')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {checkinData.blockedItems.map((item, i) => (
               <div key={i} className="p-3 rounded-lg bg-yellow-500/10 space-y-1">
                 <p className="text-sm font-medium text-foreground">{item.task}</p>
-                <p className="text-xs text-muted-foreground">Reason: {item.reason}</p>
+                <p className="text-xs text-muted-foreground">{t('workboard.checkinPage.reason')}: {item.reason}</p>
               </div>
             ))}
             <div className="space-y-2">
               <Textarea
-                placeholder="What task is blocked?"
+                placeholder={t('workboard.checkinPage.whatBlocked')}
                 value={newBlockedTask}
                 onChange={(e) => setNewBlockedTask(e.target.value)}
                 className="bg-input border-border text-foreground min-h-[60px]"
               />
               <Textarea
-                placeholder="Why is it blocked?"
+                placeholder={t('workboard.checkinPage.whyBlocked')}
                 value={newBlockedReason}
                 onChange={(e) => setNewBlockedReason(e.target.value)}
                 className="bg-input border-border text-foreground min-h-[60px]"
               />
               <Button variant="outline" size="sm" onClick={addBlockedItem}>
-                Add Blocker
+                {t('workboard.checkinPage.addBlocker')}
               </Button>
             </div>
           </CardContent>
@@ -239,9 +239,9 @@ Please provide:
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
-              Top 3 priorities for next week
+              {t('workboard.checkinPage.top3Priorities')}
             </CardTitle>
-            <CardDescription>Focus on what matters most</CardDescription>
+            <CardDescription>{t('workboard.checkinPage.focusOnWhatMatters')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {checkinData.nextPriorities.map((priority, i) => (
@@ -254,7 +254,7 @@ Please provide:
                     newPriorities[i] = e.target.value;
                     setCheckinData(prev => ({ ...prev, nextPriorities: newPriorities }));
                   }}
-                  placeholder={i === 0 ? "Most important priority" : "Optional priority"}
+                  placeholder={i === 0 ? t('workboard.checkinPage.mostImportant') : t('workboard.checkinPage.optionalPriority')}
                   className="bg-input border-border text-foreground min-h-[60px]"
                 />
               </div>
@@ -269,9 +269,9 @@ Please provide:
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Risks & Decisions Needed
+              {t('workboard.checkinPage.risksDecisions')}
             </CardTitle>
-            <CardDescription>Flag anything that needs attention</CardDescription>
+            <CardDescription>{t('workboard.checkinPage.flagAnything')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {checkinData.risksDecisions.map((risk, i) => (
@@ -281,13 +281,13 @@ Please provide:
             ))}
             <div className="space-y-2">
               <Textarea
-                placeholder="Any risks or decisions that need to be made?"
+                placeholder={t('workboard.checkinPage.anyRisks')}
                 value={newRisk}
                 onChange={(e) => setNewRisk(e.target.value)}
                 className="bg-input border-border text-foreground min-h-[80px]"
               />
               <Button variant="outline" size="sm" onClick={addRisk}>
-                Add Risk/Decision
+                {t('workboard.checkinPage.addRiskDecision')}
               </Button>
             </div>
           </CardContent>
@@ -300,9 +300,9 @@ Please provide:
           <CardHeader>
             <CardTitle className="text-foreground flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              AI Brain Summary
+              {t('workboard.checkinPage.aiBrainSummary')}
             </CardTitle>
-            <CardDescription>Get insights and recommendations</CardDescription>
+            <CardDescription>{t('workboard.checkinPage.getInsights')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {!lastAssistantMessage && !isLoading && (
@@ -312,7 +312,7 @@ Please provide:
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                Generate Summary
+                {t('workboard.checkinPage.generateSummary')}
               </Button>
             )}
             
@@ -331,7 +331,7 @@ Please provide:
             {lastAssistantMessage && (
               <Button onClick={saveCheckin} className="w-full">
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                Save Check-in
+                {t('workboard.checkinPage.saveCheckin')}
               </Button>
             )}
           </CardContent>
@@ -345,13 +345,13 @@ Please provide:
           onClick={() => setStep(s => Math.max(1, s - 1))}
           disabled={step === 1}
         >
-          Back
+          {t('workboard.checkinPage.back')}
         </Button>
         <Button
           onClick={() => setStep(s => Math.min(5, s + 1))}
           disabled={step === 5}
         >
-          Next
+          {t('workboard.checkinPage.next')}
           <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>

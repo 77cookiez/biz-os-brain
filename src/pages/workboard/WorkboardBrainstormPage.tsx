@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
+import { useTranslation } from 'react-i18next';
 
 interface Idea {
   id: string;
@@ -39,6 +40,7 @@ export default function WorkboardBrainstormPage() {
   const { user } = useAuth();
   const { currentLanguage } = useLanguage();
   const { createTask } = useWorkboardTasks();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (currentWorkspace) fetchIdeas();
@@ -80,8 +82,8 @@ export default function WorkboardBrainstormPage() {
     };
     guardMeaningInsert('ideas', insertPayload);
     const { error } = await supabase.from('ideas').insert(insertPayload as any);
-    if (error) { toast.error('Failed to save idea'); return; }
-    toast.success('Idea saved');
+    if (error) { toast.error(t('workboard.brainstormPage.ideaFailed')); return; }
+    toast.success(t('workboard.brainstormPage.ideaSaved'));
     setTitle('');
     setDescription('');
     setShowAdd(false);
@@ -112,7 +114,6 @@ export default function WorkboardBrainstormPage() {
 
       if (response.error) throw response.error;
 
-      // Try to parse AI response for items
       const content = typeof response.data === 'string' ? response.data : response.data?.content || '';
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
@@ -142,10 +143,9 @@ export default function WorkboardBrainstormPage() {
           guardMeaningInsert('ideas', aiPayload);
           await supabase.from('ideas').insert(aiPayload as any);
         }
-        toast.success(`${items.length} items captured from brainstorm`);
+        toast.success(t('workboard.brainstormPage.itemsCaptured', { count: items.length }));
         fetchIdeas();
       } else {
-        // Save as single idea
         const fallbackMId = await createMeaningObject({
           workspaceId: currentWorkspace.id,
           createdBy: user.id,
@@ -169,12 +169,12 @@ export default function WorkboardBrainstormPage() {
         };
         guardMeaningInsert('ideas', fallbackPayload);
         await supabase.from('ideas').insert(fallbackPayload as any);
-        toast.success('Brainstorm captured');
+        toast.success(t('workboard.brainstormPage.brainstormCaptured'));
         fetchIdeas();
       }
       setAiInput('');
     } catch (err) {
-      toast.error('Brainstorm failed. Try again.');
+      toast.error(t('workboard.brainstormPage.brainstormFailed'));
     } finally {
       setAiLoading(false);
     }
@@ -186,9 +186,9 @@ export default function WorkboardBrainstormPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground">Brainstorm</h1>
+        <h1 className="text-xl font-bold text-foreground">{t('workboard.brainstormPage.title')}</h1>
         <Button size="sm" onClick={() => setShowAdd(true)} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> Add Idea
+          <Plus className="h-3.5 w-3.5" /> {t('workboard.brainstormPage.addIdea')}
         </Button>
       </div>
 
@@ -196,19 +196,19 @@ export default function WorkboardBrainstormPage() {
       <Card className="border-primary/30 bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2 text-foreground">
-            <Sparkles className="h-4 w-4 text-primary" /> Brainstorm with AI
+            <Sparkles className="h-4 w-4 text-primary" /> {t('workboard.brainstormPage.brainstormWithAi')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <Textarea
-            placeholder="Write freely... paste ideas, thoughts, problems. AI will organize them into Ideas, Tasks, Risks, and Opportunities."
+            placeholder={t('workboard.brainstormPage.placeholder')}
             value={aiInput}
             onChange={e => setAiInput(e.target.value)}
             className="bg-input border-border min-h-[100px]"
           />
           <Button onClick={handleAiBrainstorm} disabled={!aiInput.trim() || aiLoading} className="gap-1.5">
             {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            Organize with AI
+            {t('workboard.brainstormPage.organizeWithAi')}
           </Button>
         </CardContent>
       </Card>
@@ -216,7 +216,7 @@ export default function WorkboardBrainstormPage() {
       {/* Active Ideas */}
       {activeIdeas.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">Ideas ({activeIdeas.length})</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">{t('workboard.brainstormPage.ideas')} ({activeIdeas.length})</h2>
           {activeIdeas.map(idea => (
             <Card key={idea.id} className="border-border bg-card">
               <CardContent className="py-3">
@@ -250,7 +250,7 @@ export default function WorkboardBrainstormPage() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button variant="ghost" size="sm" onClick={() => convertToTask(idea)} className="gap-1 text-xs">
-                      <ArrowRight className="h-3 w-3" /> To Task
+                      <ArrowRight className="h-3 w-3" /> {t('workboard.brainstormPage.toTask')}
                     </Button>
                     <TaskActions title={idea.title} description={idea.description} id={idea.id} type="idea" />
                   </div>
@@ -264,7 +264,7 @@ export default function WorkboardBrainstormPage() {
       {/* Converted */}
       {convertedIdeas.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">Converted ({convertedIdeas.length})</h2>
+          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">{t('workboard.brainstormPage.converted')} ({convertedIdeas.length})</h2>
           {convertedIdeas.map(idea => (
             <Card key={idea.id} className="border-border bg-card opacity-60">
               <CardContent className="py-3">
@@ -279,7 +279,7 @@ export default function WorkboardBrainstormPage() {
                     sourceLang={idea.source_lang || 'en'}
                     className="text-sm text-muted-foreground line-through"
                   />
-                  <Badge variant="secondary" className="text-[10px]">Converted</Badge>
+                  <Badge variant="secondary" className="text-[10px]">{t('workboard.brainstormPage.converted')}</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -292,7 +292,7 @@ export default function WorkboardBrainstormPage() {
         <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
             <Lightbulb className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No ideas yet. Start brainstorming!</p>
+            <p className="text-muted-foreground">{t('workboard.brainstormPage.noIdeas')}</p>
           </CardContent>
         </Card>
       )}
@@ -301,12 +301,12 @@ export default function WorkboardBrainstormPage() {
       <Dialog open={showAdd} onOpenChange={setShowAdd}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">New Idea</DialogTitle>
+            <DialogTitle className="text-foreground">{t('workboard.brainstormPage.newIdea')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <Input placeholder="Idea title" value={title} onChange={e => setTitle(e.target.value)} className="bg-input border-border" />
-            <Textarea placeholder="Details (optional)" value={description} onChange={e => setDescription(e.target.value)} className="bg-input border-border" rows={3} />
-            <Button onClick={addIdea} disabled={!title.trim()} className="w-full">Save Idea</Button>
+            <Input placeholder={t('workboard.brainstormPage.ideaTitle')} value={title} onChange={e => setTitle(e.target.value)} className="bg-input border-border" />
+            <Textarea placeholder={t('workboard.brainstormPage.detailsOptional')} value={description} onChange={e => setDescription(e.target.value)} className="bg-input border-border" rows={3} />
+            <Button onClick={addIdea} disabled={!title.trim()} className="w-full">{t('workboard.brainstormPage.saveIdea')}</Button>
           </div>
         </DialogContent>
       </Dialog>
