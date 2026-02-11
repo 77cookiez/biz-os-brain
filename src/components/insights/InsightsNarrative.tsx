@@ -57,6 +57,7 @@ Rules:
 - Do NOT invent facts or numbers not in the data
 - Do NOT add advice, recommendations, or action items
 - Do NOT add greetings or sign-offs
+- Do NOT include any code blocks, JSON, or structured data in your response
 - Write in ${targetLang}
 - Keep it neutral and factual
 - This is a summary, not analysis
@@ -110,8 +111,11 @@ ${factSheet}`,
         }
       }
 
-      if (fullText.trim()) {
-        setNarrative(fullText.trim());
+      // Strip any ULL_MEANING_V1 blocks the AI may have included
+      const cleaned = fullText.replace(/```ULL_MEANING_V1[\s\S]*?```/g, '').trim();
+
+      if (cleaned) {
+        setNarrative(cleaned);
       } else {
         setError(t('insights.narrativeError', 'Could not generate summary'));
       }
