@@ -38,6 +38,9 @@ import type { MeaningJsonV1 } from '@/lib/meaningObject';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { OILPulseStrip } from '@/components/oil/OILPulseStrip';
+import { OILInsightCard } from '@/components/oil/OILInsightCard';
+import { useOILIndicators, getDotColor } from '@/hooks/useOILIndicators';
 
 // ─── Smart Suggestions Logic ───
 interface SmartSuggestion {
@@ -143,6 +146,7 @@ function DecisionPanel({ content, t, onSaveAsDraft, onSendToWorkboard, isSending
 function ContextStrip({ t }: { t: (k: string) => string }) {
   const { businessContext, installedApps } = useWorkspace();
   const activeApps = installedApps.filter(a => a.is_active);
+  const { overallHealth, showStrip } = useOILIndicators();
 
   return (
     <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-secondary/50 border border-border text-xs text-muted-foreground overflow-x-auto">
@@ -159,6 +163,15 @@ function ContextStrip({ t }: { t: (k: string) => string }) {
         <CheckCircle2 className="h-3 w-3 text-primary" />
         <span>{t('brainPage.context.dataFresh')}</span>
       </div>
+      {showStrip && (
+        <>
+          <span className="text-border">|</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className={`h-2 w-2 rounded-full ${getDotColor(overallHealth)}`} />
+            <span>{t('brainPage.context.orgHealth')}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -193,6 +206,16 @@ function EmptyState({ t }: { t: (k: string) => string }) {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* OIL Pulse Strip */}
+      <div className="w-full max-w-2xl">
+        <OILPulseStrip />
+      </div>
+
+      {/* OIL Insight Card */}
+      <div className="w-full max-w-2xl">
+        <OILInsightCard />
       </div>
     </div>
   );

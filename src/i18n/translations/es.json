@@ -63,7 +63,8 @@
     "context": {
       "status": "Contexto Listo",
       "appsConnected": "apps conectadas",
-      "dataFresh": "Datos actualizados"
+      "dataFresh": "Datos actualizados",
+      "orgHealth": "Salud org."
     },
     "empty": {
       "title": "Tu Asesor Estratégico de Negocios",
@@ -452,5 +453,23 @@
     "addPlan": "Añadir Plan",
     "noPlansLinked": "No hay planes vinculados a este objetivo",
     "standalonePlans": "Planes Independientes"
+  },
+  "oil": {
+    "pulse": {
+      "executionHealth": "Ejecución",
+      "deliveryRisk": "Riesgo de entrega",
+      "goalProgress": "Objetivos",
+      "steady": "Estable",
+      "needsAttention": "Necesita atención",
+      "strong": "Fuerte",
+      "low": "Bajo",
+      "moderate": "Moderado",
+      "high": "Alto",
+      "onTrack": "En camino"
+    },
+    "insight": {
+      "title": "Un patrón que vale la pena notar",
+      "dismiss": "Descartar"
+    }
   }
 }

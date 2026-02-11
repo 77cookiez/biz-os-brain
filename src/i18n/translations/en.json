@@ -63,7 +63,8 @@
     "context": {
       "status": "Context Ready",
       "appsConnected": "apps connected",
-      "dataFresh": "Data fresh"
+      "dataFresh": "Data fresh",
+      "orgHealth": "Org health"
     },
     "empty": {
       "title": "Your Strategic Business Advisor",
@@ -456,5 +457,23 @@
     "addPlan": "Add Plan",
     "noPlansLinked": "No plans linked to this goal",
     "standalonePlans": "Standalone Plans"
+  },
+  "oil": {
+    "pulse": {
+      "executionHealth": "Execution",
+      "deliveryRisk": "Delivery Risk",
+      "goalProgress": "Goals",
+      "steady": "Steady",
+      "needsAttention": "Needs Attention",
+      "strong": "Strong",
+      "low": "Low",
+      "moderate": "Moderate",
+      "high": "High",
+      "onTrack": "On Track"
+    },
+    "insight": {
+      "title": "A pattern worth noting",
+      "dismiss": "Dismiss"
+    }
   }
 }

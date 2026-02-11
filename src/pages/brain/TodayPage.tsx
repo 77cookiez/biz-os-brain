@@ -11,6 +11,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ULLText } from '@/components/ull/ULLText';
 import { WeeklyDigestCard } from '@/components/digest/WeeklyDigestCard';
+import { OILPulseStrip } from '@/components/oil/OILPulseStrip';
+import { OILInsightCard } from '@/components/oil/OILInsightCard';
+import { DecisionSuggestions } from '@/components/insights/DecisionSuggestions';
 
 interface Task {
   id: string;
@@ -131,6 +134,9 @@ export default function TodayPage() {
         </h1>
       </div>
 
+      {/* OIL Pulse Strip */}
+      <OILPulseStrip />
+
       {/* Weekly Digest Card */}
       <WeeklyDigestCard />
 
@@ -240,6 +246,12 @@ export default function TodayPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* OIL Insight Card */}
+      <OILInsightCard />
+
+      {/* Decision Suggestions */}
+      <DecisionSuggestions />
 
       {/* Empty State */}
       {tasks.length === 0 && (

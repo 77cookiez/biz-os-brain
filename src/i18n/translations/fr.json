@@ -63,7 +63,8 @@
     "context": {
       "status": "Contexte prêt",
       "appsConnected": "apps connectées",
-      "dataFresh": "Données à jour"
+      "dataFresh": "Données à jour",
+      "orgHealth": "Santé org."
     },
     "empty": {
       "title": "Votre Conseiller Stratégique",
@@ -452,5 +453,23 @@
     "addPlan": "Ajouter un plan",
     "noPlansLinked": "Aucun plan lié à cet objectif",
     "standalonePlans": "Plans indépendants"
+  },
+  "oil": {
+    "pulse": {
+      "executionHealth": "Exécution",
+      "deliveryRisk": "Risque de livraison",
+      "goalProgress": "Objectifs",
+      "steady": "Stable",
+      "needsAttention": "Attention requise",
+      "strong": "Fort",
+      "low": "Faible",
+      "moderate": "Modéré",
+      "high": "Élevé",
+      "onTrack": "En bonne voie"
+    },
+    "insight": {
+      "title": "Un schéma à noter",
+      "dismiss": "Ignorer"
+    }
   }
 }

@@ -63,7 +63,8 @@
     "context": {
       "status": "السياق جاهز",
       "appsConnected": "تطبيقات متصلة",
-      "dataFresh": "البيانات محدثة"
+      "dataFresh": "البيانات محدثة",
+      "orgHealth": "صحة المنظمة"
     },
     "empty": {
       "title": "مستشارك الاستراتيجي للأعمال",
@@ -452,5 +453,23 @@
     "addPlan": "إضافة خطة",
     "noPlansLinked": "لا توجد خطط مرتبطة بهذا الهدف",
     "standalonePlans": "خطط مستقلة"
+  },
+  "oil": {
+    "pulse": {
+      "executionHealth": "التنفيذ",
+      "deliveryRisk": "مخاطر التسليم",
+      "goalProgress": "الأهداف",
+      "steady": "مستقر",
+      "needsAttention": "يحتاج اهتمام",
+      "strong": "قوي",
+      "low": "منخفض",
+      "moderate": "متوسط",
+      "high": "مرتفع",
+      "onTrack": "على المسار"
+    },
+    "insight": {
+      "title": "نمط يستحق الملاحظة",
+      "dismiss": "تجاهل"
+    }
   }
 }
