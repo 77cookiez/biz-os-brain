@@ -42,7 +42,8 @@
     "newWorkspace": "Nouvel espace de travail",
     "signOut": "Déconnexion",
     "businessSetup": "Configuration entreprise",
-    "teamRoles": "Équipe & Rôles"
+    "teamRoles": "Équipe & Rôles",
+    "moreLanguages": "Plus de langues..."
   },
   "brain": {
     "confirm": "Confirmer",
@@ -206,11 +207,8 @@
       "title": "Paramètres de langue",
       "description": "Choisissez vos préférences de langue",
       "yourLanguage": "Votre langue",
-      "yourLanguageDesc": "Sélectionnez la langue dans laquelle vous souhaitez travailler. Tout le contenu IA, les réponses Brain, les tâches, les objectifs et les traductions de chat apparaîtront dans cette langue.",
-      "interfaceLanguage": "Langue de l'interface",
-      "interfaceLanguageDesc": "Les boutons et menus peuvent s'afficher en :",
-      "interfaceLanguageHint": "Si votre langue choisie ci-dessus est une des langues d'interface supportées, elle est définie automatiquement.",
-      "optional": "optionnel",
+      "yourLanguageDesc": "Choisissez la langue pour toute votre expérience. Tout le contenu IA, les réponses Brain, les tâches, les objectifs et les traductions de chat apparaîtront dans cette langue.",
+      "autoSyncNote": "Si vous choisissez une langue autre que l'anglais, l'arabe, le français, l'espagnol ou l'allemand, tout le contenu IA apparaîtra dans votre langue, tandis que les boutons et menus s'afficheront dans la langue d'interface la plus proche.",
       "contentLanguageSaved": "Langue mise à jour"
     },
     "notifications": {

@@ -42,7 +42,8 @@
     "newWorkspace": "New Workspace",
     "signOut": "Sign Out",
     "businessSetup": "Business Setup",
-    "teamRoles": "Team & Roles"
+    "teamRoles": "Team & Roles",
+    "moreLanguages": "More languages..."
   },
   "brain": {
     "confirm": "Confirm",
@@ -206,11 +207,8 @@
       "title": "Language Settings",
       "description": "Choose your language preferences",
       "yourLanguage": "Your Language",
-      "yourLanguageDesc": "Select the language you want to work in. All AI content, Brain responses, tasks, goals, and chat translations will appear in this language.",
-      "interfaceLanguage": "Interface Language",
-      "interfaceLanguageDesc": "Buttons and menus can display in:",
-      "interfaceLanguageHint": "If your chosen language above is one of the supported interface languages, it is set automatically.",
-      "optional": "optional",
+      "yourLanguageDesc": "Choose the language for your entire experience. All AI content, Brain responses, tasks, goals, and chat translations will appear in this language.",
+      "autoSyncNote": "If you choose a language other than English, Arabic, French, Spanish, or German, all AI content will appear in your language, while buttons and menus will display in the closest supported language.",
       "contentLanguageSaved": "Language updated"
     },
     "notifications": {

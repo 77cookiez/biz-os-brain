@@ -42,7 +42,8 @@
     "newWorkspace": "Neuer Arbeitsbereich",
     "signOut": "Abmelden",
     "businessSetup": "Geschäftseinrichtung",
-    "teamRoles": "Team & Rollen"
+    "teamRoles": "Team & Rollen",
+    "moreLanguages": "Weitere Sprachen..."
   },
   "brain": {
     "confirm": "Bestätigen",
@@ -206,11 +207,8 @@
       "title": "Spracheinstellungen",
       "description": "Wähle deine Spracheinstellungen",
       "yourLanguage": "Deine Sprache",
-      "yourLanguageDesc": "Wähle die Sprache, in der du arbeiten möchtest. Alle KI-Inhalte, Brain-Antworten, Aufgaben, Ziele und Chat-Übersetzungen werden in dieser Sprache angezeigt.",
-      "interfaceLanguage": "Oberflächensprache",
-      "interfaceLanguageDesc": "Schaltflächen und Menüs können angezeigt werden in:",
-      "interfaceLanguageHint": "Wenn deine oben gewählte Sprache eine der unterstützten Oberflächensprachen ist, wird sie automatisch eingestellt.",
-      "optional": "optional",
+      "yourLanguageDesc": "Wähle die Sprache für dein gesamtes Erlebnis. Alle KI-Inhalte, Brain-Antworten, Aufgaben, Ziele und Chat-Übersetzungen werden in dieser Sprache angezeigt.",
+      "autoSyncNote": "Wenn du eine andere Sprache als Englisch, Arabisch, Französisch, Spanisch oder Deutsch wählst, werden alle KI-Inhalte in deiner Sprache angezeigt, während Schaltflächen und Menüs in der nächsten unterstützten Oberflächensprache dargestellt werden.",
       "contentLanguageSaved": "Sprache aktualisiert"
     },
     "notifications": {
