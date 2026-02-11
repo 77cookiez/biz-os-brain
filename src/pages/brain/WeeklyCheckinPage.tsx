@@ -176,7 +176,10 @@ Format: Return each priority on a separate line, numbered 1-3. No explanations n
   };
 
   // Priorities: AI suggest for manual fields (context-rich)
-  const handleSuggestManualPriorities = async () => {
+  const handleSuggestManualPriorities = async (isResuggest = false) => {
+    if (isResuggest) {
+      setManualPriorities(['', '', '']);
+    }
     setManualSuggestionsLoading(true);
 
     // Build rich context
@@ -208,6 +211,7 @@ Rules:
 - Return ONLY 3 numbered lines (1. 2. 3.)
 - Each line is a specific, actionable task title
 - No explanations, no bullets, no markdown
+- Suggest DIFFERENT priorities than before
 - Respond in the user's language`;
 
     await sendMessage(prompt, 'weekly_checkin_priorities');
@@ -218,10 +222,10 @@ Rules:
   useEffect(() => {
     if (!isLoading && !manualSuggestionsLoading) {
       const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-      if (lastMsg?.content && step === 5) {
+      if (lastMsg?.content && step === 5 && manualPriorities.every(p => p === '')) {
         const lines = lastMsg.content.split('\n').filter(l => l.trim()).slice(0, 3);
         const parsed = lines.map(line => line.replace(/^\d+[\.\)]\s*/, '').trim());
-        if (parsed.length > 0 && parsed[0] && manualPriorities.every(p => p === '')) {
+        if (parsed.length > 0 && parsed[0]) {
           const updated = ['', '', ''];
           parsed.forEach((p, i) => { if (i < 3) updated[i] = p; });
           setManualPriorities(updated);
@@ -398,7 +402,8 @@ Keep it brief and actionable. Focus on decisions made, not data collected.`;
             updated[i] = v;
             setManualPriorities(updated);
           }}
-          onSuggestManual={handleSuggestManualPriorities}
+          onSuggestManual={() => handleSuggestManualPriorities(false)}
+          onResuggestManual={() => handleSuggestManualPriorities(true)}
           manualSuggestionsLoading={manualSuggestionsLoading}
         />
       )}

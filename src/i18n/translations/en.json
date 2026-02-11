@@ -453,6 +453,7 @@
       "acceptPriority": "Accept",
       "manualPriorities": "Your own priorities",
       "suggestManualPriorities": "Suggest priorities",
+      "resuggestPriorities": "Try again",
       "mostImportant": "Most important priority",
       "optionalPriority": "Optional priority",
       "summaryAndActions": "Summary & Actions",

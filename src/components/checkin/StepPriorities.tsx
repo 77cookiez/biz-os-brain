@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Target, Sparkles, Loader2, Check, X, Edit2 } from 'lucide-react';
+import { Target, Sparkles, Loader2, Check, X, Edit2, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,6 +22,7 @@ interface Props {
   manualPriorities: string[];
   onManualChange: (index: number, value: string) => void;
   onSuggestManual: () => void;
+  onResuggestManual: () => void;
   manualSuggestionsLoading: boolean;
 }
 
@@ -29,11 +30,12 @@ export default function StepPriorities({
   priorities, suggestionsLoading, onRequestSuggestions,
   onAccept, onReject, onEdit,
   manualPriorities, onManualChange,
-  onSuggestManual, manualSuggestionsLoading,
+  onSuggestManual, onResuggestManual, manualSuggestionsLoading,
 }: Props) {
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const hasManualContent = manualPriorities.some(p => p.trim() !== '');
 
   const startEdit = (p: SuggestedPriority) => {
     setEditingId(p.id);
@@ -125,20 +127,41 @@ export default function StepPriorities({
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {t('workboard.checkinPage.manualPriorities')}
             </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onSuggestManual}
-              disabled={manualSuggestionsLoading}
-              className="h-7 gap-1.5 text-xs"
-            >
-              {manualSuggestionsLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1">
+              {hasManualContent && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onResuggestManual}
+                  disabled={manualSuggestionsLoading}
+                  className="h-7 gap-1.5 text-xs"
+                  title={t('workboard.checkinPage.resuggestPriorities')}
+                >
+                  {manualSuggestionsLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  {t('workboard.checkinPage.resuggestPriorities')}
+                </Button>
               )}
-              {t('workboard.checkinPage.suggestManualPriorities')}
-            </Button>
+              {!hasManualContent && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onSuggestManual}
+                  disabled={manualSuggestionsLoading}
+                  className="h-7 gap-1.5 text-xs"
+                >
+                  {manualSuggestionsLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  {t('workboard.checkinPage.suggestManualPriorities')}
+                </Button>
+              )}
+            </div>
           </div>
           {manualPriorities.map((priority, i) => (
             <div key={i} className="flex items-center gap-3">
