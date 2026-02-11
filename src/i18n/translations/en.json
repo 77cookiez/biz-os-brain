@@ -229,6 +229,54 @@
       "dark": "Dark",
       "light": "Light",
       "system": "System"
+    },
+    "intelligence": {
+      "title": "Organizational Intelligence",
+      "description": "Configure how OIL observes and augments your organization",
+      "visibility": {
+        "title": "Visibility & Timing",
+        "description": "Control when and how insights appear",
+        "level": "Insights Visibility",
+        "minimal": "Minimal — daily brief + critical risks only",
+        "balanced": "Balanced — daily brief + weekly patterns",
+        "proactive": "Proactive — immediate threshold alerts",
+        "brainOnly": "Show insights only inside Brain",
+        "brainOnlyDesc": "Insights appear only in Brain conversations",
+        "indicatorStrip": "Show indicator strip in dashboard",
+        "indicatorStripDesc": "Display a compact health bar on the main dashboard"
+      },
+      "guidance": {
+        "title": "Guidance Style",
+        "description": "Affects tone only, not analysis depth",
+        "conservative": "Conservative — high-confidence insights only",
+        "advisory": "Advisory — clear, professional suggestions",
+        "challenging": "Challenging — earlier risk surfacing, direct questions"
+      },
+      "leadership": {
+        "title": "Leadership Support",
+        "description": "Configure leadership augmentation features",
+        "enabled": "Enable leadership guidance",
+        "bestPractice": "Show best-practice comparisons",
+        "explainWhy": "Always explain \"why this matters\"",
+        "blindSpots": "Auto-surface blind spots",
+        "blindSpotsDesc": "Recommended — proactively highlights organizational blind spots"
+      },
+      "knowledge": {
+        "title": "Knowledge & Trends Awareness",
+        "description": "Control external knowledge sources",
+        "level": "External Knowledge Awareness",
+        "off": "Off — internal behavior only",
+        "conditional": "Conditional — triggered by indicators",
+        "onDemand": "On-demand only — when you ask",
+        "benchmarks": "Include industry benchmarks",
+        "bestPractices": "Include operational best practices",
+        "excludeNews": "Exclude market & news trends",
+        "excludeNewsDesc": "Prevents noise from trending topics"
+      }
+    },
+    "apps": {
+      "title": "Apps",
+      "description": "Manage installed apps and integrations"
     }
   },
   "today": {

@@ -725,6 +725,71 @@ export type Database = {
           },
         ]
       }
+      oil_settings: {
+        Row: {
+          always_explain_why: boolean
+          auto_surface_blind_spots: boolean
+          created_at: string
+          exclude_market_news: boolean
+          external_knowledge: string
+          guidance_style: string
+          id: string
+          include_industry_benchmarks: boolean
+          include_operational_best_practices: boolean
+          insights_visibility: string
+          leadership_guidance_enabled: boolean
+          show_best_practice_comparisons: boolean
+          show_in_brain_only: boolean
+          show_indicator_strip: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          always_explain_why?: boolean
+          auto_surface_blind_spots?: boolean
+          created_at?: string
+          exclude_market_news?: boolean
+          external_knowledge?: string
+          guidance_style?: string
+          id?: string
+          include_industry_benchmarks?: boolean
+          include_operational_best_practices?: boolean
+          insights_visibility?: string
+          leadership_guidance_enabled?: boolean
+          show_best_practice_comparisons?: boolean
+          show_in_brain_only?: boolean
+          show_indicator_strip?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          always_explain_why?: boolean
+          auto_surface_blind_spots?: boolean
+          created_at?: string
+          exclude_market_news?: boolean
+          external_knowledge?: string
+          guidance_style?: string
+          id?: string
+          include_industry_benchmarks?: boolean
+          include_operational_best_practices?: boolean
+          insights_visibility?: string
+          leadership_guidance_enabled?: boolean
+          show_best_practice_comparisons?: boolean
+          show_in_brain_only?: boolean
+          show_indicator_strip?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oil_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_events: {
         Row: {
           created_at: string
