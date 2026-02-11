@@ -350,6 +350,7 @@
     "markAsPriority": "تحديد كأولوية",
     "createTask": "إنشاء مهمة",
     "tabs": {
+      "tasks": "المهام",
       "today": "اليوم",
       "thisWeek": "هذا الأسبوع",
       "backlog": "قائمة الانتظار",
@@ -358,6 +359,16 @@
       "calendar": "التقويم",
       "checkin": "المراجعة",
       "brainstorm": "العصف الذهني"
+    },
+    "views": {
+      "today": "اليوم",
+      "week": "الأسبوع",
+      "all": "الكل"
+    },
+    "filters": {
+      "all": "الكل",
+      "myTasks": "مهامي",
+      "teamTasks": "الفريق"
     },
     "addTask": "إضافة مهمة",
     "loading": "جاري التحميل...",
