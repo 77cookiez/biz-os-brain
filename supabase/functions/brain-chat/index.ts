@@ -54,7 +54,78 @@ serve(async (req) => {
   }
 
   try {
+    // ─── Auth Check ───
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { messages, businessContext, installedApps, workContext, action, userLang, workspaceId } = await req.json() as ChatRequest;
+
+    // ─── Input Validation ───
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(JSON.stringify({ error: "messages must be a non-empty array" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (messages.length > 50) {
+      return new Response(JSON.stringify({ error: "Too many messages (max 50)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    for (const msg of messages) {
+      if (!msg.role || !msg.content) {
+        return new Response(JSON.stringify({ error: "Invalid message format" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!["user", "assistant", "system"].includes(msg.role)) {
+        return new Response(JSON.stringify({ error: "Invalid message role" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (msg.content.length > 10000) {
+        return new Response(JSON.stringify({ error: "Message content too long" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    if (workContext) {
+      if (workContext.tasks && workContext.tasks.length > 100) {
+        return new Response(JSON.stringify({ error: "Too many tasks in context (max 100)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (workContext.goals && workContext.goals.length > 50) {
+        return new Response(JSON.stringify({ error: "Too many goals in context (max 50)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+    if (action && !["create_plan", "setup_business"].includes(action)) {
+      return new Response(JSON.stringify({ error: "Invalid action" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
