@@ -82,6 +82,40 @@ export const OIL_MANIFEST = {
     guidanceDrafts: 'Generated on-demand via oil-compute edge function',
   },
 
+  /** Leadership Augmentation — Core Value */
+  leadershipAugmentation: {
+    purpose: 'Augment leadership capability in environments where leaders lack formal training, decision-making is overwhelmed, or blind spots emerge over time.',
+    capabilities: [
+      'Synthesizes signals humans cannot track daily',
+      'Surfaces early indicators before issues escalate',
+      'Connects internal behavior with proven global practices',
+      'Reduces reliance on personal experience alone',
+    ],
+    doesNot: 'Replace leaders. It amplifies judgment, shortens learning curves, and exposes hidden risks and opportunities.',
+    valuableFor: [
+      'First-time founders',
+      'Growing SMEs',
+      'Non-specialist managers',
+      'Rapidly scaling teams',
+    ],
+  },
+
+  /** Continuous Knowledge Update — Controlled */
+  continuousKnowledgeUpdate: {
+    primarySources: [
+      'Organizational behavior (primary)',
+      'Historical company memory',
+      'Conditional external research',
+    ],
+    externalResearchTriggers: [
+      'Internal indicators degrade',
+      'Repeated patterns persist',
+      'A strategic gap is detected',
+      'A user explicitly requests comparison',
+    ],
+    guidanceQualities: ['Relevant', 'Timely', 'Context-aware', 'Free from trend noise'],
+  },
+
   /** Communication tone rules */
   toneRules: {
     style: 'Professional, calm, non-judgmental',
