@@ -120,7 +120,7 @@ serve(async (req) => {
         });
       }
     }
-    if (action && !["create_plan", "setup_business", "strategic_analysis", "business_planning", "business_coaching", "risk_analysis", "reprioritize", "unblock_tasks", "set_goals", "weekly_checkin", "weekly_checkin_ids", "weekly_checkin_priorities"].includes(action)) {
+    if (action && !["create_plan", "setup_business", "strategic_analysis", "business_planning", "business_coaching", "risk_analysis", "reprioritize", "unblock_tasks", "set_goals", "weekly_checkin", "weekly_checkin_ids", "weekly_checkin_priorities", "suggest_assignee"].includes(action)) {
       return new Response(JSON.stringify({ error: "Invalid action" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -601,6 +601,19 @@ Return ONLY 3 numbered lines (1. 2. 3.).
 Each line is a specific, actionable task title — no explanations, no bullets, no markdown.
 Respond in the user's language.
 IMPORTANT: Do NOT include any code blocks, ULL_MEANING_V1 blocks, or technical formatting. Reply with plain text only — no markdown code fences.`;
+          break;
+        case 'suggest_assignee':
+          systemPrompt += `\n\nCURRENT TASK: Suggest the best team member to assign a task to.
+You are a team task assignment advisor. The user message contains task details and team member data.
+Based on role match, current workload balance, and blocked tasks, suggest the BEST team member.
+Return ONLY a valid JSON object with no markdown or code fences:
+{"user_id": "the_user_id", "reason": "One sentence reason in the user's language"}
+Rules:
+- Consider role match first, then workload balance
+- Prefer members with fewer active tasks
+- Avoid members with many blocked tasks
+- Reason must be 1 sentence max, in the user's language
+- No markdown, no code blocks, just raw JSON`;
           break;
       }
     }
