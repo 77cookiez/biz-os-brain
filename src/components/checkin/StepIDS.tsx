@@ -5,6 +5,14 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 
+// Strip ULL_MEANING_V1 and other code blocks from AI responses
+function cleanAIResponse(text: string): string {
+  return text
+    .replace(/```ULL_MEANING_V1[\s\S]*?```/gi, '')
+    .replace(/```(?:json|typescript|javascript|ts|js)?\s*[\s\S]*?```/gi, '')
+    .trim();
+}
+
 export interface IssueItem {
   id: string;
   issue: string;
@@ -67,7 +75,7 @@ export default function StepIDS({ issues, onRequestSolution, onAcceptResolution,
               {item.resolution && !item.loading && (
                 <div className="space-y-2">
                   <div className="p-2 rounded bg-primary/5 text-sm prose prose-sm prose-invert max-w-none">
-                    <ReactMarkdown>{item.resolution}</ReactMarkdown>
+                    <ReactMarkdown>{cleanAIResponse(item.resolution)}</ReactMarkdown>
                   </div>
                   {item.accepted === undefined && (
                     <div className="flex gap-2">

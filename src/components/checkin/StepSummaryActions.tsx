@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 
+function cleanAIResponse(text: string): string {
+  return text
+    .replace(/```ULL_MEANING_V1[\s\S]*?```/gi, '')
+    .replace(/```(?:json|typescript|javascript|ts|js)?\s*[\s\S]*?```/gi, '')
+    .trim();
+}
+
 export interface ActionItem {
   title: string;
   type: 'task' | 'decision';
@@ -50,7 +57,7 @@ export default function StepSummaryActions({
 
         {summary && (
           <div className="prose prose-sm prose-invert max-w-none p-3 rounded-lg bg-primary/5">
-            <ReactMarkdown>{summary}</ReactMarkdown>
+            <ReactMarkdown>{cleanAIResponse(summary)}</ReactMarkdown>
           </div>
         )}
 
