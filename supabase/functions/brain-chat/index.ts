@@ -581,7 +581,8 @@ Focus on:
 1. Key accomplishments and their impact
 2. Most important decisions made
 3. One forward-looking recommendation
-Do NOT list raw data. Synthesize and provide insight. Be brief and actionable.`;
+Do NOT list raw data. Synthesize and provide insight. Be brief and actionable.
+IMPORTANT: Do NOT include any code blocks, ULL_MEANING_V1 blocks, or technical formatting. Reply with plain text only — no markdown code fences.`;
           break;
         case 'weekly_checkin_ids':
           systemPrompt += `\n\nCURRENT TASK: Problem Solving (IDS — Identify, Discuss, Solve).
@@ -589,7 +590,8 @@ The user is reviewing a specific issue during their weekly check-in.
 Your job: suggest ONE practical, actionable solution in 2-3 lines maximum.
 Be specific and concrete — not generic advice.
 If the issue is a blocked task, suggest how to unblock it.
-If the issue is an off-track goal, suggest one corrective action.`;
+If the issue is an off-track goal, suggest one corrective action.
+IMPORTANT: Do NOT include any code blocks, ULL_MEANING_V1 blocks, or technical formatting. Reply with plain text only — no markdown code fences.`;
           break;
         case 'weekly_checkin_priorities':
           systemPrompt += `\n\nCURRENT TASK: Suggest Next Week Priorities.
@@ -598,7 +600,8 @@ Suggest exactly 3 priorities for next week.
 Each priority should be a specific, actionable task title (one line each).
 Format: Return each priority on a separate line, numbered 1-3.
 No explanations, no bullet points — just the priority titles.
-Base suggestions on: overdue items, goal progress, blocked tasks, and business context.`;
+Base suggestions on: overdue items, goal progress, blocked tasks, and business context.
+IMPORTANT: Do NOT include any code blocks, ULL_MEANING_V1 blocks, or technical formatting. Reply with plain text only — no markdown code fences.`;
           break;
       }
     }
