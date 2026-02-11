@@ -78,23 +78,42 @@ ${factSheet}`,
         return;
       }
 
-      // Handle both streaming and non-streaming responses
-      const text = await resp.text();
-      
-      // Try to parse as JSON first
-      try {
-        const json = JSON.parse(text);
-        if (json.choices?.[0]?.message?.content) {
-          setNarrative(json.choices[0].message.content.trim());
-        } else if (json.content) {
-          setNarrative(json.content.trim());
-        } else {
-          // It might be a plain text response from brain-chat
-          setNarrative(text.trim());
+      // brain-chat always returns SSE stream — parse it
+      const reader = resp.body?.getReader();
+      if (!reader) {
+        setError(t('insights.narrativeError', 'Could not generate summary'));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) fullText += delta;
+          } catch {
+            // skip malformed lines
+          }
         }
-      } catch {
-        // Plain text response
-        setNarrative(text.trim());
+      }
+
+      if (fullText.trim()) {
+        setNarrative(fullText.trim());
+      } else {
+        setError(t('insights.narrativeError', 'Could not generate summary'));
       }
     } catch {
       setError(t('insights.narrativeError', 'Could not generate summary'));
