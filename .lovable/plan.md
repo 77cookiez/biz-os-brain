@@ -1,122 +1,78 @@
 
 
-# تحويل المراجعة الأسبوعية إلى أداة قرارات عملية
+# تحسين خطوة الأولويات — زر "اقتراح ذكي" يملأ الحقول اليدوية
 
-## المشكلة الحالية
+## الفكرة
 
-المراجعة الأسبوعية الحالية تجمع معلومات فقط (ما أنجزت، ما المحظور، ما الأولويات) ثم تطلب ملخصا من الذكاء الاصطناعي. لكنها لا تنتج قرارات أو إجراءات ملموسة تعود للـ Workboard.
+حاليا الأولويات اليدوية (3 حقول نصية) فارغة دائما وتنتظر الكتابة. التحسين يضيف زر **"اقترح أولويات"** بجانب العنوان، يستدعي Brain مع سياق غني (OIL indicators + المهام المتأخرة/المحظورة + الأهداف + company_memory) ليملأ الحقول الثلاثة تلقائيا. المستخدم يعدّل أو يمسح أي حقل كما يشاء.
 
-## الإلهام: أفضل الممارسات العالمية
+## التغييرات المطلوبة
 
-بعد البحث في أُطر المراجعات الأسبوعية الأكثر فعالية عالميا (خاصة EOS Level 10 Meeting)، هذه أهم المبادئ:
+### 1. StepPriorities.tsx — إضافة زر اقتراح للحقول اليدوية
 
-| المبدأ | المصدر | التطبيق في نظامنا |
-|--------|--------|-------------------|
-| مراجعة المؤشرات أولا (Scorecard) | EOS L10 | عرض مؤشرات OIL الثلاثة الأساسية تلقائيا |
-| مراجعة الأهداف (on-track / off-track) | EOS Rocks | عرض الأهداف النشطة مع حالتها |
-| حل المشاكل لا مجرد سردها (IDS) | EOS L10 | لكل محظور: Brain يقترح حلا عمليا |
-| مخرجات واضحة (To-Dos) | EOS L10 | تحويل القرارات إلى مهام في Workboard |
-| المقارنة الأسبوعية | Agile Retrospectives | عرض تغير الأداء مقارنة بالأسبوع الماضي |
+- إضافة زر Sparkles بجانب عنوان "أولوياتك" يستدعي `onSuggestManual`
+- عرض حالة تحميل أثناء الانتظار
+- الحقول تبقى قابلة للتعديل بالكامل بعد الملء
 
-## الهيكل الجديد المقترح (6 خطوات بدلا من 5)
+### 2. WeeklyCheckinPage.tsx — منطق الاقتراح الذكي
 
-```text
-الخطوة 1: لمحة الأسبوع (تلقائي)
-  - مؤشرات OIL الأساسية مع اتجاهاتها
-  - إحصائيات سريعة: أنجز X من Y، تأخر Z، محظور W
-  - مقارنة مع الأسبوع الماضي (اختياري)
+- إنشاء دالة `handleSuggestManualPriorities` تجمع السياق:
+  - مؤشرات OIL (scores + trends)
+  - المهام المتأخرة والمحظورة (من `taskStats` الموجود)
+  - الأهداف المتأخرة (من `goalReviews`)
+  - الإنجازات (من `completedItems`)
+  - القرارات المتخذة في خطوة IDS (من `issues`)
+- إرسال prompt غني لـ `brain-chat` بـ action `weekly_checkin_priorities`
+- تحليل الرد وملء `manualPriorities` بالنتائج
 
-الخطوة 2: مراجعة الأهداف (تلقائي + تفاعلي)
-  - عرض الأهداف النشطة
-  - المستخدم يحدد لكل هدف: "على المسار" أو "متأخر"
-  - أي هدف "متأخر" ينزل لقائمة المشاكل تلقائيا
+### 3. brain-chat Edge Function — تحسين prompt الأولويات
 
-الخطوة 3: ما أنجزت (تلقائي — يبقى كما هو)
-  - المهام المنجزة هذا الأسبوع من Workboard
+- تحديث prompt الـ `weekly_checkin_priorities` ليشمل بيانات OIL والسياق الكامل
+- التأكيد على إرجاع 3 أولويات فقط، كل واحدة في سطر مرقم، بدون شرح
 
-الخطوة 4: حل المشاكل (IDS المبسط)
-  - قائمة تجمع: المهام المحظورة + الأهداف المتأخرة
-  - لكل مشكلة: Brain يقترح حلا أو خطوة تالية
-  - المستخدم يقرر: "اقبل الاقتراح" (يتحول لمهمة) أو "تخطى"
+### 4. ملفات الترجمة (5 لغات)
 
-الخطوة 5: أولويات الأسبوع القادم (تفاعلي — يبقى مع تحسين)
-  - Brain يقترح 3 أولويات بناء على السياق
-  - المستخدم يعدل أو يقبل
-  - الأولويات المقبولة تتحول لمهام في Workboard
-
-الخطوة 6: ملخص وإجراءات (AI + حفظ)
-  - Brain يولد ملخصا موجزا (3-4 أسطر فقط)
-  - قائمة واضحة بالإجراءات المتفق عليها
-  - زر "حفظ وتطبيق" يحفظ المراجعة ويُنشئ المهام
-```
-
-## المقارنة: قبل وبعد
-
-```text
-قبل (جمع معلومات):              بعد (صنع قرارات):
-                                 
-[ما أنجزت] ─────────────>       [لمحة + مؤشرات] ───> سياق فوري
-[ما المحظور] ─> يدوي            [مراجعة أهداف] ───> on/off track
-[أولويات] ─> نص حر              [ما أنجزت] ────────> تلقائي
-[مخاطر] ─> نص حر                [حل مشاكل IDS] ───> اقتراحات AI
-[ملخص AI] ─> للقراءة فقط        [أولويات] ─────────> اقتراحات + مهام
-                                 [ملخص + إجراءات] ─> حفظ + تطبيق
-                                 
-النتيجة: تقرير                   النتيجة: قرارات + مهام جديدة
-```
+- إضافة مفتاح `suggestManualPriorities` (مثل "اقترح لي أولويات")
 
 ## التفاصيل التقنية
 
-### 1. إعادة هيكلة WeeklyCheckinPage.tsx
-
-- تحويل الخطوات من 5 إلى 6
-- الخطوة 1 (لمحة): استدعاء `useOILIndicators` + إحصائيات المهام
-- الخطوة 2 (أهداف): جلب الأهداف النشطة مع حالة on-track/off-track
-- الخطوة 4 (IDS): دمج المحظورات + الأهداف المتأخرة في قائمة واحدة، مع زر "اقترح حلا" لكل مشكلة يستدعي Brain
-- الخطوة 5 (أولويات): Brain يقترح 3 أولويات تلقائيا عند دخول الخطوة
-- الخطوة 6 (إجراءات): جمع كل القرارات المتخذة وعرضها كقائمة، مع زر "حفظ وتطبيق" ينشئ مهام
-
-### 2. تعديل brain-chat Edge Function
-
-- إضافة action جديد: `weekly_checkin_ids` — يستلم مشكلة محددة ويقترح حلا عمليا في 2-3 أسطر
-- إضافة action جديد: `weekly_checkin_priorities` — يقترح 3 أولويات بناء على السياق الحالي
-- تعديل action الحالي `weekly_checkin` ليُنتج ملخصا أقصر (3-4 أسطر) + قائمة إجراءات مهيكلة
-
-### 3. إنشاء مهام من المراجعة
-
-- عند "حفظ وتطبيق": إدخال المهام المقبولة في جدول `tasks` مباشرة
-- كل مهمة منشأة تحمل `created_from: 'checkin'` في meaning object
-- ربط المهام بالمراجعة عبر metadata
-
-### 4. تحديث CheckinData interface
+### Prompt المحسّن
 
 ```text
-// إضافات للبنية الحالية:
-- goalReviews: { goalId, title, status: 'on_track' | 'off_track' }[]
-- issueResolutions: { issue, resolution, accepted: boolean }[]
-- suggestedPriorities: { title, accepted: boolean }[]
-- actionItems: { title, type: 'task' | 'decision', applied: boolean }[]
+You are a business strategy advisor. Based on the following workspace data, 
+suggest exactly 3 priorities for next week.
+
+OIL INDICATORS:
+- ExecutionHealth: {score}/100 (trend: {trend})
+- DeliveryRisk: {score}/100 (trend: {trend})
+- GoalProgress: {score}/100 (trend: {trend})
+
+THIS WEEK:
+- Completed: {count} tasks
+- Overdue: {count} tasks
+- Blocked: {count} tasks
+- Off-track goals: [list]
+- IDS decisions taken: [list]
+
+Rules:
+- Return ONLY 3 numbered lines (1. 2. 3.)
+- Each line is a specific, actionable task title
+- No explanations, no bullets, no markdown
+- Respond in the user's language
 ```
 
-### 5. تعديل جدول weekly_checkins
+### تعديل Props في StepPriorities
 
-- إضافة عمود `goal_reviews` (jsonb) — حالة كل هدف
-- إضافة عمود `action_items` (jsonb) — الإجراءات المتفق عليها
-- إضافة عمود `oil_snapshot` (jsonb) — لقطة المؤشرات وقت المراجعة
-
-### 6. تحديث ملفات الترجمة (5 لغات)
-
-- مفاتيح جديدة للخطوات الجديدة (لمحة الأسبوع، مراجعة الأهداف، حل المشاكل)
-- تحديث المفاتيح الحالية لتعكس التغييرات
+```text
+// إضافة:
++ onSuggestManual: () => void;
++ manualSuggestionsLoading: boolean;
+```
 
 ### الملفات المتأثرة
 
-1. `src/pages/brain/WeeklyCheckinPage.tsx` — إعادة هيكلة كاملة
-2. `supabase/functions/brain-chat/index.ts` — إضافة actions جديدة
-3. `src/i18n/translations/en.json` — مفاتيح جديدة
-4. `src/i18n/translations/ar.json` — ترجمة عربية
-5. `src/i18n/translations/fr.json` — ترجمة فرنسية
-6. `src/i18n/translations/es.json` — ترجمة إسبانية
-7. `src/i18n/translations/de.json` — ترجمة ألمانية
-8. Migration SQL — إضافة أعمدة لجدول weekly_checkins
+1. `src/components/checkin/StepPriorities.tsx` — زر اقتراح + حالة تحميل
+2. `src/pages/brain/WeeklyCheckinPage.tsx` — منطق جمع السياق وملء الحقول
+3. `supabase/functions/brain-chat/index.ts` — تحسين prompt الأولويات
+4. `src/i18n/translations/{en,ar,fr,es,de}.json` — مفتاح جديد
 
