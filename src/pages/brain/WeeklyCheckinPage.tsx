@@ -159,6 +159,10 @@ Suggest ONE practical, actionable solution in 2-3 lines maximum. Be specific, no
     setIssues(prev => prev.map(i => i.id === issueId ? { ...i, accepted: false } : i));
   };
 
+  const handleEditResolution = (issueId: string, newText: string) => {
+    setIssues(prev => prev.map(i => i.id === issueId ? { ...i, resolution: newText } : i));
+  };
+
   // Priorities: request AI suggestions
   const handleRequestPriorities = async () => {
     setSuggestionsLoading(true);
@@ -321,6 +325,7 @@ Keep it brief and actionable. Focus on decisions made, not data collected.`;
           onRequestSolution={handleRequestSolution}
           onAcceptResolution={handleAcceptResolution}
           onSkipResolution={handleSkipResolution}
+          onEditResolution={handleEditResolution}
         />
       )}
       {step === 5 && (
