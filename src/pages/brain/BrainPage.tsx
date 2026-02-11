@@ -182,41 +182,43 @@ function EmptyState({ t, onCapabilityClick }: { t: (k: string) => string; onCapa
   const capabilities = useSmartCapabilities();
 
   return (
-    <div className="flex flex-col items-center justify-center py-8 sm:py-16 space-y-6 sm:space-y-8">
-      <div className="text-center space-y-3 px-4">
-        <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto brain-glow">
-          <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
+    <div className="flex flex-col items-center py-4 sm:py-16 space-y-4 sm:space-y-8">
+      <div className="text-center space-y-2 sm:space-y-3 px-4">
+        <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto brain-glow">
+          <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
         </div>
-        <h2 className="text-lg sm:text-xl font-semibold text-foreground">{t('brainPage.empty.title')}</h2>
-        <p className="text-sm text-muted-foreground max-w-md">{t('brainPage.empty.subtitle')}</p>
+        <h2 className="text-base sm:text-xl font-semibold text-foreground">{t('brainPage.empty.title')}</h2>
+        <p className="text-xs sm:text-sm text-muted-foreground max-w-md">{t('brainPage.empty.subtitle')}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl px-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 w-full max-w-2xl px-3 sm:px-2">
         {capabilities.map((cap) => (
           <Card
             key={cap.id}
             className="border-border bg-card hover:border-primary/30 hover:bg-secondary/50 transition-all cursor-pointer group"
             onClick={() => onCapabilityClick(cap.promptKey, cap.action)}
           >
-            <CardContent className="p-5 text-center space-y-2">
-              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto">
-                <cap.icon className="h-5 w-5 text-primary" />
+            <CardContent className="p-3 sm:p-5 flex items-center gap-3 sm:flex-col sm:text-center sm:space-y-2">
+              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 sm:mx-auto">
+                <cap.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               </div>
-              <h3 className="text-sm font-medium text-foreground">{t(cap.titleKey)}</h3>
-              <p className="text-xs text-muted-foreground">{t(cap.descKey)}</p>
-              <ArrowRight className="h-4 w-4 text-muted-foreground mx-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="flex-1 sm:flex-none">
+                <h3 className="text-sm font-medium text-foreground">{t(cap.titleKey)}</h3>
+                <p className="text-xs text-muted-foreground hidden sm:block">{t(cap.descKey)}</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 sm:mx-auto opacity-50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* OIL Pulse Strip */}
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-2xl px-3 sm:px-0">
         <OILPulseStrip />
       </div>
 
       {/* OIL Insight Card */}
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-2xl px-3 sm:px-0">
         <OILInsightCard />
       </div>
     </div>
