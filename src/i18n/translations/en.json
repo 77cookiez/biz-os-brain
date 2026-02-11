@@ -209,7 +209,7 @@
       "yourLanguageDesc": "Select the language you want to work in. All AI content, Brain responses, tasks, goals, and chat translations will appear in this language.",
       "interfaceLanguage": "Interface Language",
       "interfaceLanguageDesc": "Buttons and menus can display in:",
-      "interfaceLanguageHint": "If your chosen language above is English, Arabic, or French, the interface language is set automatically.",
+      "interfaceLanguageHint": "If your chosen language above is one of the supported interface languages, it is set automatically.",
       "optional": "optional",
       "contentLanguageSaved": "Language updated"
     },

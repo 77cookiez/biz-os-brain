@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import en from '@/i18n/translations/en.json';
 import ar from '@/i18n/translations/ar.json';
 import fr from '@/i18n/translations/fr.json';
+import es from '@/i18n/translations/es.json';
+import de from '@/i18n/translations/de.json';
 
 /**
  * Recursively collect all dot-notation keys from a nested object.
@@ -21,26 +23,22 @@ function collectKeys(obj: Record<string, unknown>, prefix = ''): string[] {
 
 describe('i18n translation key consistency', () => {
   const enKeys = new Set(collectKeys(en));
-  const arKeys = new Set(collectKeys(ar));
-  const frKeys = new Set(collectKeys(fr));
+  const locales: Record<string, Set<string>> = {
+    Arabic: new Set(collectKeys(ar)),
+    French: new Set(collectKeys(fr)),
+    Spanish: new Set(collectKeys(es)),
+    German: new Set(collectKeys(de)),
+  };
 
-  it('Arabic file has all English keys', () => {
-    const missing = [...enKeys].filter(k => !arKeys.has(k));
-    expect(missing, `Missing Arabic keys: ${missing.join(', ')}`).toEqual([]);
-  });
+  for (const [name, keys] of Object.entries(locales)) {
+    it(`${name} file has all English keys`, () => {
+      const missing = [...enKeys].filter(k => !keys.has(k));
+      expect(missing, `Missing ${name} keys: ${missing.join(', ')}`).toEqual([]);
+    });
 
-  it('French file has all English keys', () => {
-    const missing = [...enKeys].filter(k => !frKeys.has(k));
-    expect(missing, `Missing French keys: ${missing.join(', ')}`).toEqual([]);
-  });
-
-  it('No orphan Arabic keys (not in English)', () => {
-    const orphan = [...arKeys].filter(k => !enKeys.has(k));
-    expect(orphan, `Orphan Arabic keys: ${orphan.join(', ')}`).toEqual([]);
-  });
-
-  it('No orphan French keys (not in English)', () => {
-    const orphan = [...frKeys].filter(k => !enKeys.has(k));
-    expect(orphan, `Orphan French keys: ${orphan.join(', ')}`).toEqual([]);
-  });
+    it(`No orphan ${name} keys (not in English)`, () => {
+      const orphan = [...keys].filter(k => !enKeys.has(k));
+      expect(orphan, `Orphan ${name} keys: ${orphan.join(', ')}`).toEqual([]);
+    });
+  }
 });
