@@ -164,7 +164,10 @@ export default function StepPriorities({
             </div>
           </div>
           {manualPriorities.map((priority, i) => (
-            <div key={i} className="flex items-center gap-3">
+            <div
+              key={i}
+              className={`flex items-center gap-3 ${priority.trim() ? 'animate-fade-in' : ''}`}
+            >
               <span className="text-lg font-bold text-primary">{i + 1}</span>
               <Textarea
                 value={priority}
