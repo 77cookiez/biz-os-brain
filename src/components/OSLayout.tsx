@@ -25,7 +25,7 @@ export function OSLayout() {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <TopBar onMenuToggle={isMobile ? () => setSidebarOpen(o => !o) : undefined} />
-        <main className="flex-1 overflow-auto p-4 md:p-6 flex flex-col">
+        <main className="flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </main>
       </div>

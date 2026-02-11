@@ -366,7 +366,7 @@ export default function BrainPage() {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 max-w-4xl mx-auto w-full">
+    <div className="flex flex-col max-w-4xl mx-auto w-full" style={{ height: 'calc(100vh - 3.5rem - 2rem)' }}>
       {/* Reasoning Stream / Empty State */}
       <ScrollArea className="flex-1 px-1 pt-4" ref={scrollRef}>
         {!hasMessages ? (
