@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquarePlus } from 'lucide-react';
 import { ThreadList } from '@/components/chat/ThreadList';
 import { MessageView } from '@/components/chat/MessageView';
@@ -32,6 +33,7 @@ function markWelcomeSeen(workspaceId: string) {
 }
 
 export default function ChatPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { threads, loading: threadsLoading, createThread, deleteThread, refreshThreads } = useChatThreads();
@@ -157,9 +159,9 @@ export default function ChatPage() {
               <MessageSquarePlus className="h-7 w-7 text-primary" />
             </div>
             <div className="text-center space-y-1.5 max-w-xs">
-              <h3 className="text-base font-semibold text-foreground">TeamChat</h3>
+              <h3 className="text-base font-semibold text-foreground">{t('chat.title')}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Select a conversation or start a new one.
+                {t('chat.selectThread')}
               </p>
             </div>
           </div>

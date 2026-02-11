@@ -189,7 +189,18 @@
       "inviteMember": "دعوة عضو للفريق",
       "sendInvite": "إرسال الدعوة",
       "teamMembers": "أعضاء الفريق",
-      "enterEmail": "أدخل البريد الإلكتروني"
+      "enterEmail": "أدخل البريد الإلكتروني",
+      "inviteViaWhatsApp": "دعوة عبر واتساب",
+      "customRolePlaceholder": "أدخل اسم الدور المخصص",
+      "removeMember": "إزالة العضو",
+      "role": {
+        "owner": "المالك",
+        "operations": "العمليات",
+        "sales": "المبيعات",
+        "marketing": "التسويق",
+        "finance": "المالية",
+        "custom": "مخصص"
+      }
     },
     "language": {
       "title": "اللغة والمنطقة",
@@ -356,6 +367,16 @@
       "medium": "متوسط",
       "high": "مرتفع"
     }
+  },
+  "chat": {
+    "title": "محادثة الفريق",
+    "selectThread": "اختر محادثة أو ابدأ واحدة جديدة.",
+    "welcome": "مرحباً في محادثة الفريق",
+    "welcomeSubtitle": "اكتب بلغتك.\nزملاؤك سيقرأونها بلغتهم.",
+    "createTask": "إنشاء مهمة",
+    "deleteMessage": "حذف",
+    "taskCreated": "تم إنشاء مهمة",
+    "discussedInChat": "نوقش في محادثة الفريق"
   },
   "notifications": {
     "title": "الإشعارات",

@@ -189,7 +189,18 @@
       "inviteMember": "Inviter un membre",
       "sendInvite": "Envoyer l'invitation",
       "teamMembers": "Membres de l'équipe",
-      "enterEmail": "Entrez l'adresse email"
+      "enterEmail": "Entrez l'adresse email",
+      "inviteViaWhatsApp": "Inviter via WhatsApp",
+      "customRolePlaceholder": "Entrez le nom du rôle personnalisé",
+      "removeMember": "Retirer le membre",
+      "role": {
+        "owner": "Propriétaire",
+        "operations": "Opérations",
+        "sales": "Ventes",
+        "marketing": "Marketing",
+        "finance": "Finance",
+        "custom": "Personnalisé"
+      }
     },
     "language": {
       "title": "Langue & Région",
@@ -356,6 +367,16 @@
       "medium": "Moyen",
       "high": "Élevé"
     }
+  },
+  "chat": {
+    "title": "Chat d'équipe",
+    "selectThread": "Sélectionnez une conversation ou démarrez-en une nouvelle.",
+    "welcome": "Bienvenue sur le Chat d'équipe",
+    "welcomeSubtitle": "Écrivez dans votre langue.\nVos coéquipiers liront dans la leur.",
+    "createTask": "Créer une tâche",
+    "deleteMessage": "Supprimer",
+    "taskCreated": "Tâche créée",
+    "discussedInChat": "Discuté dans le Chat d'équipe"
   },
   "notifications": {
     "title": "Notifications",
