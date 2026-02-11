@@ -49,6 +49,14 @@ export default function WorkboardCalendarPage() {
     return map;
   }, [tasks]);
 
+  const dayNames = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(2024, 0, i + 1);
+      return formatter.format(d);
+    });
+  }, []);
+
   if (loading) return <div className="flex items-center justify-center py-12 text-muted-foreground">{t('workboard.loading')}</div>;
 
   const statusColors: Record<string, string> = {
@@ -58,15 +66,6 @@ export default function WorkboardCalendarPage() {
     blocked: 'bg-destructive',
     done: 'bg-green-500',
   };
-
-  const dayNames = useMemo(() => {
-    const formatter = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
-    // Generate day names starting from Monday
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(2024, 0, i + 1); // Jan 1 2024 is Monday
-      return formatter.format(d);
-    });
-  }, []);
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
