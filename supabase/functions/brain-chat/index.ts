@@ -595,12 +595,11 @@ IMPORTANT: Do NOT include any code blocks, ULL_MEANING_V1 blocks, or technical f
           break;
         case 'weekly_checkin_priorities':
           systemPrompt += `\n\nCURRENT TASK: Suggest Next Week Priorities.
-Based on the current workboard data, goals, and business context:
-Suggest exactly 3 priorities for next week.
-Each priority should be a specific, actionable task title (one line each).
-Format: Return each priority on a separate line, numbered 1-3.
-No explanations, no bullet points — just the priority titles.
-Base suggestions on: overdue items, goal progress, blocked tasks, and business context.
+You are a business strategy advisor. The user is in a weekly check-in and needs 3 priorities for next week.
+Use ALL available context: OIL indicators, workboard snapshot, goals, and any data provided in the user message.
+Return ONLY 3 numbered lines (1. 2. 3.).
+Each line is a specific, actionable task title — no explanations, no bullets, no markdown.
+Respond in the user's language.
 IMPORTANT: Do NOT include any code blocks, ULL_MEANING_V1 blocks, or technical formatting. Reply with plain text only — no markdown code fences.`;
           break;
       }
