@@ -21,12 +21,15 @@ interface Props {
   onEdit: (id: string, newTitle: string) => void;
   manualPriorities: string[];
   onManualChange: (index: number, value: string) => void;
+  onSuggestManual: () => void;
+  manualSuggestionsLoading: boolean;
 }
 
 export default function StepPriorities({
   priorities, suggestionsLoading, onRequestSuggestions,
   onAccept, onReject, onEdit,
   manualPriorities, onManualChange,
+  onSuggestManual, manualSuggestionsLoading,
 }: Props) {
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -118,9 +121,25 @@ export default function StepPriorities({
 
         {/* Manual priorities */}
         <div className="space-y-2 pt-2 border-t border-border">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            {t('workboard.checkinPage.manualPriorities')}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              {t('workboard.checkinPage.manualPriorities')}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onSuggestManual}
+              disabled={manualSuggestionsLoading}
+              className="h-7 gap-1.5 text-xs"
+            >
+              {manualSuggestionsLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {t('workboard.checkinPage.suggestManualPriorities')}
+            </Button>
+          </div>
           {manualPriorities.map((priority, i) => (
             <div key={i} className="flex items-center gap-3">
               <span className="text-lg font-bold text-primary">{i + 1}</span>

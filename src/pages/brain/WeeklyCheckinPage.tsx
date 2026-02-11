@@ -25,6 +25,7 @@ export default function WeeklyCheckinPage() {
   const [suggestedPriorities, setSuggestedPriorities] = useState<SuggestedPriority[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [manualPriorities, setManualPriorities] = useState(['', '', '']);
+  const [manualSuggestionsLoading, setManualSuggestionsLoading] = useState(false);
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -163,7 +164,7 @@ Suggest ONE practical, actionable solution in 2-3 lines maximum. Be specific, no
     setIssues(prev => prev.map(i => i.id === issueId ? { ...i, resolution: newText } : i));
   };
 
-  // Priorities: request AI suggestions
+  // Priorities: request AI suggestions (top card)
   const handleRequestPriorities = async () => {
     setSuggestionsLoading(true);
     const prompt = `Based on the current business context, suggest exactly 3 priorities for next week. 
@@ -173,6 +174,62 @@ Format: Return each priority on a separate line, numbered 1-3. No explanations n
     await sendMessage(prompt, 'weekly_checkin_priorities');
     setSuggestionsLoading(false);
   };
+
+  // Priorities: AI suggest for manual fields (context-rich)
+  const handleSuggestManualPriorities = async () => {
+    setManualSuggestionsLoading(true);
+
+    // Build rich context
+    const oilContext = coreIndicators.map(ind =>
+      `- ${ind.indicator_key}: ${ind.score}/100 (trend: ${ind.trend})`
+    ).join('\n');
+
+    const offTrackGoals = goalReviews
+      .filter(g => g.status === 'off_track')
+      .map(g => g.title);
+
+    const idsDecisions = issues
+      .filter(i => i.accepted && i.resolution)
+      .map(i => i.resolution!);
+
+    const prompt = `You are a business strategy advisor. Based on the following workspace data, suggest exactly 3 priorities for next week.
+
+OIL INDICATORS:
+${oilContext || '- No indicators available yet'}
+
+THIS WEEK:
+- Completed: ${taskStats.completed} tasks
+- Overdue: ${taskStats.overdue} tasks
+- Blocked: ${taskStats.blocked} tasks
+- Off-track goals: ${offTrackGoals.length > 0 ? offTrackGoals.join(', ') : 'None'}
+- IDS decisions taken: ${idsDecisions.length > 0 ? idsDecisions.join('; ') : 'None'}
+
+Rules:
+- Return ONLY 3 numbered lines (1. 2. 3.)
+- Each line is a specific, actionable task title
+- No explanations, no bullets, no markdown
+- Respond in the user's language`;
+
+    await sendMessage(prompt, 'weekly_checkin_priorities');
+    setManualSuggestionsLoading(false);
+  };
+
+  // Watch for manual suggestion results
+  useEffect(() => {
+    if (!manualSuggestionsLoading && step === 5) {
+      // Only fill manual if they are all empty (fresh suggestion)
+      const lastMsg = messages.filter(m => m.role === 'assistant').pop();
+      if (lastMsg?.content && manualPriorities.every(p => p === '')) {
+        const lines = lastMsg.content.split('\n').filter(l => l.trim()).slice(0, 3);
+        const parsed = lines.map(line => line.replace(/^\d+[\.\)]\s*/, '').trim());
+        if (parsed.length > 0 && parsed[0]) {
+          const updated = ['', '', ''];
+          parsed.forEach((p, i) => { if (i < 3) updated[i] = p; });
+          setManualPriorities(updated);
+        }
+      }
+    }
+  }, [isLoading, messages]);
 
   useEffect(() => {
     if (!suggestionsLoading && suggestedPriorities.length === 0) {
@@ -342,6 +399,8 @@ Keep it brief and actionable. Focus on decisions made, not data collected.`;
             updated[i] = v;
             setManualPriorities(updated);
           }}
+          onSuggestManual={handleSuggestManualPriorities}
+          manualSuggestionsLoading={manualSuggestionsLoading}
         />
       )}
       {step === 6 && (

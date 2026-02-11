@@ -452,6 +452,7 @@
       "suggestPriorities": "Suggest Priorities with AI",
       "acceptPriority": "Accept",
       "manualPriorities": "Your own priorities",
+      "suggestManualPriorities": "Suggest priorities",
       "mostImportant": "Most important priority",
       "optionalPriority": "Optional priority",
       "summaryAndActions": "Summary & Actions",
