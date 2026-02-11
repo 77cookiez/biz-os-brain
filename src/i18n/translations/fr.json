@@ -229,6 +229,50 @@
       "dark": "Sombre",
       "light": "Clair",
       "system": "Système"
+    },
+    "intelligence": {
+      "title": "Intelligence Organisationnelle",
+      "description": "Configurer comment OIL observe et renforce votre organisation",
+      "visibility": {
+        "title": "Visibilité et Timing",
+        "description": "Contrôlez quand et comment les insights apparaissent",
+        "level": "Visibilité des insights",
+        "minimal": "Minimal — résumé quotidien + risques critiques uniquement",
+        "balanced": "Équilibré — résumé quotidien + tendances hebdomadaires",
+        "proactive": "Proactif — alertes immédiates au dépassement des seuils",
+        "brainOnly": "Afficher les insights uniquement dans Brain",
+        "brainOnlyDesc": "Les insights apparaissent uniquement dans les conversations Brain",
+        "indicatorStrip": "Afficher la barre d'indicateurs dans le tableau de bord",
+        "indicatorStripDesc": "Afficher une barre de santé compacte sur le tableau de bord principal"
+      },
+      "guidance": {
+        "title": "Style de Guidance",
+        "description": "Affecte le ton uniquement, pas la profondeur d'analyse",
+        "conservative": "Conservateur — insights à haute confiance uniquement",
+        "advisory": "Consultatif — suggestions claires et professionnelles",
+        "challenging": "Stimulant — détection précoce des risques, questions directes"
+      },
+      "leadership": {
+        "title": "Soutien au Leadership",
+        "description": "Configurer les fonctionnalités d'augmentation du leadership",
+        "enabled": "Activer le guidage de leadership",
+        "bestPractice": "Afficher les comparaisons de meilleures pratiques",
+        "explainWhy": "Toujours expliquer « pourquoi c'est important »",
+        "blindSpots": "Détection automatique des angles morts",
+        "blindSpotsDesc": "Recommandé — met en évidence proactivement les angles morts organisationnels"
+      },
+      "knowledge": {
+        "title": "Connaissances et Veille",
+        "description": "Contrôler les sources de connaissances externes",
+        "level": "Veille des connaissances externes",
+        "off": "Désactivé — comportement interne uniquement",
+        "conditional": "Conditionnel — déclenché par les indicateurs",
+        "onDemand": "À la demande — quand vous le demandez",
+        "benchmarks": "Inclure les benchmarks sectoriels",
+        "bestPractices": "Inclure les meilleures pratiques opérationnelles",
+        "excludeNews": "Exclure les actualités et tendances du marché",
+        "excludeNewsDesc": "Empêche le bruit des sujets tendance"
+      }
     }
   },
   "today": {
