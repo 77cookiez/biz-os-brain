@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Calendar, CheckCircle2, AlertTriangle, Target, ArrowRight, Sparkles, Loader2 } from 'lucide-react';
+import { Calendar, CheckCircle2, AlertTriangle, Target, ArrowRight, Sparkles, Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBrainChat } from '@/hooks/useBrainChat';
@@ -15,6 +16,7 @@ interface Task {
   id: string;
   title: string;
   status: string;
+  blocked_reason: string | null;
 }
 
 interface CheckinData {
@@ -27,13 +29,14 @@ interface CheckinData {
 export default function WeeklyCheckinPage() {
   const [step, setStep] = useState(1);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [blockedTasks, setBlockedTasks] = useState<Task[]>([]);
   const [checkinData, setCheckinData] = useState<CheckinData>({
     completedItems: [],
     blockedItems: [],
     nextPriorities: ['', '', ''],
     risksDecisions: [],
   });
-  const [newBlockedTask, setNewBlockedTask] = useState('');
+  const [selectedBlockedTaskId, setSelectedBlockedTaskId] = useState('');
   const [newBlockedReason, setNewBlockedReason] = useState('');
   const [newRisk, setNewRisk] = useState('');
   const [generating, setGenerating] = useState(false);
@@ -49,6 +52,7 @@ export default function WeeklyCheckinPage() {
   useEffect(() => {
     if (currentWorkspace) {
       fetchCompletedTasks();
+      fetchBlockedTasks();
     }
   }, [currentWorkspace?.id]);
 
@@ -64,7 +68,7 @@ export default function WeeklyCheckinPage() {
       .eq('status', 'done')
       .gte('completed_at', weekAgo);
     
-    setTasks(data || []);
+    setTasks((data as Task[]) || []);
     if (data) {
       setCheckinData(prev => ({
         ...prev,
@@ -73,15 +77,29 @@ export default function WeeklyCheckinPage() {
     }
   };
 
+  const fetchBlockedTasks = async () => {
+    if (!currentWorkspace) return;
+    
+    const { data } = await supabase
+      .from('tasks')
+      .select('id, title, status, blocked_reason')
+      .eq('workspace_id', currentWorkspace.id)
+      .eq('status', 'blocked');
+    
+    setBlockedTasks((data as Task[]) || []);
+  };
+
   const addBlockedItem = () => {
-    if (newBlockedTask.trim() && newBlockedReason.trim()) {
-      setCheckinData(prev => ({
-        ...prev,
-        blockedItems: [...prev.blockedItems, { task: newBlockedTask, reason: newBlockedReason }]
-      }));
-      setNewBlockedTask('');
-      setNewBlockedReason('');
-    }
+    const task = blockedTasks.find(t => t.id === selectedBlockedTaskId);
+    if (!task) return;
+    // Avoid duplicates
+    if (checkinData.blockedItems.some(b => b.task === task.title)) return;
+    setCheckinData(prev => ({
+      ...prev,
+      blockedItems: [...prev.blockedItems, { task: task.title, reason: newBlockedReason || task.blocked_reason || '' }]
+    }));
+    setSelectedBlockedTaskId('');
+    setNewBlockedReason('');
   };
 
   const addRisk = () => {
@@ -213,19 +231,28 @@ Please provide:
               </div>
             ))}
             <div className="space-y-2">
-              <Textarea
-                placeholder={t('workboard.checkinPage.whatBlocked')}
-                value={newBlockedTask}
-                onChange={(e) => setNewBlockedTask(e.target.value)}
-                className="bg-input border-border text-foreground min-h-[60px]"
-              />
+              <Select value={selectedBlockedTaskId} onValueChange={setSelectedBlockedTaskId}>
+                <SelectTrigger className="bg-input border-border text-foreground">
+                  <SelectValue placeholder={t('workboard.checkinPage.selectBlockedTask')} />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  {blockedTasks.length === 0 ? (
+                    <SelectItem value="__none" disabled>{t('workboard.checkinPage.noBlockedTasks')}</SelectItem>
+                  ) : (
+                    blockedTasks.map(task => (
+                      <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
               <Textarea
                 placeholder={t('workboard.checkinPage.whyBlocked')}
                 value={newBlockedReason}
                 onChange={(e) => setNewBlockedReason(e.target.value)}
                 className="bg-input border-border text-foreground min-h-[60px]"
               />
-              <Button variant="outline" size="sm" onClick={addBlockedItem}>
+              <Button variant="outline" size="sm" onClick={addBlockedItem} disabled={!selectedBlockedTaskId}>
+                <Plus className="h-3.5 w-3.5 mr-1" />
                 {t('workboard.checkinPage.addBlocker')}
               </Button>
             </div>
