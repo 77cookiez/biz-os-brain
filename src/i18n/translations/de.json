@@ -63,7 +63,8 @@
     "context": {
       "status": "Kontext Bereit",
       "appsConnected": "Apps verbunden",
-      "dataFresh": "Daten aktuell"
+      "dataFresh": "Daten aktuell",
+      "orgHealth": "Org.-Gesundheit"
     },
     "empty": {
       "title": "Dein Strategischer Geschäftsberater",
@@ -452,5 +453,23 @@
     "addPlan": "Plan hinzufügen",
     "noPlansLinked": "Keine Pläne mit diesem Ziel verknüpft",
     "standalonePlans": "Eigenständige Pläne"
+  },
+  "oil": {
+    "pulse": {
+      "executionHealth": "Ausführung",
+      "deliveryRisk": "Lieferrisiko",
+      "goalProgress": "Ziele",
+      "steady": "Stabil",
+      "needsAttention": "Aufmerksamkeit nötig",
+      "strong": "Stark",
+      "low": "Niedrig",
+      "moderate": "Moderat",
+      "high": "Hoch",
+      "onTrack": "Auf Kurs"
+    },
+    "insight": {
+      "title": "Ein bemerkenswertes Muster",
+      "dismiss": "Verwerfen"
+    }
   }
 }
