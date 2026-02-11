@@ -12,7 +12,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 const iconMap: Record<string, React.ElementType> = {};
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNavigate?: () => void;
+}
+
+export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
@@ -79,6 +83,7 @@ export function AppSidebar() {
               end={link.url === "/"}
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               activeClassName="bg-primary/10 text-primary"
+              onClick={onNavigate}
             >
               <link.icon className="h-4 w-4 shrink-0" />
               {!collapsed && <span>{link.title}</span>}
@@ -105,6 +110,7 @@ export function AppSidebar() {
                   to={`/apps/${app.app_id}`}
                   className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-secondary-foreground hover:bg-secondary transition-all"
                   activeClassName="bg-secondary text-foreground"
+                  onClick={onNavigate}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
                   {!collapsed && <span>{info?.name || app.app_id}</span>}
@@ -124,6 +130,7 @@ export function AppSidebar() {
           to="/marketplace"
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
           activeClassName="bg-secondary text-foreground"
+          onClick={onNavigate}
         >
           <Store className="h-4 w-4 shrink-0" />
           {!collapsed && <span>{t('navigation.marketplace')}</span>}
@@ -132,6 +139,7 @@ export function AppSidebar() {
           to="/settings"
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
           activeClassName="bg-secondary text-foreground"
+          onClick={onNavigate}
         >
           <Settings className="h-4 w-4 shrink-0" />
           {!collapsed && <span>{t('navigation.settings')}</span>}

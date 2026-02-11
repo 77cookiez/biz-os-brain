@@ -264,21 +264,21 @@ export default function UnifiedTasksPage() {
     return (
       <div className="space-y-4">
         <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as TaskStatus | 'all')}>
-          <TabsList className="bg-muted">
-            <TabsTrigger value="all" className="gap-2">
-              {t('teamTasks.all')} <Badge variant="secondary" className="ml-1">{taskCounts.all}</Badge>
+          <TabsList className="bg-muted overflow-x-auto scrollbar-hide w-full justify-start">
+            <TabsTrigger value="all" className="gap-1 sm:gap-2">
+              {t('teamTasks.all')} <Badge variant="secondary" className="ml-1 hidden sm:inline-flex">{taskCounts.all}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="backlog" className="gap-2">
-              {t('workboard.status.backlog')} <Badge variant="secondary" className="ml-1">{taskCounts.backlog}</Badge>
+            <TabsTrigger value="backlog" className="gap-1 sm:gap-2">
+              {t('workboard.status.backlog')} <Badge variant="secondary" className="ml-1 hidden sm:inline-flex">{taskCounts.backlog}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="in_progress" className="gap-2">
-              {t('workboard.status.inProgress')} <Badge variant="secondary" className="ml-1">{taskCounts.in_progress}</Badge>
+            <TabsTrigger value="in_progress" className="gap-1 sm:gap-2">
+              {t('workboard.status.inProgress')} <Badge variant="secondary" className="ml-1 hidden sm:inline-flex">{taskCounts.in_progress}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="blocked" className="gap-2">
-              {t('workboard.status.blocked')} <Badge variant="destructive" className="ml-1">{taskCounts.blocked}</Badge>
+            <TabsTrigger value="blocked" className="gap-1 sm:gap-2">
+              {t('workboard.status.blocked')} <Badge variant="destructive" className="ml-1 hidden sm:inline-flex">{taskCounts.blocked}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="done" className="gap-2">
-              {t('workboard.status.done')} <Badge variant="secondary" className="ml-1">{taskCounts.done}</Badge>
+            <TabsTrigger value="done" className="gap-1 sm:gap-2">
+              {t('workboard.status.done')} <Badge variant="secondary" className="ml-1 hidden sm:inline-flex">{taskCounts.done}</Badge>
             </TabsTrigger>
           </TabsList>
           <TabsContent value={statusFilter} className="mt-4">
@@ -329,7 +329,7 @@ export default function UnifiedTasksPage() {
                           </div>
                           <div className="flex items-center gap-1">
                             <Select value={task.status} onValueChange={(v) => handleStatusChange(task.id, v as TaskStatus)}>
-                              <SelectTrigger className="w-[120px] h-8 text-xs bg-input border-border text-foreground"><SelectValue /></SelectTrigger>
+                              <SelectTrigger className="w-[100px] sm:w-[120px] h-8 text-xs bg-input border-border text-foreground"><SelectValue /></SelectTrigger>
                               <SelectContent className="bg-popover border-border">
                                 {(['backlog', 'planned', 'in_progress', 'blocked', 'done'] as TaskStatus[]).map(key => (
                                   <SelectItem key={key} value={key} className="text-xs">{t(`workboard.status.${key === 'in_progress' ? 'inProgress' : key}`)}</SelectItem>
@@ -442,7 +442,7 @@ export default function UnifiedTasksPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-foreground">{t('workboard.tabs.tasks')}</h1>
           {hasTeam && <p className="text-xs text-muted-foreground">{t('teamTasks.teamMembers', { count: members.length })}</p>}
@@ -450,11 +450,11 @@ export default function UnifiedTasksPage() {
         <div className="flex items-center gap-2">
           {hasTeam && (
             <Button variant="outline" size="sm" onClick={() => setShowInviteDialog(true)}>
-              <UserPlus className="h-4 w-4 mr-1" />{t('teamTasks.inviteTeamMember')}
+              <UserPlus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{t('teamTasks.inviteTeamMember')}</span>
             </Button>
           )}
           <Button size="sm" onClick={() => hasTeam ? setShowTeamTaskDialog(true) : setShowAdd(true)} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> {t('workboard.addTask')}
+            <Plus className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{t('workboard.addTask')}</span>
           </Button>
         </div>
       </div>
