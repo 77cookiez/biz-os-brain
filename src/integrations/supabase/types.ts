@@ -1114,6 +1114,7 @@ export type Database = {
       }
       weekly_checkins: {
         Row: {
+          action_items: Json | null
           ai_recommendations: Json | null
           ai_summary: string | null
           blocked_items: Json | null
@@ -1121,13 +1122,16 @@ export type Database = {
           completed_by: string
           completed_items: string[] | null
           created_at: string
+          goal_reviews: Json | null
           id: string
           next_week_priorities: string[] | null
+          oil_snapshot: Json | null
           risks_and_decisions: string[] | null
           week_start: string
           workspace_id: string
         }
         Insert: {
+          action_items?: Json | null
           ai_recommendations?: Json | null
           ai_summary?: string | null
           blocked_items?: Json | null
@@ -1135,13 +1139,16 @@ export type Database = {
           completed_by: string
           completed_items?: string[] | null
           created_at?: string
+          goal_reviews?: Json | null
           id?: string
           next_week_priorities?: string[] | null
+          oil_snapshot?: Json | null
           risks_and_decisions?: string[] | null
           week_start: string
           workspace_id: string
         }
         Update: {
+          action_items?: Json | null
           ai_recommendations?: Json | null
           ai_summary?: string | null
           blocked_items?: Json | null
@@ -1149,8 +1156,10 @@ export type Database = {
           completed_by?: string
           completed_items?: string[] | null
           created_at?: string
+          goal_reviews?: Json | null
           id?: string
           next_week_priorities?: string[] | null
+          oil_snapshot?: Json | null
           risks_and_decisions?: string[] | null
           week_start?: string
           workspace_id?: string
