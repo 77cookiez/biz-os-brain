@@ -124,9 +124,11 @@ async function handleMeaningTranslation(
   }
 
   // Project meaning → language via AI
+  // IMPORTANT: Only use the English 'subject' field for translation.
+  // The 'description' field may be in a different language and confuses the model.
   const textsToTranslate = cacheMisses.map((item, i) => {
     const mj = item.meaningJson;
-    return `[${i}] Intent: ${mj.intent || 'create'} | Subject: ${mj.subject || ''} | Description: ${mj.description || ''}`;
+    return `[${i}] ${mj.subject || mj.description || ''}`;
   }).join("\n");
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -136,20 +138,25 @@ async function handleMeaningTranslation(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
+      model: "google/gemini-2.5-flash",
       messages: [
         {
           role: "system",
-          content: `You are a precise business content renderer. You receive structured canonical meaning objects and must render them as natural, concise text in ${targetLang}.
-Each input has an intent, subject, and optional description. Render each as a single clear sentence or phrase that a business user would naturally say.
-Return ONLY a JSON array of strings in the same order as the input.
-Do not add explanations. Preserve business meaning exactly.
-Example input:
-[0] Intent: create | Subject: marketing plan | Description: Q1 marketing strategy
-[1] Intent: complete | Subject: report | Description: Finish Q3 budget report
+          content: `You are a precise translator. Translate each numbered English text into ${targetLang}.
+CRITICAL RULES:
+- Output MUST be in ${targetLang} language ONLY. Never output in any other language.
+- Return ONLY a JSON array of translated strings in the same order.
+- Keep translations concise — short phrases, not full sentences.
+- Preserve business terminology exactly.
+- Do NOT add explanations or extra text.
 
-Example output:
-["خطة تسويقية للربع الأول", "إنهاء تقرير ميزانية الربع الثالث"]`,
+Example (translating to Arabic):
+Input:
+[0] Create marketing plan
+[1] Review Q3 budget
+
+Output:
+["إنشاء خطة تسويقية", "مراجعة ميزانية الربع الثالث"]`,
         },
         { role: "user", content: textsToTranslate },
       ],
@@ -245,19 +252,24 @@ async function handleLegacyTranslation(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
+      model: "google/gemini-2.5-flash",
       messages: [
         {
           role: "system",
-          content: `You are a precise business content translator. Translate the following numbered texts into ${targetLang}. 
-Preserve business meaning, intent, and terminology exactly.
-Return ONLY a JSON array of strings in the same order as the input.
-Do not add explanations. Do not change meaning. Do not interpret.
-Example input:
+          content: `You are a precise translator. Translate each numbered text into ${targetLang}.
+CRITICAL RULES:
+- Output MUST be in ${targetLang} language ONLY. Never output in any other language.
+- Return ONLY a JSON array of translated strings in the same order.
+- Keep translations concise — short phrases, not full sentences.
+- Preserve business terminology exactly.
+- Do NOT add explanations or extra text.
+
+Example (translating to Arabic):
+Input:
 [0] Create marketing plan
 [1] Review Q3 budget
 
-Example output:
+Output:
 ["إنشاء خطة تسويقية", "مراجعة ميزانية الربع الثالث"]`,
         },
         { role: "user", content: textsToTranslate },
