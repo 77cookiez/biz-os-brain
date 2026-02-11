@@ -150,7 +150,7 @@ function ContextStrip({ t }: { t: (k: string) => string }) {
   const { overallHealth, showStrip } = useOILIndicators();
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-secondary/50 border border-border text-xs text-muted-foreground overflow-x-auto">
+    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-lg bg-secondary/50 border border-border text-xs text-muted-foreground overflow-x-auto scrollbar-hide">
       <div className="flex items-center gap-1.5 shrink-0">
         <div className={`h-2 w-2 rounded-full ${businessContext?.setup_completed ? 'bg-emerald-500' : 'bg-amber-500'}`} />
         <span>{t('brainPage.context.status')}</span>
@@ -182,16 +182,16 @@ function EmptyState({ t, onCapabilityClick }: { t: (k: string) => string; onCapa
   const capabilities = useSmartCapabilities();
 
   return (
-    <div className="flex flex-col items-center justify-center py-16 space-y-8">
-      <div className="text-center space-y-3">
-        <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto brain-glow">
-          <Sparkles className="h-8 w-8 text-primary" />
+    <div className="flex flex-col items-center justify-center py-8 sm:py-16 space-y-6 sm:space-y-8">
+      <div className="text-center space-y-3 px-4">
+        <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto brain-glow">
+          <Sparkles className="h-7 w-7 sm:h-8 sm:w-8 text-primary" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground">{t('brainPage.empty.title')}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-foreground">{t('brainPage.empty.title')}</h2>
         <p className="text-sm text-muted-foreground max-w-md">{t('brainPage.empty.subtitle')}</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 w-full max-w-2xl px-2">
         {capabilities.map((cap) => (
           <Card
             key={cap.id}
@@ -366,7 +366,7 @@ export default function BrainPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] max-w-4xl mx-auto">
+    <div className="flex flex-col h-[calc(100vh-3.5rem)] max-w-4xl mx-auto px-1 sm:px-0">
       {/* Reasoning Stream / Empty State */}
       <ScrollArea className="flex-1 px-1 pt-4" ref={scrollRef}>
         {!hasMessages ? (
@@ -383,7 +383,7 @@ export default function BrainPage() {
                   )}
 
                   <div
-                    className={`max-w-[85%] rounded-xl px-4 py-3 ${
+                    className={`max-w-[90%] sm:max-w-[85%] rounded-xl px-3 sm:px-4 py-3 ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-card border border-border'
@@ -432,10 +432,10 @@ export default function BrainPage() {
       </ScrollArea>
 
       {/* Bottom section: suggestions + input pinned at bottom like ChatGPT */}
-      <div className="shrink-0 px-2 pb-4 pt-2 space-y-3">
+      <div className="shrink-0 px-1 sm:px-2 pb-3 sm:pb-4 pt-2 space-y-3">
         {/* Smart Quick Actions */}
         {!hasMessages && suggestions.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             {suggestions.map((s) => (
               <button
                 key={s.key}
@@ -470,7 +470,7 @@ export default function BrainPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('brainPage.inputPlaceholder')}
-            className="min-h-[52px] max-h-[200px] bg-transparent border-0 text-foreground resize-none flex-1 py-3.5 px-4 pr-24 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
+            className="min-h-[48px] sm:min-h-[52px] max-h-[200px] bg-transparent border-0 text-foreground resize-none flex-1 py-3 sm:py-3.5 px-3 sm:px-4 pr-20 sm:pr-24 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground text-sm"
             rows={1}
           />
 
