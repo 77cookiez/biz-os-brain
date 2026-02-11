@@ -1,19 +1,22 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { CalendarDays, CheckSquare, Inbox, Target, Calendar, Lightbulb, Users, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const tabs = [
-  { label: 'Today', icon: CheckSquare, path: '/apps/workboard' },
-  { label: 'This Week', icon: CalendarDays, path: '/apps/workboard/week' },
-  { label: 'Backlog', icon: Inbox, path: '/apps/workboard/backlog' },
-  { label: 'Goals', icon: Target, path: '/apps/workboard/goals' },
-  { label: 'Team Tasks', icon: Users, path: '/apps/workboard/tasks' },
-  { label: 'Calendar', icon: Calendar, path: '/apps/workboard/calendar' },
-  { label: 'Check-in', icon: ClipboardCheck, path: '/apps/workboard/checkin' },
-  { label: 'Brainstorm', icon: Lightbulb, path: '/apps/workboard/brainstorm' },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function WorkboardLayout() {
+  const { t } = useTranslation();
+
+  const tabs = [
+    { labelKey: 'workboard.tabs.today', icon: CheckSquare, path: '/apps/workboard' },
+    { labelKey: 'workboard.tabs.thisWeek', icon: CalendarDays, path: '/apps/workboard/week' },
+    { labelKey: 'workboard.tabs.backlog', icon: Inbox, path: '/apps/workboard/backlog' },
+    { labelKey: 'workboard.tabs.goals', icon: Target, path: '/apps/workboard/goals' },
+    { labelKey: 'workboard.tabs.teamTasks', icon: Users, path: '/apps/workboard/tasks' },
+    { labelKey: 'workboard.tabs.calendar', icon: Calendar, path: '/apps/workboard/calendar' },
+    { labelKey: 'workboard.tabs.checkin', icon: ClipboardCheck, path: '/apps/workboard/checkin' },
+    { labelKey: 'workboard.tabs.brainstorm', icon: Lightbulb, path: '/apps/workboard/brainstorm' },
+  ];
+
   return (
     <div className="flex flex-col h-full">
       <nav className="border-b border-border bg-card px-4">
@@ -33,7 +36,7 @@ export default function WorkboardLayout() {
               }
             >
               <tab.icon className="h-4 w-4" />
-              {tab.label}
+              {t(tab.labelKey)}
             </NavLink>
           ))}
         </div>

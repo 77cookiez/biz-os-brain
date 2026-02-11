@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useWorkboardTasks } from '@/hooks/useWorkboardTasks';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
+import { useTranslation } from 'react-i18next';
 
 interface Goal {
   id: string;
@@ -40,6 +41,7 @@ export default function WorkboardGoalsPage() {
   const { currentLanguage } = useLanguage();
   const { emitEvent } = useOIL();
   const { tasks } = useWorkboardTasks();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (currentWorkspace) fetchGoals();
@@ -79,8 +81,8 @@ export default function WorkboardGoalsPage() {
     };
     guardMeaningInsert('goals', insertPayload);
     const { error } = await supabase.from('goals').insert(insertPayload as any);
-    if (error) { toast.error('Failed to create goal'); return; }
-    toast.success('Goal created');
+    if (error) { toast.error(t('workboard.goalsPage.goalFailed')); return; }
+    toast.success(t('workboard.goalsPage.goalCreated'));
     emitEvent({
       event_type: 'goal.created',
       object_type: 'goal',
@@ -113,9 +115,9 @@ export default function WorkboardGoalsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground">Goals</h1>
+        <h1 className="text-xl font-bold text-foreground">{t('workboard.goalsPage.title')}</h1>
         <Button size="sm" onClick={() => setShowDialog(true)} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" /> New Goal
+          <Plus className="h-3.5 w-3.5" /> {t('workboard.goalsPage.newGoal')}
         </Button>
       </div>
 
@@ -124,19 +126,19 @@ export default function WorkboardGoalsPage() {
         <Card className="border-border bg-card">
           <CardContent className="py-4 text-center">
             <p className="text-2xl font-bold text-foreground">{completedThisWeek}</p>
-            <p className="text-xs text-muted-foreground">Completed this week</p>
+            <p className="text-xs text-muted-foreground">{t('workboard.goalsPage.completedThisWeek')}</p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card">
           <CardContent className="py-4 text-center">
             <p className="text-2xl font-bold text-foreground">{totalTasks}</p>
-            <p className="text-xs text-muted-foreground">Active tasks</p>
+            <p className="text-xs text-muted-foreground">{t('workboard.goalsPage.activeTasks')}</p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card">
           <CardContent className="py-4 text-center">
             <p className={`text-2xl font-bold ${blockedCount > 0 ? 'text-destructive' : 'text-foreground'}`}>{blockedCount}</p>
-            <p className="text-xs text-muted-foreground">Blocked</p>
+            <p className="text-xs text-muted-foreground">{t('workboard.goalsPage.blocked')}</p>
           </CardContent>
         </Card>
       </div>
@@ -146,7 +148,7 @@ export default function WorkboardGoalsPage() {
         <Card className="border-border bg-card">
           <CardContent className="py-12 text-center">
             <Target className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground">No goals yet. Create your first goal.</p>
+            <p className="text-muted-foreground">{t('workboard.goalsPage.noGoals')}</p>
           </CardContent>
         </Card>
       ) : (
@@ -190,7 +192,7 @@ export default function WorkboardGoalsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between text-sm mb-1.5">
-                    <span className="text-muted-foreground">{goal.kpi_name || `${goalTasks.filter(t => t.status === 'done').length}/${goalTasks.length} tasks`}</span>
+                    <span className="text-muted-foreground">{goal.kpi_name || `${goalTasks.filter(t => t.status === 'done').length}/${goalTasks.length} ${t('workboard.goalsPage.tasks')}`}</span>
                     <span className="text-foreground font-medium">{progress}%</span>
                   </div>
                   <Progress value={progress} className="h-2" />
@@ -204,17 +206,17 @@ export default function WorkboardGoalsPage() {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">New Goal</DialogTitle>
+            <DialogTitle className="text-foreground">{t('workboard.goalsPage.newGoal')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <Input placeholder="Goal title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-input border-border" />
-            <Textarea placeholder="Description (optional)" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-input border-border" rows={2} />
+            <Input placeholder={t('workboard.goalsPage.goalTitle')} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="bg-input border-border" />
+            <Textarea placeholder={t('workboard.goalsPage.descriptionOptional')} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="bg-input border-border" rows={2} />
             <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="KPI name" value={form.kpiName} onChange={e => setForm({ ...form, kpiName: e.target.value })} className="bg-input border-border" />
-              <Input placeholder="Target" type="number" value={form.kpiTarget} onChange={e => setForm({ ...form, kpiTarget: e.target.value })} className="bg-input border-border" />
+              <Input placeholder={t('workboard.goalsPage.kpiName')} value={form.kpiName} onChange={e => setForm({ ...form, kpiName: e.target.value })} className="bg-input border-border" />
+              <Input placeholder={t('workboard.goalsPage.kpiTarget')} type="number" value={form.kpiTarget} onChange={e => setForm({ ...form, kpiTarget: e.target.value })} className="bg-input border-border" />
             </div>
             <Input type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} className="bg-input border-border" />
-            <Button onClick={createGoal} disabled={!form.title.trim()} className="w-full">Create Goal</Button>
+            <Button onClick={createGoal} disabled={!form.title.trim()} className="w-full">{t('workboard.goalsPage.createGoal')}</Button>
           </div>
         </DialogContent>
       </Dialog>
