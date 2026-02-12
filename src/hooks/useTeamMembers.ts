@@ -67,6 +67,13 @@ export function useTeamMembers() {
     fetchMembers();
   }, [fetchMembers]);
 
+  // Refetch when the page regains focus (e.g. after editing profile in another tab/page)
+  useEffect(() => {
+    const handleFocus = () => fetchMembers();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchMembers]);
+
   const inviteMember = useCallback(async (
     email: string,
     teamRole: TeamRole,
