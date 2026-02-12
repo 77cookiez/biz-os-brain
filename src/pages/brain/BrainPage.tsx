@@ -1,27 +1,22 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   Sparkles,
-  Send,
   Loader2,
   User,
   Mic,
   MicOff,
-  Brain,
   Target,
   Lightbulb,
   BookOpen,
-  FileText,
   Eye,
   ArrowRight,
   ArrowUp,
   CheckCircle2,
   XCircle,
   RefreshCw,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
@@ -40,7 +35,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { OILPulseStrip } from '@/components/oil/OILPulseStrip';
 import { OILInsightCard } from '@/components/oil/OILInsightCard';
-import { useOILIndicators, getDotColor } from '@/hooks/useOILIndicators';
 import { useSmartCapabilities } from '@/hooks/useSmartCapabilities';
 
 // ─── Smart Suggestions Logic ───
@@ -50,7 +44,7 @@ interface SmartSuggestion {
 }
 
 function useSmartSuggestions(): SmartSuggestion[] {
-  const { businessContext, installedApps, currentWorkspace } = useWorkspace();
+  const { businessContext, currentWorkspace } = useWorkspace();
   const [taskCounts, setTaskCounts] = useState({ overdue: 0, blocked: 0, total: 0, goals: 0 });
 
   useEffect(() => {
@@ -78,151 +72,16 @@ function useSmartSuggestions(): SmartSuggestion[] {
 
   return useMemo(() => {
     const pool: SmartSuggestion[] = [];
-
-    if (!businessContext?.setup_completed) {
-      pool.push({ key: 'brainPage.suggestion.setupBusiness', icon: Target });
-    }
-
-    if (taskCounts.overdue > 0) {
-      pool.push({ key: 'brainPage.suggestion.reprioritize', icon: RefreshCw });
-    }
-
-    if (taskCounts.blocked > 0) {
-      pool.push({ key: 'brainPage.suggestion.unblock', icon: XCircle });
-    }
-
-    if (taskCounts.goals === 0) {
-      pool.push({ key: 'brainPage.suggestion.setGoals', icon: Target });
-    }
-
+    if (!businessContext?.setup_completed) pool.push({ key: 'brainPage.suggestion.setupBusiness', icon: Target });
+    if (taskCounts.overdue > 0) pool.push({ key: 'brainPage.suggestion.reprioritize', icon: RefreshCw });
+    if (taskCounts.blocked > 0) pool.push({ key: 'brainPage.suggestion.unblock', icon: XCircle });
+    if (taskCounts.goals === 0) pool.push({ key: 'brainPage.suggestion.setGoals', icon: Target });
     const hour = new Date().getHours();
-    if (hour < 12) {
-      pool.push({ key: 'brainPage.suggestion.planDay', icon: BookOpen });
-    } else {
-      pool.push({ key: 'brainPage.suggestion.reviewProgress', icon: Eye });
-    }
-
+    if (hour < 12) pool.push({ key: 'brainPage.suggestion.planDay', icon: BookOpen });
+    else pool.push({ key: 'brainPage.suggestion.reviewProgress', icon: Eye });
     pool.push({ key: 'brainPage.suggestion.strategize', icon: Lightbulb });
-
     return pool.slice(0, 3);
   }, [businessContext, taskCounts]);
-}
-
-// ─── Decision Panel ───
-interface DecisionPanelProps {
-  content: string;
-  t: (k: string) => string;
-  onSaveAsDraft: () => void;
-  onSendToWorkboard: () => void;
-  isSending: boolean;
-}
-
-function DecisionPanel({ content, t, onSaveAsDraft, onSendToWorkboard, isSending }: DecisionPanelProps) {
-  const hasMeaning = content.includes('ULL_MEANING_V1');
-  if (!hasMeaning) return null;
-
-  return (
-    <Card className="border-primary/20 bg-card">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium text-foreground">{t('brainPage.decisionPanel.title')}</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="text-xs" onClick={onSaveAsDraft} disabled={isSending}>
-            <FileText className="h-3 w-3 mr-1" />
-            {t('brainPage.decisionPanel.saveAsDraft')}
-          </Button>
-          <Button variant="outline" size="sm" className="text-xs" onClick={onSendToWorkboard} disabled={isSending}>
-            {isSending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ArrowRight className="h-3 w-3 mr-1" />}
-            {t('brainPage.decisionPanel.sendToWorkboard')}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ─── Context Strip ───
-function ContextStrip({ t }: { t: (k: string) => string }) {
-  const { businessContext, installedApps } = useWorkspace();
-  const activeApps = installedApps.filter(a => a.is_active);
-  const { overallHealth, showStrip } = useOILIndicators();
-
-  return (
-    <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-lg bg-secondary/50 border border-border text-xs text-muted-foreground overflow-x-auto scrollbar-hide">
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className={`h-2 w-2 rounded-full ${businessContext?.setup_completed ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-        <span>{t('brainPage.context.status')}</span>
-      </div>
-      <span className="text-border">|</span>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <span>{activeApps.length} {t('brainPage.context.appsConnected')}</span>
-      </div>
-      <span className="text-border">|</span>
-      <div className="flex items-center gap-1.5 shrink-0">
-        <CheckCircle2 className="h-3 w-3 text-primary" />
-        <span>{t('brainPage.context.dataFresh')}</span>
-      </div>
-      {showStrip && (
-        <>
-          <span className="text-border">|</span>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className={`h-2 w-2 rounded-full ${getDotColor(overallHealth)}`} />
-            <span>{t('brainPage.context.orgHealth')}</span>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── Empty State ───
-function EmptyState({ t, onCapabilityClick }: { t: (k: string) => string; onCapabilityClick: (promptKey: string, action: string) => void }) {
-  const capabilities = useSmartCapabilities();
-
-  return (
-    <div className="flex flex-col items-center py-4 sm:py-16 space-y-4 sm:space-y-8">
-      <div className="text-center space-y-2 sm:space-y-3 px-4">
-        <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto brain-glow">
-          <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-        </div>
-        <h2 className="text-base sm:text-xl font-semibold text-foreground">{t('brainPage.empty.title')}</h2>
-        <p className="text-xs sm:text-sm text-muted-foreground max-w-md">{t('brainPage.empty.subtitle')}</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 w-full max-w-2xl px-3 sm:px-2">
-        {capabilities.map((cap) => (
-          <Card
-            key={cap.id}
-            className="border-border bg-card hover:border-primary/30 hover:bg-secondary/50 transition-all cursor-pointer group"
-            onClick={() => onCapabilityClick(cap.promptKey, cap.action)}
-          >
-            <CardContent className="p-3 sm:p-5 flex items-center gap-3 sm:flex-col sm:text-center sm:space-y-2">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 sm:mx-auto">
-                <cap.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              </div>
-              <div className="flex-1 sm:flex-none">
-                <h3 className="text-sm font-medium text-foreground">{t(cap.titleKey)}</h3>
-                <p className="text-xs text-muted-foreground hidden sm:block">{t(cap.descKey)}</p>
-              </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 sm:mx-auto opacity-50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* OIL Pulse Strip */}
-      <div className="w-full max-w-2xl px-3 sm:px-0">
-        <OILPulseStrip />
-      </div>
-
-      {/* OIL Insight Card */}
-      <div className="w-full max-w-2xl px-3 sm:px-0">
-        <OILInsightCard />
-      </div>
-    </div>
-  );
 }
 
 // ─── Main Page ───
@@ -231,8 +90,10 @@ export default function BrainPage() {
   const { messages, isLoading, sendMessage } = useBrainChat();
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestions = useSmartSuggestions();
+  const capabilities = useSmartCapabilities();
   const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
@@ -254,26 +115,29 @@ export default function BrainPage() {
 
   // Voice input
   const { isListening, isSupported, confidence, startListening, stopListening } = useVoiceInput({
-    onResult: (transcript) => {
-      setInput(prev => prev + transcript);
-    },
-    onInterimResult: (interim) => {
-      // Could show interim in a separate UI element if desired
-    },
+    onResult: (transcript) => setInput(prev => prev + transcript),
+    onInterimResult: () => {},
   });
 
-  // Auto-scroll
+  // Auto-scroll to bottom
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+  }, [input]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
     const message = input;
     setInput('');
     if (isListening) stopListening();
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
     await sendMessage(message);
   };
 
@@ -287,16 +151,16 @@ export default function BrainPage() {
   const handleSuggestionClick = (key: string) => {
     const text = t(key);
     setInput(text);
+    textareaRef.current?.focus();
   };
 
   const handleCapabilityClick = (promptKey: string, action: string) => {
-    const prompt = t(promptKey);
-    sendMessage(prompt, action);
+    sendMessage(t(promptKey), action);
   };
 
   const hasMessages = messages.length > 0;
 
-  // Extract meaning blocks from AI response
+  // Extract meaning blocks
   const extractMeaningBlocks = useCallback((content: string): MeaningJsonV1[] => {
     const regex = /```ULL_MEANING_V1\s*([\s\S]*?)```/g;
     const blocks: MeaningJsonV1[] = [];
@@ -309,7 +173,7 @@ export default function BrainPage() {
           const validated = MeaningJsonV1Schema.safeParse(item);
           if (validated.success) blocks.push(validated.data);
         }
-      } catch { /* skip invalid */ }
+      } catch { /* skip */ }
     }
     return blocks;
   }, []);
@@ -317,144 +181,181 @@ export default function BrainPage() {
   const handleSendToWorkboard = useCallback(async () => {
     const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
     if (!lastAssistant || !currentWorkspace || !user) return;
-
     const meaningBlocks = extractMeaningBlocks(lastAssistant.content);
-    if (meaningBlocks.length === 0) {
-      toast.success(t('brain.noted'));
-      return;
-    }
-
-    if (!isWorkboardInstalled) {
-      await installWorkboard();
-    }
-
+    if (meaningBlocks.length === 0) { toast.success(t('brain.noted')); return; }
+    if (!isWorkboardInstalled) await installWorkboard();
     setIsSending(true);
     try {
       const items = [];
       for (const meaning of meaningBlocks) {
         const meaningId = await createMeaningObject({
-          workspaceId: currentWorkspace.id,
-          createdBy: user.id,
-          type: meaning.type as any,
-          sourceLang: 'en',
-          meaningJson: meaning,
+          workspaceId: currentWorkspace.id, createdBy: user.id,
+          type: meaning.type as any, sourceLang: 'en', meaningJson: meaning,
         });
         if (meaning.type === 'TASK') {
-          items.push({
-            type: 'task' as const,
-            title: meaning.subject,
-            description: meaning.description,
-            status: 'backlog' as const,
-            meaning_object_id: meaningId,
-          });
+          items.push({ type: 'task' as const, title: meaning.subject, description: meaning.description, status: 'backlog' as const, meaning_object_id: meaningId });
         }
       }
       if (items.length > 0) {
         await createTasksFromPlan(items as any);
         navigate('/apps/workboard/backlog');
       }
-    } finally {
-      setIsSending(false);
-    }
+    } finally { setIsSending(false); }
   }, [messages, currentWorkspace, user, extractMeaningBlocks, isWorkboardInstalled, installWorkboard, createTasksFromPlan, navigate, t]);
 
-  const handleSaveAsDraft = useCallback(() => {
-    toast.success(t('brain.noted'));
-  }, [t]);
+  const handleSaveAsDraft = useCallback(() => { toast.success(t('brain.noted')); }, [t]);
 
-  // Strip ULL_MEANING blocks from displayed content
-  const cleanContent = (content: string) => {
-    return content.replace(/```ULL_MEANING_V1[\s\S]*?```/g, '').trim();
-  };
+  const cleanContent = (content: string) => content.replace(/```ULL_MEANING_V1[\s\S]*?```/g, '').trim();
 
   return (
-    <div className="flex flex-col max-w-4xl mx-auto w-full" style={{ height: 'calc(100vh - 3.5rem - 2rem)' }}>
-      {/* Reasoning Stream / Empty State */}
-      <ScrollArea className="flex-1 px-1 pt-4" ref={scrollRef}>
+    <div className="flex flex-col h-[calc(100dvh-3.5rem-2rem)] max-w-3xl mx-auto w-full">
+      {/* ── Messages area ── */}
+      <div className="flex-1 overflow-y-auto">
         {!hasMessages ? (
-          <EmptyState t={t} onCapabilityClick={handleCapabilityClick} />
+          /* ── Empty / Welcome State ── */
+          <div className="flex flex-col items-center justify-center min-h-full px-4 py-6">
+            {/* Logo + greeting */}
+            <div className="text-center mb-8">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground">
+                {t('brainPage.empty.title')}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-sm mx-auto">
+                {t('brainPage.empty.subtitle')}
+              </p>
+            </div>
+
+            {/* Capability cards grid — 1 col mobile, 3 col desktop */}
+            <div className="w-full max-w-xl grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mb-6">
+              {capabilities.map((cap) => (
+                <button
+                  key={cap.id}
+                  onClick={() => handleCapabilityClick(cap.promptKey, cap.action)}
+                  className="flex items-center gap-3 sm:flex-col sm:items-center sm:text-center rounded-xl border border-border bg-card p-3 sm:p-4 text-left hover:bg-secondary/50 hover:border-primary/30 transition-all group"
+                >
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <cap.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 sm:flex-none min-w-0">
+                    <span className="text-sm font-medium text-foreground block truncate">
+                      {t(cap.titleKey)}
+                    </span>
+                    <span className="text-xs text-muted-foreground hidden sm:block mt-0.5">
+                      {t(cap.descKey)}
+                    </span>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-40 sm:hidden" />
+                </button>
+              ))}
+            </div>
+
+            {/* OIL components */}
+            <div className="w-full max-w-xl space-y-3">
+              <OILPulseStrip />
+              <OILInsightCard />
+            </div>
+          </div>
         ) : (
-          <div className="space-y-4 pb-4">
+          /* ── Chat messages ── */
+          <div className="px-4 py-4 space-y-5">
             {messages.map((message, i) => (
               <div key={i}>
-                <div className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {/* Message row */}
+                <div className={cn(
+                  "flex gap-2.5",
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                )}>
+                  {/* AI avatar */}
                   {message.role === 'assistant' && (
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-1">
-                      <Sparkles className="h-4 w-4 text-primary" />
+                    <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
                     </div>
                   )}
 
-                  <div
-                    className={`max-w-[90%] sm:max-w-[85%] rounded-xl px-3 sm:px-4 py-3 ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border border-border'
-                    }`}
-                  >
+                  {/* Bubble */}
+                  <div className={cn(
+                    "rounded-2xl px-3.5 py-2.5 max-w-[85%] sm:max-w-[75%]",
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'bg-card border border-border rounded-bl-md'
+                  )}>
                     {message.role === 'user' ? (
-                      <p className="text-sm">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     ) : (
-                      <div dir="auto" className="prose max-w-none text-foreground leading-relaxed [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_p]:text-foreground [&_p]:leading-relaxed [&_li]:text-foreground [&_li]:leading-relaxed [&_strong]:text-foreground [&_a]:text-primary [&_code]:text-primary [&_blockquote]:border-primary/30 [&_blockquote]:text-muted-foreground [&_ul]:space-y-1 [&_ol]:space-y-1">
+                      <div dir="auto" className="prose prose-sm max-w-none text-foreground leading-relaxed [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_p]:text-foreground [&_p]:leading-relaxed [&_li]:text-foreground [&_strong]:text-foreground [&_a]:text-primary [&_code]:text-primary [&_blockquote]:border-primary/30 [&_blockquote]:text-muted-foreground [&_ul]:space-y-0.5 [&_ol]:space-y-0.5">
                         <ReactMarkdown>{cleanContent(message.content)}</ReactMarkdown>
                       </div>
                     )}
                   </div>
 
+                  {/* User avatar */}
                   {message.role === 'user' && (
-                    <div className="h-8 w-8 rounded-lg bg-secondary flex items-center justify-center shrink-0 mt-1">
-                      <User className="h-4 w-4 text-secondary-foreground" />
+                    <div className="h-7 w-7 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-0.5">
+                      <User className="h-3.5 w-3.5 text-secondary-foreground" />
                     </div>
                   )}
                 </div>
 
                 {/* Decision Panel after last assistant message */}
-                {message.role === 'assistant' && i === messages.length - 1 && (
-                  <div className="mt-3 ml-11">
-                    <DecisionPanel content={message.content} t={t} onSaveAsDraft={handleSaveAsDraft} onSendToWorkboard={handleSendToWorkboard} isSending={isSending} />
+                {message.role === 'assistant' && i === messages.length - 1 && message.content.includes('ULL_MEANING_V1') && (
+                  <div className="mt-2 ml-9 sm:ml-10 flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleSaveAsDraft} disabled={isSending}>
+                      <FileText className="h-3 w-3 mr-1" />
+                      {t('brainPage.decisionPanel.saveAsDraft')}
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleSendToWorkboard} disabled={isSending}>
+                      {isSending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ArrowRight className="h-3 w-3 mr-1" />}
+                      {t('brainPage.decisionPanel.sendToWorkboard')}
+                    </Button>
                   </div>
                 )}
               </div>
             ))}
 
+            {/* Thinking indicator */}
             {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-              <div className="flex gap-3">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Sparkles className="h-4 w-4 text-primary" />
+              <div className="flex gap-2.5">
+                <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
                 </div>
-                <div className="bg-card border border-border rounded-xl px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{t('brainPage.thinking')}</span>
+                <div className="bg-card border border-border rounded-2xl rounded-bl-md px-3.5 py-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground animate-bounce [animation-delay:300ms]" />
                   </div>
                 </div>
               </div>
             )}
+
+            <div ref={messagesEndRef} />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
-      {/* Bottom section: suggestions + input pinned at bottom like ChatGPT */}
-      <div className="shrink-0 px-1 sm:px-2 pb-3 sm:pb-4 pt-2 space-y-3">
-        {/* Smart Quick Actions */}
+      {/* ── Bottom pinned area ── */}
+      <div className="shrink-0 px-3 sm:px-4 pb-3 pt-2 space-y-2.5">
+        {/* Suggestion chips — only when empty */}
         {!hasMessages && suggestions.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {suggestions.map((s) => (
               <button
                 key={s.key}
                 onClick={() => handleSuggestionClick(s.key)}
-                className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-secondary-foreground hover:bg-secondary hover:border-primary/30 transition-all shrink-0 group"
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-secondary-foreground hover:bg-secondary hover:border-primary/30 transition-all shrink-0 whitespace-nowrap"
               >
-                <s.icon className="h-3.5 w-3.5 text-primary" />
+                <s.icon className="h-3 w-3 text-primary" />
                 <span>{t(s.key)}</span>
-                <ArrowRight className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             ))}
           </div>
         )}
 
-        {/* Voice listening indicator */}
+        {/* Voice indicator */}
         {isListening && (
-          <div className="flex items-center gap-2 px-2 text-xs">
+          <div className="flex items-center gap-2 px-1 text-xs">
             <span className="flex items-center gap-1 text-destructive">
               <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
               {t('brainPage.voice.listening')}
@@ -465,18 +366,19 @@ export default function BrainPage() {
           </div>
         )}
 
-        {/* Input bar */}
+        {/* Input bar — ChatGPT style */}
         <div className="relative flex items-end rounded-2xl border border-border bg-card shadow-sm focus-within:border-primary/50 focus-within:shadow-md transition-all">
-          <Textarea
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('brainPage.inputPlaceholder')}
-            className="min-h-[48px] sm:min-h-[52px] max-h-[200px] bg-transparent border-0 text-foreground resize-none flex-1 py-3 sm:py-3.5 px-3 sm:px-4 pr-20 sm:pr-24 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground text-sm"
             rows={1}
+            className="w-full min-h-[44px] max-h-[200px] bg-transparent text-foreground resize-none py-3 pl-4 pr-20 focus:outline-none placeholder:text-muted-foreground text-sm leading-relaxed"
           />
 
-          <div className="absolute bottom-2 right-2 flex items-center gap-1">
+          <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1">
             {isSupported && (
               <button
                 onClick={isListening ? stopListening : startListening}
@@ -501,11 +403,7 @@ export default function BrainPage() {
                   : "bg-muted text-muted-foreground cursor-not-allowed"
               )}
             >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowUp className="h-4 w-4" />
-              )}
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}
             </button>
           </div>
         </div>
