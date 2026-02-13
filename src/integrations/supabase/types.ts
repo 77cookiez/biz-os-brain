@@ -1461,26 +1461,35 @@ export type Database = {
       workspace_apps: {
         Row: {
           app_id: string
+          billing_status: string
           id: string
           installed_at: string
           installed_by: string
           is_active: boolean
+          plan: string
+          uninstalled_at: string | null
           workspace_id: string
         }
         Insert: {
           app_id: string
+          billing_status?: string
           id?: string
           installed_at?: string
           installed_by: string
           is_active?: boolean
+          plan?: string
+          uninstalled_at?: string | null
           workspace_id: string
         }
         Update: {
           app_id?: string
+          billing_status?: string
           id?: string
           installed_at?: string
           installed_by?: string
           is_active?: boolean
+          plan?: string
+          uninstalled_at?: string | null
           workspace_id?: string
         }
         Relationships: [

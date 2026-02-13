@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Search, Package, ArrowRight, Check, Loader2, Shield } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Package, ArrowRight, Check, Loader2, Shield, Crown, ExternalLink, Settings, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,16 +27,32 @@ const pricingLabels: Record<string, { label: string; variant: 'default' | 'secon
   subscription: { label: 'Subscription', variant: 'outline' },
 };
 
+const iconMap: Record<string, React.ElementType> = {
+  crown: Crown,
+};
+
 export default function Marketplace() {
   const [apps, setApps] = useState<AppItem[]>([]);
   const [search, setSearch] = useState('');
   const [selectedApp, setSelectedApp] = useState<AppItem | null>(null);
   const [activating, setActivating] = useState(false);
-  const { installedApps, activateApp, deactivateApp } = useWorkspace();
+  const [deactivating, setDeactivating] = useState(false);
+  const { installedApps, activateApp, deactivateApp, currentWorkspace, refreshInstalledApps } = useWorkspace();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     fetchApps();
   }, []);
+
+  // Auto-highlight app from query param
+  useEffect(() => {
+    const highlight = searchParams.get('highlight');
+    if (highlight && apps.length > 0) {
+      const app = apps.find(a => a.id === highlight);
+      if (app) setSelectedApp(app);
+    }
+  }, [searchParams, apps]);
 
   const fetchApps = async () => {
     const { data } = await supabase
@@ -52,10 +69,57 @@ export default function Marketplace() {
     setActivating(true);
     try {
       await activateApp(app.id);
+
+      // Write audit log
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && currentWorkspace) {
+        await supabase.from('audit_logs').insert({
+          workspace_id: currentWorkspace.id,
+          actor_user_id: user.id,
+          action: 'app.install',
+          entity_type: 'app',
+          entity_id: app.id,
+          metadata: { app_id: app.id, plan: app.pricing },
+        });
+      }
+
       toast.success(`${app.name} activated!`);
       setSelectedApp(null);
     } finally {
       setActivating(false);
+    }
+  };
+
+  const handleDeactivate = async (app: AppItem) => {
+    setDeactivating(true);
+    try {
+      await deactivateApp(app.id);
+
+      if (currentWorkspace) {
+        await supabase
+          .from('workspace_apps')
+          .update({ uninstalled_at: new Date().toISOString() } as any)
+          .eq('workspace_id', currentWorkspace.id)
+          .eq('app_id', app.id);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from('audit_logs').insert({
+            workspace_id: currentWorkspace.id,
+            actor_user_id: user.id,
+            action: 'app.uninstall',
+            entity_type: 'app',
+            entity_id: app.id,
+            metadata: { app_id: app.id, plan: app.pricing },
+          });
+        }
+      }
+
+      await refreshInstalledApps();
+      toast.success(`${app.name} deactivated`);
+      setSelectedApp(null);
+    } finally {
+      setDeactivating(false);
     }
   };
 
@@ -80,12 +144,13 @@ export default function Marketplace() {
         {filteredApps.map(app => {
           const installed = isAppInstalled(app.id);
           const systemApp = isSystemApp(app.id);
+          const AppIcon = iconMap[app.icon || ''] || Package;
           return (
             <Card key={app.id} className={`border-border bg-card cursor-pointer hover:border-primary/50 ${app.status === 'coming_soon' ? 'opacity-50' : ''}`} onClick={() => setSelectedApp(app)}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    {systemApp ? <Shield className="h-5 w-5 text-primary" /> : <Package className="h-5 w-5 text-primary" />}
+                    {systemApp ? <Shield className="h-5 w-5 text-primary" /> : <AppIcon className="h-5 w-5 text-primary" />}
                   </div>
                   <div className="flex items-center gap-1.5">
                     {systemApp && <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">System</Badge>}
@@ -114,10 +179,26 @@ export default function Marketplace() {
           {selectedApp && (
             <>
               <DialogHeader>
-                <DialogTitle>{selectedApp.name}</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedApp.name}
+                  <Badge variant={pricingLabels[selectedApp.pricing].variant} className="text-[10px]">
+                    {pricingLabels[selectedApp.pricing].label}
+                  </Badge>
+                </DialogTitle>
                 <DialogDescription>{selectedApp.description}</DialogDescription>
               </DialogHeader>
-              <div className="pt-4">
+
+              {selectedApp.capabilities && selectedApp.capabilities.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {selectedApp.capabilities.map(cap => (
+                    <Badge key={cap} variant="secondary" className="text-[10px]">
+                      {cap.replace(/_/g, ' ')}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-4 space-y-2">
                 {isSystemApp(selectedApp.id) ? (
                   <div className="text-center space-y-2">
                     <Badge variant="outline" className="border-primary/30 text-primary">System App — Always Active</Badge>
@@ -126,10 +207,27 @@ export default function Marketplace() {
                 ) : selectedApp.status === 'coming_soon' ? (
                   <Button disabled className="w-full">Coming Soon</Button>
                 ) : isAppInstalled(selectedApp.id) ? (
-                  <Button variant="secondary" className="w-full" onClick={() => { deactivateApp(selectedApp.id); setSelectedApp(null); toast.success('Deactivated'); }}>Deactivate</Button>
+                  <div className="space-y-2">
+                    <Button className="w-full gap-2" onClick={() => { navigate(`/apps/${selectedApp.id}`); setSelectedApp(null); }}>
+                      <ExternalLink className="h-4 w-4" />
+                      Open App
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="flex-1 gap-1.5" onClick={() => { navigate(`/apps/${selectedApp.id}/settings`); setSelectedApp(null); }}>
+                        <Settings className="h-3.5 w-3.5" />
+                        Settings
+                      </Button>
+                      <Button variant="destructive" size="sm" className="flex-1 gap-1.5" onClick={() => handleDeactivate(selectedApp)} disabled={deactivating}>
+                        {deactivating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        Uninstall
+                      </Button>
+                    </div>
+                  </div>
                 ) : (
                   <Button className="w-full" onClick={() => handleActivate(selectedApp)} disabled={activating}>
-                    {activating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Activate<ArrowRight className="h-4 w-4 ml-2" />
+                    {activating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {selectedApp.pricing === 'paid' ? 'Install (Paid)' : 'Activate'}
+                    <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 )}
               </div>
