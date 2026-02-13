@@ -31,7 +31,7 @@ export interface ResolvedTenant {
  * Resolve a tenant slug to full workspace + booking settings.
  * Uses the SECURITY DEFINER RPC to ensure safe, public-accessible resolution.
  */
-export async function resolveTenanBySlug(slug: string): Promise<ResolvedTenant | null> {
+export async function resolveTenantBySlug(slug: string): Promise<ResolvedTenant | null> {
   if (!slug) return null;
 
   const { data, error } = await supabase.rpc('get_live_booking_tenant_by_slug', {
@@ -60,7 +60,7 @@ export const tenantQueryKey = (slug: string | undefined) =>
 export function tenantQueryOptions(slug: string | undefined) {
   return {
     queryKey: tenantQueryKey(slug),
-    queryFn: () => resolveTenanBySlug(slug!),
+    queryFn: () => resolveTenantBySlug(slug!),
     enabled: !!slug,
     staleTime: 5 * 60 * 1000, // 5 min — tenant settings rarely change
   };

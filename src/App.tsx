@@ -67,6 +67,10 @@ import VendorCalendarPage from "@/pages/vendor/VendorCalendarPage";
 import VendorChatPage from "@/pages/vendor/VendorChatPage";
 import { Loader2 } from "lucide-react";
 
+// V2 layouts
+import PublicBookingLayoutV2 from "@/pages/public/booking/v2/PublicBookingLayoutV2";
+import VendorPortalLayoutV2 from "@/pages/vendor/v2/VendorPortalLayoutV2";
+
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PrivacySettingsPage from "@/pages/settings/PrivacySettingsPage";
 import { toast as sonnerToast } from "sonner";
@@ -233,6 +237,22 @@ const AppRoutes = () => (
     </Route>
     {/* Vendor Portal */}
     <Route path="/v/:tenantSlug" element={<VendorPortalLayout />}>
+      <Route index element={<VendorDashboardPage />} />
+      <Route path="services" element={<VendorServicesPage />} />
+      <Route path="quotes" element={<VendorQuotesPage />} />
+      <Route path="calendar" element={<VendorCalendarPage />} />
+      <Route path="chat" element={<VendorChatPage />} />
+    </Route>
+    {/* V2 Public Booking (isolated) */}
+    <Route path="/b2/:tenantSlug" element={<PublicBookingLayoutV2 />}>
+      <Route index element={<PublicBrowsePage />} />
+      <Route path="v/:vendorId" element={<PublicVendorDetailPage />} />
+      <Route path="request" element={<PublicRequestQuotePage />} />
+      <Route path="my" element={<PublicMyBookingsPage />} />
+      <Route path="auth" element={<PublicAuthPage />} />
+    </Route>
+    {/* V2 Vendor Portal (isolated) */}
+    <Route path="/v2/:tenantSlug" element={<VendorPortalLayoutV2 />}>
       <Route index element={<VendorDashboardPage />} />
       <Route path="services" element={<VendorServicesPage />} />
       <Route path="quotes" element={<VendorQuotesPage />} />
