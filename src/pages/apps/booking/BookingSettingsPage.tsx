@@ -2,26 +2,35 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBookingSettings } from '@/hooks/useBookingSettings';
 import { useBookingSubscription } from '@/hooks/useBookingSubscription';
+import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
+import { LogoUpload } from '@/components/booking/LogoUpload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Settings, Rocket, Globe, Copy, ExternalLink, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import BookingSetupWizard from './BookingSetupWizard';
 
-const PUBLISHED_DOMAIN = 'biz-os-brain.lovable.app';
+function getPublicBaseUrl(): string {
+  if (import.meta.env.VITE_PUBLIC_BOOKING_BASE_URL) {
+    return import.meta.env.VITE_PUBLIC_BOOKING_BASE_URL;
+  }
+  return typeof window !== 'undefined' ? window.location.origin : '';
+}
 
 export default function BookingSettingsPage() {
   const { t } = useTranslation();
-  const { settings, isLoading } = useBookingSettings();
+  const { settings, isLoading, upsertSettings } = useBookingSettings();
   const { subscription } = useBookingSubscription();
+  const { currentWorkspace } = useWorkspace();
   const [showWizard, setShowWizard] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const publicUrl = settings?.tenant_slug
-    ? `https://${PUBLISHED_DOMAIN}/b/${settings.tenant_slug}`
+    ? `${getPublicBaseUrl()}/b/${settings.tenant_slug}`
     : null;
 
   const handleCopy = async () => {
@@ -30,6 +39,10 @@ export default function BookingSettingsPage() {
     setCopied(true);
     toast.success(t('common.copied', 'Copied!'));
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLogoChange = (url: string | null) => {
+    upsertSettings.mutate({ logo_url: url } as any);
   };
 
   if (isLoading) {
@@ -58,7 +71,12 @@ export default function BookingSettingsPage() {
   return (
     <div className="space-y-6">
       <SubscriptionBanner />
-      <h1 className="text-2xl font-bold text-foreground">{t('booking.settings.title')}</h1>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-foreground">{t('booking.settings.title')}</h1>
+        <Badge variant={settings?.is_live ? 'default' : 'secondary'}>
+          {settings?.is_live ? t('booking.settings.live', 'Live') : t('booking.settings.draft', 'Draft')}
+        </Badge>
+      </div>
 
       {/* Public URL Card - show when live */}
       {settings?.is_live && publicUrl && (
@@ -91,21 +109,20 @@ export default function BookingSettingsPage() {
         </Card>
       )}
 
-      {/* Logo preview when live */}
-      {settings?.is_live && settings.logo_url && (
+      {/* Logo quick-edit when live */}
+      {settings?.is_live && currentWorkspace && (
         <Card>
-          <CardContent className="py-4">
-            <div className="flex items-center gap-4">
-              <img
-                src={settings.logo_url}
-                alt="Logo"
-                className="h-12 w-12 rounded-lg object-contain ring-1 ring-border bg-muted"
-              />
-              <div>
-                <p className="text-sm font-medium text-foreground">{t('booking.wizard.brand.logo', 'Logo')}</p>
-                <p className="text-xs text-muted-foreground">{t('booking.settings.editInWizard', 'Edit via Setup Wizard')}</p>
-              </div>
-            </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">
+              {t('booking.wizard.brand.logo', 'Logo')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LogoUpload
+              currentLogoUrl={settings.logo_url}
+              workspaceId={currentWorkspace.id}
+              onUploadComplete={handleLogoChange}
+            />
           </CardContent>
         </Card>
       )}

@@ -78,10 +78,14 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     return () => clearTimeout(timer);
   }, [data.tenant_slug]);
 
+  const RESERVED_SLUGS = ['admin', 'apps', 'api', 'v', 'b', 'login', 'signup', 'settings', 'auth', 'public', 'dashboard'];
+
+  const isReservedSlug = RESERVED_SLUGS.includes(debouncedSlug);
+
   const { data: slugTaken, isLoading: slugChecking } = useQuery({
     queryKey: ['slug-check', debouncedSlug],
     queryFn: async () => {
-      if (!debouncedSlug || debouncedSlug.length < 3) return false;
+      if (!debouncedSlug || debouncedSlug.length < 3 || isReservedSlug) return false;
       const { data: existing } = await supabase
         .from('booking_settings')
         .select('id')
@@ -90,8 +94,10 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
         .maybeSingle();
       return !!existing;
     },
-    enabled: !!debouncedSlug && debouncedSlug.length >= 3,
+    enabled: !!debouncedSlug && debouncedSlug.length >= 3 && !isReservedSlug,
   });
+
+  const slugUnavailable = slugTaken || isReservedSlug;
 
   const update = (key: keyof WizardData, value: any) =>
     setData(prev => ({ ...prev, [key]: value }));
@@ -126,7 +132,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
   };
 
   const canProceed = () => {
-    if (step === 4) return !!data.tenant_slug && data.tenant_slug.length >= 3 && !slugTaken;
+    if (step === 4) return !!data.tenant_slug && data.tenant_slug.length >= 3 && !slugUnavailable;
     return true;
   };
 
@@ -418,7 +424,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                   <div className="absolute end-3 top-1/2 -translate-y-1/2">
                     {slugChecking ? (
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                    ) : slugTaken ? (
+                    ) : slugUnavailable ? (
                       <XCircle className="h-4 w-4 text-destructive" />
                     ) : (
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -426,12 +432,17 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                   </div>
                 )}
               </div>
-              {data.tenant_slug && data.tenant_slug.length >= 3 && slugTaken && (
+              {data.tenant_slug && data.tenant_slug.length >= 3 && isReservedSlug && (
+                <p className="text-xs text-destructive">
+                  {t('booking.wizard.goLive.slugReserved', 'This slug is reserved')}
+                </p>
+              )}
+              {data.tenant_slug && data.tenant_slug.length >= 3 && slugTaken && !isReservedSlug && (
                 <p className="text-xs text-destructive">
                   {t('booking.wizard.goLive.slugTaken', 'This slug is already taken')}
                 </p>
               )}
-              {data.tenant_slug && data.tenant_slug.length >= 3 && !slugTaken && !slugChecking && (
+              {data.tenant_slug && data.tenant_slug.length >= 3 && !slugUnavailable && !slugChecking && (
                 <p className="text-xs text-muted-foreground">
                   {t('booking.wizard.goLive.slugHint', { slug: data.tenant_slug })}
                 </p>
