@@ -27,7 +27,7 @@ export default function PublicMyBookingsPage() {
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
 
   if (!user) {
-    return <Navigate to={`/auth?redirect=/b/${tenantSlug}/my`} replace />;
+    return <Navigate to={`/b/${tenantSlug}/auth?redirect=/b/${tenantSlug}/my`} replace />;
   }
 
   // Filter to current user's requests/bookings

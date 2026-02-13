@@ -1211,7 +1211,41 @@
       "requestSentDesc": "The vendor will review your request and send you a quote. You can track it in My Bookings.",
       "viewMyBookings": "View My Bookings",
       "whatsappMessage": "Hi, I'd like to inquire about your services.",
-      "email": "Email"
+      "email": "Email",
+      "featured": "Featured",
+      "hero": {
+        "eventTitle": "Book Your Perfect Experience",
+        "marketplaceTitle": "Find & Book Services",
+        "rentalsTitle": "Check Availability & Book",
+        "genericTitle": "Welcome to {{name}}",
+        "searchPlaceholder": "Search services..."
+      },
+      "footer": {
+        "poweredBy": "Powered by Bookivo",
+        "copyright": "All rights reserved.",
+        "vendorLogin": "Vendor Login",
+        "privacy": "Privacy Policy"
+      },
+      "auth": {
+        "signIn": "Sign In",
+        "signUp": "Create Account",
+        "email": "Email",
+        "password": "Password",
+        "fullName": "Full Name",
+        "signInError": "Invalid email or password",
+        "signUpError": "Could not create account",
+        "signUpSuccess": "Account created! Please check your email to verify.",
+        "orSignUp": "Don't have an account? Sign up",
+        "orSignIn": "Already have an account? Sign in"
+      },
+      "serviceCard": {
+        "getQuote": "Get Quote",
+        "duration": "{{mins}} min",
+        "guests": "{{min}}-{{max}} guests"
+      },
+      "vendorCard": {
+        "services": "{{count}} services"
+      }
     },
     "vendor": {
       "portalTitle": "Vendor Portal",
@@ -1223,7 +1257,11 @@
       "noAccessDesc": "You are not registered as a vendor for this marketplace.",
       "pendingRequests": "Pending Requests",
       "upcomingBookings": "Upcoming Bookings",
-      "recentRequests": "Recent Requests"
+      "recentRequests": "Recent Requests",
+      "viewStore": "View My Store",
+      "aiAssist": "AI Assist",
+      "aiAssistComingSoon": "AI Assistant (Coming Soon)",
+      "aiAssistDesc": "Draft → Preview → Confirm workflow will be available soon. Our AI will help you generate service titles, descriptions, pricing suggestions, and terms templates."
     }
   }
 }

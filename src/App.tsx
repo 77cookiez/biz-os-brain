@@ -58,6 +58,7 @@ import PublicBrowsePage from "@/pages/public/booking/PublicBrowsePage";
 import PublicVendorDetailPage from "@/pages/public/booking/PublicVendorDetailPage";
 import PublicRequestQuotePage from "@/pages/public/booking/PublicRequestQuotePage";
 import PublicMyBookingsPage from "@/pages/public/booking/PublicMyBookingsPage";
+import PublicAuthPage from "@/pages/public/booking/PublicAuthPage";
 import VendorPortalLayout from "@/pages/vendor/VendorPortalLayout";
 import VendorDashboardPage from "@/pages/vendor/VendorDashboardPage";
 import VendorQuotesPage from "@/pages/vendor/VendorQuotesPage";
@@ -227,6 +228,7 @@ const AppRoutes = () => (
       <Route path="v/:vendorId" element={<PublicVendorDetailPage />} />
       <Route path="request" element={<PublicRequestQuotePage />} />
       <Route path="my" element={<PublicMyBookingsPage />} />
+      <Route path="auth" element={<PublicAuthPage />} />
     </Route>
     {/* Vendor Portal */}
     <Route path="/v/:tenantSlug" element={<VendorPortalLayout />}>
