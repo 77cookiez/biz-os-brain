@@ -130,9 +130,19 @@ export function useChatThreads() {
       role: uid === user.id ? 'owner' : 'member',
     }));
 
-    await supabase.from('chat_thread_members').insert(memberRows);
+    const { error: memberError } = await supabase.from('chat_thread_members').insert(memberRows);
+    if (memberError) {
+      console.error('[Chat] Failed to add members:', memberError.message);
+      return null;
+    }
 
-    await fetchThreads();
+    // Optimistically add thread to state (RLS now allows visibility after member insert)
+    const newThread: ChatThread = {
+      ...(thread as ChatThread),
+      last_message: null,
+    };
+    setThreads(prev => [newThread, ...prev]);
+
     return thread.id;
   }, [currentWorkspace?.id, user?.id, fetchThreads]);
 

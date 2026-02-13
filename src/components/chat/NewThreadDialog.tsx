@@ -33,19 +33,29 @@ export function NewThreadDialog({ open, onOpenChange, onCreated, createThread }:
   useEffect(() => {
     if (!open || !currentWorkspace) return;
     // Fetch workspace members with profile names
-    supabase
-      .from('workspace_members')
-      .select('user_id, profiles:user_id(full_name)')
-      .eq('workspace_id', currentWorkspace.id)
-      .then(({ data }) => {
-        const list = (data || [])
-          .filter((m: any) => m.user_id !== user?.id)
-          .map((m: any) => ({
-            user_id: m.user_id,
-            profile: Array.isArray(m.profiles) ? m.profiles[0] : m.profiles,
-          }));
-        setMembers(list);
-      });
+    (async () => {
+      const { data: memberData } = await supabase
+        .from('workspace_members')
+        .select('user_id')
+        .eq('workspace_id', currentWorkspace.id);
+
+      const memberIds = (memberData || [])
+        .map(m => m.user_id)
+        .filter(id => id !== user?.id);
+
+      if (memberIds.length === 0) { setMembers([]); return; }
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', memberIds);
+
+      const list = memberIds.map(uid => ({
+        user_id: uid,
+        profile: profileData?.find(p => p.user_id === uid) || null,
+      }));
+      setMembers(list);
+    })();
   }, [open, currentWorkspace?.id, user?.id]);
 
   const handleCreate = async () => {
