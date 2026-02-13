@@ -81,7 +81,7 @@ async function getUserWorkspaceRole(
     .select("team_role")
     .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
-    .eq("invite_status", "active")
+    .in("invite_status", ["active", "accepted"])
     .maybeSingle();
 
   if (!member) return null;
@@ -126,7 +126,7 @@ async function executeProposal(
   // Step 1: Create meaning object (Meaning-First enforcement)
   const meaningJson = {
     version: "v1",
-    type: proposal.type.toUpperCase(),
+    type: proposal.type.toLowerCase(),
     intent: proposal.type === "update" ? "update" : "create",
     subject: proposal.title,
     description: (proposal.payload.description as string) || "",
@@ -143,7 +143,7 @@ async function executeProposal(
     .insert({
       workspace_id: workspaceId,
       created_by: userId,
-      type: proposal.type.toUpperCase(),
+      type: proposal.type.toLowerCase(),
       source_lang: sourceLang,
       meaning_json: meaningJson,
     })
