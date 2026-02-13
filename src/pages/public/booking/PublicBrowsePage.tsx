@@ -15,7 +15,7 @@ export default function PublicBrowsePage() {
   const { settings, tenantSlug } = useOutletContext<{ settings: any; tenantSlug: string }>();
   const { currentLanguage } = useLanguage();
   const workspaceId = settings?.workspace_id;
-  const currency = settings?.currency || 'AED';
+  const currency = settings?.currency || 'USD';
 
   const { data: vendors = [], isLoading: vLoading } = useQuery({
     queryKey: ['public-vendors', workspaceId],

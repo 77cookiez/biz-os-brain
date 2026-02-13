@@ -708,6 +708,17 @@
     "confirmBtn": "نعم، احذف بياناتي"
   },
   "booking": {
+    "brand": {
+      "productName": "Bookivo",
+      "tagline": "نظام حجوزات ذكي للأعمال الخدمية الحديثة",
+      "positioning": "Bookivo هو نظام تشغيل حجوزات مدعوم بالذكاء الاصطناعي للأعمال الخدمية حول العالم.",
+      "shortDescription": "إدارة حجوزات ذكية للأعمال الخدمية",
+      "globalReady": "بنية عالمية جاهزة",
+      "multiLanguage": "متعدد اللغات بالتصميم",
+      "aiPowered": "سير عمل مدعوم بالذكاء الاصطناعي",
+      "whiteLabel": "قابلية العلامة البيضاء للسوق",
+      "marketplaceReady": "بنية سوق متعددة المستأجرين"
+    },
     "tabs": {
       "dashboard": "لوحة التحكم",
       "vendors": "مقدمو الخدمات",
@@ -718,7 +729,7 @@
       "settings": "الإعدادات"
     },
     "dashboard": {
-      "title": "نظام الحجوزات",
+      "title": "Bookivo",
       "vendors": "مقدمو الخدمات",
       "services": "الخدمات",
       "quotes": "عروض الأسعار",

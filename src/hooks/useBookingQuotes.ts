@@ -211,7 +211,7 @@ export function useBookingQuotes() {
         quote_request_id: input.quote_request_id,
         vendor_id: input.vendor_id,
         amount: input.amount,
-        currency: input.currency || 'AED',
+        currency: input.currency || 'USD',
         deposit_amount: input.deposit_amount || null,
         notes: input.notes || null,
         meaning_object_id: meaningId,

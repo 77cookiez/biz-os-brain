@@ -724,6 +724,17 @@
     "runFirst": "Run Assessment"
   },
   "booking": {
+    "brand": {
+      "productName": "Bookivo",
+      "tagline": "The Intelligent Booking OS for Service Businesses",
+      "positioning": "Bookivo is an AI-powered Booking Operating System built for modern service businesses worldwide.",
+      "shortDescription": "Smart booking management for service businesses",
+      "globalReady": "Global-ready architecture",
+      "multiLanguage": "Multi-language by design",
+      "aiPowered": "AI-driven workflows",
+      "whiteLabel": "White-label marketplace capability",
+      "marketplaceReady": "Multi-tenant marketplace infrastructure"
+    },
     "tabs": {
       "dashboard": "Dashboard",
       "vendors": "Vendors",
@@ -734,7 +745,7 @@
       "settings": "Settings"
     },
     "dashboard": {
-      "title": "Booking OS",
+      "title": "Bookivo",
       "vendors": "Vendors",
       "services": "Services",
       "quotes": "Quotes",
