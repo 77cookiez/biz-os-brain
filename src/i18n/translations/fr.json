@@ -690,5 +690,112 @@
     "aiSuggestionReason": "Suggestion IA : {{reason}}",
     "taskCreated": "Tâche créée !",
     "taskCreateFailed": "Échec de la création de la tâche"
+  },
+  "booking": {
+    "tabs": {
+      "dashboard": "Tableau de bord",
+      "vendors": "Prestataires",
+      "services": "Services",
+      "calendar": "Calendrier",
+      "quotes": "Devis",
+      "bookings": "Réservations",
+      "settings": "Paramètres"
+    },
+    "dashboard": {
+      "title": "Booking OS",
+      "vendors": "Prestataires",
+      "services": "Services",
+      "quotes": "Devis",
+      "bookings": "Réservations",
+      "overview": "Vue d'ensemble",
+      "totalRevenue": "Revenus totaux",
+      "pendingQuotes": "Devis en attente",
+      "activeBookings": "Réservations actives"
+    },
+    "vendors": {
+      "title": "Prestataires",
+      "emptyTitle": "Aucun prestataire",
+      "emptyDesc": "Invitez des prestataires pour commencer à recevoir des réservations.",
+      "approve": "Approuver",
+      "suspend": "Suspendre",
+      "reactivate": "Réactiver",
+      "approved": "Approuvé",
+      "pending": "En attente",
+      "suspended": "Suspendu",
+      "vendorApproved": "Prestataire approuvé avec succès",
+      "vendorSuspended": "Prestataire suspendu",
+      "vendorReactivated": "Prestataire réactivé",
+      "actionFailed": "Échec de la mise à jour du statut",
+      "owner": "Propriétaire",
+      "status": "Statut",
+      "actions": "Actions",
+      "joinedAt": "Inscrit le"
+    },
+    "services": {
+      "title": "Services",
+      "emptyTitle": "Aucun service",
+      "emptyDesc": "Les prestataires peuvent ajouter leurs forfaits et services."
+    },
+    "calendar": {
+      "title": "Calendrier",
+      "emptyTitle": "Aucune disponibilité définie",
+      "emptyDesc": "Les prestataires peuvent configurer leur disponibilité hebdomadaire."
+    },
+    "quotes": {
+      "title": "Devis",
+      "emptyTitle": "Aucun devis",
+      "emptyDesc": "Les demandes de devis des clients apparaîtront ici."
+    },
+    "bookings": {
+      "title": "Réservations",
+      "emptyTitle": "Aucune réservation",
+      "emptyDesc": "Les réservations confirmées apparaîtront ici."
+    },
+    "settings": {
+      "title": "Paramètres",
+      "setupWizard": "Assistant de configuration",
+      "setupDesc": "Configurez votre marketplace en quelques minutes.",
+      "goLiveDesc": "Votre marketplace est prête à être lancée.",
+      "launchWizard": "Lancer l'assistant",
+      "editSettings": "Modifier les paramètres"
+    },
+    "wizard": {
+      "title": "Configurer votre marketplace",
+      "subtitle": "Mettez votre marketplace en ligne en moins de 10 minutes",
+      "step": "Étape {{current}} sur {{total}}",
+      "theme": { "title": "Choisir un thème", "subtitle": "Choisissez le modèle qui convient le mieux", "marketplace": "Marketplace", "marketplaceDesc": "Marketplace multi-prestataires", "rentals": "Locations", "rentalsDesc": "Système de réservation de locations", "eventServices": "Services événementiels", "eventServicesDesc": "Services pour mariages et événements", "generic": "Générique", "genericDesc": "Modèle flexible pour tout type d'activité" },
+      "brand": { "title": "Kit de marque", "subtitle": "Téléchargez votre logo et choisissez vos couleurs", "logo": "Logo", "uploadLogo": "Télécharger le logo", "primaryColor": "Couleur principale", "accentColor": "Couleur d'accent", "tone": "Ton de la marque", "professional": "Professionnel", "friendly": "Amical", "luxury": "Luxe", "casual": "Décontracté" },
+      "money": { "title": "Configuration du paiement", "subtitle": "Configurez la devise, les commissions et les acomptes", "currency": "Devise", "commissionMode": "Modèle de revenus", "subscription": "Abonnement (mensuel fixe)", "commission": "Commission (% par réservation)", "commissionRate": "Taux de commission (%)", "depositEnabled": "Exiger un acompte", "depositType": "Type d'acompte", "percentage": "Pourcentage", "fixed": "Montant fixe", "depositValue": "Valeur de l'acompte", "paymentProvider": "Fournisseur de paiement", "connectLater": "Connecter plus tard", "manual": "Manuel / Lien de paiement" },
+      "policies": { "title": "Politiques", "subtitle": "Définissez les règles d'annulation et de remboursement", "cancellation": "Politique d'annulation", "flexible": "Flexible", "flexibleDesc": "Annulation gratuite jusqu'à 24h avant", "standard": "Standard", "standardDesc": "Annulation gratuite jusqu'à 48h, 50% après", "strict": "Stricte", "strictDesc": "Aucun remboursement après confirmation", "whatsapp": "Numéro WhatsApp", "whatsappHint": "Pour les demandes clients", "contactEmail": "Email de contact" },
+      "goLive": { "title": "Mise en ligne", "subtitle": "Définissez votre URL publique et lancez", "tenantSlug": "Slug URL publique", "slugHint": "Votre marketplace sera sur /b/{{slug}}", "publicLink": "Lien public", "vendorInviteLink": "Lien d'invitation prestataire", "dashboardLink": "Tableau de bord admin", "distribution": "Options de distribution", "pwaDefault": "Application Web (PWA) — s'installe comme une app, fonctionne sur tous les appareils.", "containerApp": "Application conteneur — une seule app partagée dans les stores.", "enterpriseApp": "Application dédiée — entreprise uniquement.", "launch": "Lancer", "saveDraft": "Enregistrer comme brouillon" },
+      "saved": "Paramètres enregistrés",
+      "saveFailed": "Échec de l'enregistrement",
+      "launched": "Votre marketplace est en ligne !",
+      "launchFailed": "Échec du lancement"
+    },
+    "notifications": {
+      "newQuoteRequest": "Nouvelle demande de devis de {{customer_name}}",
+      "quoteSent": "Devis reçu pour {{service_name}}",
+      "quoteAccepted": "Devis accepté par {{customer_name}}",
+      "paymentConfirmed": "Paiement confirmé pour la réservation",
+      "bookingCancelled": "Réservation annulée"
+    },
+    "subscription": {
+      "inactive": "Votre abonnement est inactif. Renouvelez pour reprendre les réservations.",
+      "gracePeriod": "Votre abonnement expire dans {{days}} jours.",
+      "suspended": "Votre marketplace est suspendue.",
+      "renewNow": "Renouveler",
+      "active": "Actif",
+      "expired": "Expiré",
+      "grace": "Période de grâce"
+    },
+    "status": {
+      "requested": "Demandé",
+      "quoted": "Devisé",
+      "accepted": "Accepté",
+      "paid_confirmed": "Payé et confirmé",
+      "completed": "Terminé",
+      "cancelled": "Annulé"
+    }
   }
 }

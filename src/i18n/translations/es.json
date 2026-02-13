@@ -690,5 +690,112 @@
     "aiSuggestionReason": "Sugerencia IA: {{reason}}",
     "taskCreated": "¡Tarea creada!",
     "taskCreateFailed": "Error al crear la tarea"
+  },
+  "booking": {
+    "tabs": {
+      "dashboard": "Panel",
+      "vendors": "Proveedores",
+      "services": "Servicios",
+      "calendar": "Calendario",
+      "quotes": "Cotizaciones",
+      "bookings": "Reservas",
+      "settings": "Configuración"
+    },
+    "dashboard": {
+      "title": "Booking OS",
+      "vendors": "Proveedores",
+      "services": "Servicios",
+      "quotes": "Cotizaciones",
+      "bookings": "Reservas",
+      "overview": "Resumen",
+      "totalRevenue": "Ingresos totales",
+      "pendingQuotes": "Cotizaciones pendientes",
+      "activeBookings": "Reservas activas"
+    },
+    "vendors": {
+      "title": "Proveedores",
+      "emptyTitle": "Sin proveedores",
+      "emptyDesc": "Invita proveedores para comenzar a recibir reservas.",
+      "approve": "Aprobar",
+      "suspend": "Suspender",
+      "reactivate": "Reactivar",
+      "approved": "Aprobado",
+      "pending": "Pendiente",
+      "suspended": "Suspendido",
+      "vendorApproved": "Proveedor aprobado exitosamente",
+      "vendorSuspended": "Proveedor suspendido",
+      "vendorReactivated": "Proveedor reactivado",
+      "actionFailed": "Error al actualizar el estado",
+      "owner": "Propietario",
+      "status": "Estado",
+      "actions": "Acciones",
+      "joinedAt": "Fecha de ingreso"
+    },
+    "services": {
+      "title": "Servicios",
+      "emptyTitle": "Sin servicios",
+      "emptyDesc": "Los proveedores pueden agregar sus paquetes y servicios."
+    },
+    "calendar": {
+      "title": "Calendario",
+      "emptyTitle": "Sin disponibilidad configurada",
+      "emptyDesc": "Los proveedores pueden configurar su disponibilidad semanal."
+    },
+    "quotes": {
+      "title": "Cotizaciones",
+      "emptyTitle": "Sin cotizaciones",
+      "emptyDesc": "Las solicitudes de cotización de los clientes aparecerán aquí."
+    },
+    "bookings": {
+      "title": "Reservas",
+      "emptyTitle": "Sin reservas",
+      "emptyDesc": "Las reservas confirmadas aparecerán aquí."
+    },
+    "settings": {
+      "title": "Configuración",
+      "setupWizard": "Asistente de configuración",
+      "setupDesc": "Configura tu marketplace en minutos.",
+      "goLiveDesc": "Tu marketplace está lista para lanzarse.",
+      "launchWizard": "Iniciar asistente",
+      "editSettings": "Editar configuración"
+    },
+    "wizard": {
+      "title": "Configura tu marketplace",
+      "subtitle": "Pon tu marketplace en línea en menos de 10 minutos",
+      "step": "Paso {{current}} de {{total}}",
+      "theme": { "title": "Elegir tema", "subtitle": "Elige la plantilla que mejor se adapte", "marketplace": "Marketplace", "marketplaceDesc": "Marketplace multi-proveedor", "rentals": "Alquileres", "rentalsDesc": "Sistema de reserva de alquileres", "eventServices": "Servicios de eventos", "eventServicesDesc": "Servicios para bodas y eventos", "generic": "Genérico", "genericDesc": "Plantilla flexible para cualquier negocio" },
+      "brand": { "title": "Kit de marca", "subtitle": "Sube tu logo y elige tus colores", "logo": "Logo", "uploadLogo": "Subir logo", "primaryColor": "Color principal", "accentColor": "Color de acento", "tone": "Tono de marca", "professional": "Profesional", "friendly": "Amigable", "luxury": "Lujo", "casual": "Casual" },
+      "money": { "title": "Configuración de pagos", "subtitle": "Configura moneda, comisiones y depósitos", "currency": "Moneda", "commissionMode": "Modelo de ingresos", "subscription": "Suscripción (mensual fijo)", "commission": "Comisión (% por reserva)", "commissionRate": "Tasa de comisión (%)", "depositEnabled": "Requerir depósito", "depositType": "Tipo de depósito", "percentage": "Porcentaje", "fixed": "Monto fijo", "depositValue": "Valor del depósito", "paymentProvider": "Proveedor de pago", "connectLater": "Conectar después", "manual": "Manual / Enlace de pago" },
+      "policies": { "title": "Políticas", "subtitle": "Define reglas de cancelación y reembolso", "cancellation": "Política de cancelación", "flexible": "Flexible", "flexibleDesc": "Cancelación gratuita hasta 24h antes", "standard": "Estándar", "standardDesc": "Cancelación gratuita hasta 48h, 50% después", "strict": "Estricta", "strictDesc": "Sin reembolso tras confirmación", "whatsapp": "Número de WhatsApp", "whatsappHint": "Para consultas de clientes", "contactEmail": "Email de contacto" },
+      "goLive": { "title": "Lanzar", "subtitle": "Define tu URL pública y lanza", "tenantSlug": "Slug URL público", "slugHint": "Tu marketplace estará en /b/{{slug}}", "publicLink": "Enlace público", "vendorInviteLink": "Enlace de invitación", "dashboardLink": "Panel de administración", "distribution": "Opciones de distribución", "pwaDefault": "Aplicación Web (PWA) — se instala como una app.", "containerApp": "Aplicación contenedor — una sola app compartida en las tiendas.", "enterpriseApp": "Aplicación dedicada — solo empresas.", "launch": "Lanzar", "saveDraft": "Guardar borrador" },
+      "saved": "Configuración guardada",
+      "saveFailed": "Error al guardar",
+      "launched": "¡Tu marketplace está en línea!",
+      "launchFailed": "Error al lanzar"
+    },
+    "notifications": {
+      "newQuoteRequest": "Nueva solicitud de cotización de {{customer_name}}",
+      "quoteSent": "Cotización recibida para {{service_name}}",
+      "quoteAccepted": "Cotización aceptada por {{customer_name}}",
+      "paymentConfirmed": "Pago confirmado para la reserva",
+      "bookingCancelled": "Reserva cancelada"
+    },
+    "subscription": {
+      "inactive": "Tu suscripción está inactiva. Renueva para continuar.",
+      "gracePeriod": "Tu suscripción expira en {{days}} días.",
+      "suspended": "Tu marketplace está suspendida.",
+      "renewNow": "Renovar",
+      "active": "Activa",
+      "expired": "Expirada",
+      "grace": "Período de gracia"
+    },
+    "status": {
+      "requested": "Solicitado",
+      "quoted": "Cotizado",
+      "accepted": "Aceptado",
+      "paid_confirmed": "Pagado y confirmado",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    }
   }
 }

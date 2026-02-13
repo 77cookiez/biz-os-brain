@@ -738,12 +738,30 @@
       "vendors": "Vendors",
       "services": "Services",
       "quotes": "Quotes",
-      "bookings": "Bookings"
+      "bookings": "Bookings",
+      "overview": "Overview",
+      "totalRevenue": "Total Revenue",
+      "pendingQuotes": "Pending Quotes",
+      "activeBookings": "Active Bookings"
     },
     "vendors": {
       "title": "Vendors",
       "emptyTitle": "No vendors yet",
-      "emptyDesc": "Invite vendors to start receiving bookings."
+      "emptyDesc": "Invite vendors to start receiving bookings.",
+      "approve": "Approve",
+      "suspend": "Suspend",
+      "reactivate": "Reactivate",
+      "approved": "Approved",
+      "pending": "Pending",
+      "suspended": "Suspended",
+      "vendorApproved": "Vendor approved successfully",
+      "vendorSuspended": "Vendor suspended",
+      "vendorReactivated": "Vendor reactivated",
+      "actionFailed": "Failed to update vendor status",
+      "owner": "Owner",
+      "status": "Status",
+      "actions": "Actions",
+      "joinedAt": "Joined"
     },
     "services": {
       "title": "Services",
@@ -768,7 +786,90 @@
     "settings": {
       "title": "Settings",
       "setupWizard": "Setup Wizard",
-      "setupDesc": "Configure your booking marketplace in minutes."
+      "setupDesc": "Configure your booking marketplace in minutes.",
+      "goLiveDesc": "Your marketplace is ready to go live.",
+      "launchWizard": "Launch Setup Wizard",
+      "editSettings": "Edit Settings"
+    },
+    "wizard": {
+      "title": "Setup Your Booking Marketplace",
+      "subtitle": "Get your marketplace live in under 10 minutes",
+      "step": "Step {{current}} of {{total}}",
+      "theme": {
+        "title": "Choose Theme",
+        "subtitle": "Pick the template that best fits your business",
+        "marketplace": "Marketplace",
+        "marketplaceDesc": "Multi-vendor marketplace with browse & search",
+        "rentals": "Rentals",
+        "rentalsDesc": "Equipment or space rental booking system",
+        "eventServices": "Event Services",
+        "eventServicesDesc": "Wedding, event, and occasion services",
+        "generic": "Generic",
+        "genericDesc": "Clean, flexible template for any business"
+      },
+      "brand": {
+        "title": "Brand Kit",
+        "subtitle": "Upload your logo and pick your brand colors",
+        "logo": "Logo",
+        "uploadLogo": "Upload Logo",
+        "primaryColor": "Primary Color",
+        "accentColor": "Accent Color",
+        "tone": "Brand Tone",
+        "professional": "Professional",
+        "friendly": "Friendly",
+        "luxury": "Luxury",
+        "casual": "Casual"
+      },
+      "money": {
+        "title": "Payment Setup",
+        "subtitle": "Configure currency, commissions, and deposits",
+        "currency": "Currency",
+        "commissionMode": "Revenue Model",
+        "subscription": "Subscription (fixed monthly)",
+        "commission": "Commission (% per booking)",
+        "commissionRate": "Commission Rate (%)",
+        "depositEnabled": "Require Deposit",
+        "depositType": "Deposit Type",
+        "percentage": "Percentage",
+        "fixed": "Fixed Amount",
+        "depositValue": "Deposit Value",
+        "paymentProvider": "Payment Provider",
+        "connectLater": "Connect Later",
+        "manual": "Manual / Payment Link"
+      },
+      "policies": {
+        "title": "Policies",
+        "subtitle": "Set cancellation and refund rules",
+        "cancellation": "Cancellation Policy",
+        "flexible": "Flexible",
+        "flexibleDesc": "Free cancellation up to 24h before",
+        "standard": "Standard",
+        "standardDesc": "Free cancellation up to 48h before, 50% after",
+        "strict": "Strict",
+        "strictDesc": "No refund after booking confirmed",
+        "whatsapp": "WhatsApp Number",
+        "whatsappHint": "For customer inquiries (e.g. +971501234567)",
+        "contactEmail": "Contact Email"
+      },
+      "goLive": {
+        "title": "Go Live",
+        "subtitle": "Set your public URL and launch",
+        "tenantSlug": "Public URL Slug",
+        "slugHint": "Your marketplace will be at /b/{{slug}}",
+        "publicLink": "Public Link",
+        "vendorInviteLink": "Vendor Invite Link",
+        "dashboardLink": "Admin Dashboard",
+        "distribution": "Distribution Options",
+        "pwaDefault": "Web App (PWA) — installs like an app, works on all devices. This is the default and recommended option.",
+        "containerApp": "Container App — a single shared app in app stores that loads your brand by QR code or workspace code.",
+        "enterpriseApp": "Dedicated Store App — enterprise only, published under your company's own developer accounts.",
+        "launch": "Go Live",
+        "saveDraft": "Save as Draft"
+      },
+      "saved": "Settings saved successfully",
+      "saveFailed": "Failed to save settings",
+      "launched": "Your marketplace is now live!",
+      "launchFailed": "Failed to launch marketplace"
     },
     "notifications": {
       "newQuoteRequest": "New quote request from {{customer_name}}",
@@ -779,7 +880,20 @@
     },
     "subscription": {
       "inactive": "Your subscription is inactive. Renew to resume bookings.",
-      "gracePeriod": "Your subscription expires in {{days}} days. Renew to avoid interruption."
+      "gracePeriod": "Your subscription expires in {{days}} days. Renew to avoid interruption.",
+      "suspended": "Your marketplace is suspended. Contact support to reactivate.",
+      "renewNow": "Renew Now",
+      "active": "Active",
+      "expired": "Expired",
+      "grace": "Grace Period"
+    },
+    "status": {
+      "requested": "Requested",
+      "quoted": "Quoted",
+      "accepted": "Accepted",
+      "paid_confirmed": "Paid & Confirmed",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
     }
   }
 }
