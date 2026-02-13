@@ -561,6 +561,47 @@ export type Database = {
           },
         ]
       }
+      enterprise_risk_scores: {
+        Row: {
+          computed_at: string
+          created_at: string
+          drivers: Json
+          id: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          risk_type: string
+          workspace_id: string
+        }
+        Insert: {
+          computed_at?: string
+          created_at?: string
+          drivers?: Json
+          id?: string
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          risk_type: string
+          workspace_id: string
+        }
+        Update: {
+          computed_at?: string
+          created_at?: string
+          drivers?: Json
+          id?: string
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          risk_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enterprise_risk_scores_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
@@ -1070,6 +1111,85 @@ export type Database = {
         }
         Relationships: []
       }
+      risk_forecasts: {
+        Row: {
+          confidence: number
+          created_at: string
+          forecast_date: string
+          id: string
+          predicted_score: number
+          risk_type: string
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          forecast_date: string
+          id?: string
+          predicted_score: number
+          risk_type: string
+          workspace_id: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          forecast_date?: string
+          id?: string
+          predicted_score?: number
+          risk_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_forecasts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      risk_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          risk_type: string
+          snapshot_date: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          risk_type: string
+          snapshot_date?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          risk_type?: string
+          snapshot_date?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           assigned_by: string | null
@@ -1489,6 +1609,7 @@ export type Database = {
         | "finance"
         | "team"
         | "custom"
+      risk_level: "low" | "moderate" | "elevated" | "high" | "critical"
       task_status: "backlog" | "planned" | "in_progress" | "blocked" | "done"
       team_role:
         | "owner"
@@ -1644,6 +1765,7 @@ export const Constants = {
         "team",
         "custom",
       ],
+      risk_level: ["low", "moderate", "elevated", "high", "critical"],
       task_status: ["backlog", "planned", "in_progress", "blocked", "done"],
       team_role: [
         "owner",

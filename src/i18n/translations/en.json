@@ -710,5 +710,17 @@
     "confirmTitle": "Confirm Data Deletion",
     "confirmDesc": "This will permanently mark all your content for deletion. Tasks, goals, plans, ideas, and brain messages will be removed. This cannot be undone.",
     "confirmBtn": "Yes, Delete My Data"
+  },
+  "risk": {
+    "navTitle": "Risk",
+    "title": "Enterprise Risk Dashboard",
+    "subtitle": "Real-time risk assessment across 4 dimensions",
+    "computing": "Computing...",
+    "recompute": "Recompute",
+    "overallRisk": "Overall Risk Score",
+    "forecastTitle": "30-Day Risk Forecast",
+    "emptyTitle": "No risk data yet",
+    "emptyDesc": "Click \"Recompute\" to run your first enterprise risk assessment.",
+    "runFirst": "Run Assessment"
   }
 }

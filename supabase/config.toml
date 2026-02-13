@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.brain-execute-action]
 verify_jwt = false
+
+[functions.enterprise-risk-compute]
+verify_jwt = false
