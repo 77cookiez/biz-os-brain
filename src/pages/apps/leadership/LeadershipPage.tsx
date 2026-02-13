@@ -38,10 +38,10 @@ export default function LeadershipPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Crown className="h-5 w-5 text-primary" />
-            {t('leadership.title', 'Leadership Augmentation')}
+            {t('leadership.title', 'Aurelius — Executive Intelligence')}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {t('leadership.subtitle', 'AI-powered coaching and strategic decision support')}
+            {t('leadership.subtitle', 'AI-powered executive intelligence and strategic decision support')}
           </p>
         </div>
         <Button
@@ -62,10 +62,10 @@ export default function LeadershipPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-foreground">
-              {t('leadership.welcome', 'Welcome to Leadership Augmentation')}
+              {t('leadership.welcome', 'Welcome to Aurelius')}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {t('leadership.welcomeDesc', 'Start a coaching session with your AI Business Brain to get personalized leadership insights.')}
+              {t('leadership.welcomeDesc', 'Start a coaching session with your AI Business Brain to get personalized executive insights.')}
             </p>
           </div>
           <Badge variant="outline" className="ml-auto shrink-0 border-primary/30 text-primary">
@@ -94,7 +94,7 @@ export default function LeadershipPage() {
         <CardContent className="py-8 text-center">
           <Brain className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">
-            {t('leadership.comingSoon', 'Full coaching sessions and team analytics coming soon. Use the Brain to ask leadership questions now.')}
+            {t('leadership.comingSoon', 'Full executive intelligence sessions and team analytics coming soon. Use the Brain to ask leadership questions now.')}
           </p>
           <Button className="mt-4" size="sm" onClick={() => navigate('/brain')}>
             <Sparkles className="h-3.5 w-3.5 mr-1.5" />

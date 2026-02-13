@@ -55,7 +55,7 @@ export default function LeadershipSettingsPage() {
       }
 
       await refreshInstalledApps();
-      toast.success(t('leadership.uninstalled', 'Leadership Augmentation uninstalled'));
+      toast.success(t('leadership.uninstalled', 'Aurelius uninstalled'));
       navigate('/marketplace');
     } catch (err) {
       toast.error('Failed to uninstall');
@@ -73,10 +73,10 @@ export default function LeadershipSettingsPage() {
         <div>
           <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
             <Crown className="h-5 w-5 text-primary" />
-            {t('leadership.settingsTitle', 'Leadership Settings')}
+            {t('leadership.settingsTitle', 'Aurelius Settings')}
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {t('leadership.settingsSubtitle', 'Configure your leadership augmentation preferences')}
+            {t('leadership.settingsSubtitle', 'Configure your Aurelius executive intelligence preferences')}
           </p>
         </div>
       </div>
@@ -120,14 +120,14 @@ export default function LeadershipSettingsPage() {
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm" className="gap-1.5">
                 <Trash2 className="h-3.5 w-3.5" />
-                {t('leadership.uninstall', 'Uninstall Leadership Augmentation')}
+                {t('leadership.uninstall', 'Uninstall Aurelius')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>{t('leadership.confirmUninstall', 'Uninstall Leadership Augmentation?')}</AlertDialogTitle>
+                <AlertDialogTitle>{t('leadership.confirmUninstall', 'Uninstall Aurelius?')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {t('leadership.confirmUninstallDesc', 'This will remove the app from your workspace. All Leadership features will be disabled. Your data will be preserved but inaccessible until you reinstall.')}
+                  {t('leadership.confirmUninstallDesc', 'This will remove Aurelius from your workspace. All executive intelligence features will be disabled. Your data will be preserved but inaccessible until you reinstall.')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
