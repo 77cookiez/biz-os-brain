@@ -24,6 +24,7 @@ export interface BookingService {
   duration_minutes: number | null;
   is_active: boolean;
   sort_order: number | null;
+  cover_url: string | null;
   title_meaning_object_id: string;
   description_meaning_object_id: string | null;
   source_lang: string | null;

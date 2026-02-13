@@ -616,6 +616,7 @@ export type Database = {
       }
       booking_services: {
         Row: {
+          cover_url: string | null
           created_at: string
           currency: string
           description: string | null
@@ -636,6 +637,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
+          cover_url?: string | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -656,6 +658,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
+          cover_url?: string | null
           created_at?: string
           currency?: string
           description?: string | null
