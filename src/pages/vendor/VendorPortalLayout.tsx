@@ -68,7 +68,7 @@ function VendorRegistrationForm({
 
       const res = await supabase.functions.invoke('register-vendor', {
         body: {
-          workspace_id: workspaceId,
+          tenant_slug: tenantSlug,
           display_name: displayName.trim(),
           bio: bio.trim() || null,
           email: email.trim() || null,
@@ -234,6 +234,7 @@ function AiAssistModal({
       const res = await supabase.functions.invoke('vendor-ai-assist', {
         body: {
           prompt: userMsg,
+          tenant_slug: tenantSlug,
           context: {
             vendorName: vendorName || 'Vendor',
             existingServices: [],

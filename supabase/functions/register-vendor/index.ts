@@ -39,12 +39,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { workspace_id, display_name, bio, email, whatsapp, source_lang } =
+    const { tenant_slug, display_name, bio, email, whatsapp, source_lang } =
       await req.json();
 
-    if (!workspace_id || !display_name) {
+    if (!tenant_slug || !display_name) {
       return new Response(
-        JSON.stringify({ error: "workspace_id and display_name required" }),
+        JSON.stringify({ error: "tenant_slug and display_name required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -55,26 +55,26 @@ Deno.serve(async (req) => {
     // Use service role for atomic operations
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // ── SECURITY: Validate workspace_id belongs to a live booking tenant ──
-    // This prevents arbitrary workspace_id injection. Only workspaces with
-    // is_live=true AND a tenant_slug can accept vendor registrations.
+    // ── SECURITY: Derive workspace_id from tenant_slug server-side ──
+    // Never trust workspace_id from the client. Always resolve from slug.
     const { data: tenantSettings, error: tenantError } = await admin
       .from("booking_settings")
       .select("workspace_id, tenant_slug")
-      .eq("workspace_id", workspace_id)
+      .eq("tenant_slug", tenant_slug)
       .eq("is_live", true)
-      .not("tenant_slug", "is", null)
       .maybeSingle();
 
     if (tenantError || !tenantSettings) {
       return new Response(
-        JSON.stringify({ error: "Invalid or inactive workspace" }),
+        JSON.stringify({ error: "Invalid or inactive tenant" }),
         {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
+
+    const workspace_id = tenantSettings.workspace_id;
 
     // 1. Check if user is already a vendor in this workspace
     const { data: existingVendor } = await admin
@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Ensure user is a workspace member (add if not, with 'vendor' role)
+    // 2. Ensure user is a workspace member (add with 'pending' status — not accepted until vendor is approved)
     const { data: existingMember } = await admin
       .from("workspace_members")
       .select("id")
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
         workspace_id,
         user_id: user.id,
         role: "vendor",
-        status: "accepted",
+        status: "pending",
       });
     }
 
@@ -189,14 +189,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 6. Audit log
-    await admin.from("audit_logs").insert({
-      workspace_id,
-      actor_user_id: user.id,
-      action: "booking.vendor_registered",
-      entity_type: "booking_vendor",
-      entity_id: vendor.id,
-    });
+    // 6. Audit log (non-blocking — errors don't break registration)
+    await admin
+      .from("audit_logs")
+      .insert({
+        workspace_id,
+        actor_user_id: user.id,
+        action: "booking.vendor_registered",
+        entity_type: "booking_vendor",
+        entity_id: vendor.id,
+      })
+      .then(({ error }) => {
+        if (error) console.error("audit_logs insert error (non-fatal):", error);
+      });
 
     return new Response(
       JSON.stringify({
