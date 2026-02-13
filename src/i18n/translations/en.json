@@ -1009,6 +1009,42 @@
       "recordPayment": "Record Payment",
       "paymentRecorded": "Payment recorded",
       "paymentFailed": "Failed to record payment"
+    },
+    "chat": {
+      "title": "Chat",
+      "noThread": "No chat thread linked yet",
+      "empty": "No messages yet. Start the conversation!",
+      "placeholder": "Type a message...",
+      "emptyTitle": "No conversations",
+      "emptyDesc": "Chat threads will appear when quote requests are created."
+    },
+    "public": {
+      "browse": "Browse",
+      "myBookings": "My Bookings",
+      "vendors": "Vendors",
+      "services": "Services",
+      "noVendors": "No vendors available yet.",
+      "noServices": "No services available yet.",
+      "notFound": "Marketplace Not Found",
+      "notFoundDesc": "This marketplace doesn't exist or isn't live yet.",
+      "vendorNotFound": "Vendor not found",
+      "requestQuote": "Request Quote",
+      "submitRequest": "Submit Request",
+      "requestSent": "Quote Request Sent!",
+      "requestSentDesc": "The vendor will review your request and send you a quote. You can track it in My Bookings.",
+      "viewMyBookings": "View My Bookings"
+    },
+    "vendor": {
+      "portalTitle": "Vendor Portal",
+      "dashboard": "Dashboard",
+      "quotes": "Quotes",
+      "calendar": "Calendar",
+      "chat": "Chat",
+      "noAccess": "Access Denied",
+      "noAccessDesc": "You are not registered as a vendor for this marketplace.",
+      "pendingRequests": "Pending Requests",
+      "upcomingBookings": "Upcoming Bookings",
+      "recentRequests": "Recent Requests"
     }
   }
 }
