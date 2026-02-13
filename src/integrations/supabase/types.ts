@@ -1649,6 +1649,7 @@ export type Database = {
     Functions: {
       cleanup_old_org_events: { Args: never; Returns: undefined }
       cleanup_stale_memory: { Args: never; Returns: undefined }
+      get_thread_workspace: { Args: { _thread_id: string }; Returns: string }
       get_workspace_company: {
         Args: { _workspace_id: string }
         Returns: string
@@ -1659,6 +1660,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_chat_thread_member: {
+        Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
       is_company_member: {

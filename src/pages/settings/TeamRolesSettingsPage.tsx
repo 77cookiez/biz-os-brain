@@ -277,26 +277,35 @@ export default function TeamRolesSettingsPage() {
               return (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-secondary/50"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium text-primary">
+                  {/* Member info */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-medium text-primary shrink-0">
                       {member.full_name[0]?.toUpperCase() || '?'}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {member.full_name || member.email || 'Invited User'} {isSelf && <span className="text-muted-foreground">({t('common.you', 'You')})</span>}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {member.email && <span>{member.email}</span>}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {member.full_name || member.email || 'Invited User'}
+                        </p>
+                        {isSelf && <span className="text-xs text-muted-foreground">({t('common.you', 'You')})</span>}
+                        {/* Mobile role badge */}
+                        <Badge variant="outline" className="text-[10px] sm:hidden flex items-center gap-1 shrink-0">
+                          <Shield className="h-2.5 w-2.5" />
+                          {getRoleLabel(member.team_role, member.custom_role_name)}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        {member.email && <span className="truncate">{member.email}</span>}
                         {member.email && <span>•</span>}
-                        <span>{member.invite_status === 'pending' ? '⏳ Pending' : '✅ Active'}</span>
+                        <span className="shrink-0">{member.invite_status === 'pending' ? '⏳ Pending' : '✅ Active'}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    {/* Copy & WhatsApp buttons for pending members */}
+                  {/* Actions */}
+                  <div className="flex items-center gap-2 flex-wrap ps-[52px] sm:ps-0 shrink-0">
                     {isOwner && member.invite_status === 'pending' && (
                       <>
                         <Button
@@ -306,7 +315,8 @@ export default function TeamRolesSettingsPage() {
                           onClick={() => handleCopyLinkForMember(member.full_name, member.team_role, member.custom_role_name)}
                         >
                           <Copy className="h-3.5 w-3.5" />
-                          {t('settings.team.copyLink', 'Copy Link')}
+                          <span className="hidden sm:inline">{t('settings.team.copyLink', 'Copy Link')}</span>
+                          <span className="sm:hidden">Copy</span>
                         </Button>
                         <Button
                           variant="outline"
@@ -331,7 +341,7 @@ export default function TeamRolesSettingsPage() {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-[130px] h-8 text-xs">
+                        <SelectTrigger className="w-[120px] sm:w-[130px] h-8 text-xs hidden sm:flex">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border-border">
@@ -343,7 +353,7 @@ export default function TeamRolesSettingsPage() {
                         </SelectContent>
                       </Select>
                     ) : (
-                      <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <Badge variant="outline" className="text-xs items-center gap-1 hidden sm:flex">
                         <Shield className="h-3 w-3" />
                         {getRoleLabel(member.team_role, member.custom_role_name)}
                       </Badge>
