@@ -43,6 +43,14 @@ import ChatPage from "@/pages/chat/ChatPage";
 import RiskDashboardPage from "@/pages/enterprise/RiskDashboardPage";
 import LeadershipPage from "@/pages/apps/leadership/LeadershipPage";
 import LeadershipSettingsPage from "@/pages/apps/leadership/LeadershipSettingsPage";
+import BookingLayout from "@/pages/apps/booking/BookingLayout";
+import BookingDashboard from "@/pages/apps/booking/BookingDashboard";
+import BookingVendorsPage from "@/pages/apps/booking/BookingVendorsPage";
+import BookingServicesPage from "@/pages/apps/booking/BookingServicesPage";
+import BookingCalendarPage from "@/pages/apps/booking/BookingCalendarPage";
+import BookingQuotesPage from "@/pages/apps/booking/BookingQuotesPage";
+import BookingBookingsPage from "@/pages/apps/booking/BookingBookingsPage";
+import BookingSettingsPage from "@/pages/apps/booking/BookingSettingsPage";
 import { AppInstalledGate } from "@/components/apps/AppInstalledGate";
 import { Loader2 } from "lucide-react";
 
@@ -188,6 +196,15 @@ const AppRoutes = () => (
         <Route path="tasks" element={<Navigate to="/apps/workboard" replace />} />
       </Route>
       <Route path="/apps/chat" element={<ChatPage />} />
+      <Route path="/apps/booking" element={<AppInstalledGate appId="booking"><BookingLayout /></AppInstalledGate>}>
+        <Route index element={<BookingDashboard />} />
+        <Route path="vendors" element={<BookingVendorsPage />} />
+        <Route path="services" element={<BookingServicesPage />} />
+        <Route path="calendar" element={<BookingCalendarPage />} />
+        <Route path="quotes" element={<BookingQuotesPage />} />
+        <Route path="bookings" element={<BookingBookingsPage />} />
+        <Route path="settings" element={<BookingSettingsPage />} />
+      </Route>
       <Route path="/apps/leadership" element={<AppInstalledGate appId="leadership"><LeadershipPage /></AppInstalledGate>} />
       <Route path="/apps/leadership/settings" element={<AppInstalledGate appId="leadership"><LeadershipSettingsPage /></AppInstalledGate>} />
       <Route path="/enterprise/risk-dashboard" element={<RiskDashboardPage />} />

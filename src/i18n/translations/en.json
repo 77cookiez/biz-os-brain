@@ -722,5 +722,64 @@
     "emptyTitle": "No risk data yet",
     "emptyDesc": "Click \"Recompute\" to run your first enterprise risk assessment.",
     "runFirst": "Run Assessment"
+  },
+  "booking": {
+    "tabs": {
+      "dashboard": "Dashboard",
+      "vendors": "Vendors",
+      "services": "Services",
+      "calendar": "Calendar",
+      "quotes": "Quotes",
+      "bookings": "Bookings",
+      "settings": "Settings"
+    },
+    "dashboard": {
+      "title": "Booking OS",
+      "vendors": "Vendors",
+      "services": "Services",
+      "quotes": "Quotes",
+      "bookings": "Bookings"
+    },
+    "vendors": {
+      "title": "Vendors",
+      "emptyTitle": "No vendors yet",
+      "emptyDesc": "Invite vendors to start receiving bookings."
+    },
+    "services": {
+      "title": "Services",
+      "emptyTitle": "No services yet",
+      "emptyDesc": "Vendors can add their packages and services."
+    },
+    "calendar": {
+      "title": "Calendar",
+      "emptyTitle": "No availability set",
+      "emptyDesc": "Vendors can configure their weekly availability."
+    },
+    "quotes": {
+      "title": "Quotes",
+      "emptyTitle": "No quotes yet",
+      "emptyDesc": "Quote requests from customers will appear here."
+    },
+    "bookings": {
+      "title": "Bookings",
+      "emptyTitle": "No bookings yet",
+      "emptyDesc": "Confirmed bookings will appear here."
+    },
+    "settings": {
+      "title": "Settings",
+      "setupWizard": "Setup Wizard",
+      "setupDesc": "Configure your booking marketplace in minutes."
+    },
+    "notifications": {
+      "newQuoteRequest": "New quote request from {{customer_name}}",
+      "quoteSent": "Quote received for {{service_name}}",
+      "quoteAccepted": "Quote accepted by {{customer_name}}",
+      "paymentConfirmed": "Payment confirmed for booking",
+      "bookingCancelled": "Booking cancelled"
+    },
+    "subscription": {
+      "inactive": "Your subscription is inactive. Renew to resume bookings.",
+      "gracePeriod": "Your subscription expires in {{days}} days. Renew to avoid interruption."
+    }
   }
 }

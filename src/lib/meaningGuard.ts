@@ -5,7 +5,11 @@
  * without a meaning_object_id. Logs warnings and optionally blocks.
  */
 
-const MEANING_PROTECTED_TABLES = ['tasks', 'goals', 'ideas', 'brain_messages', 'plans', 'chat_messages'] as const;
+const MEANING_PROTECTED_TABLES = [
+  'tasks', 'goals', 'ideas', 'brain_messages', 'plans', 'chat_messages',
+  'booking_vendor_profiles', 'booking_services', 'booking_service_addons',
+  'booking_quote_requests', 'booking_quotes',
+] as const;
 
 type ProtectedTable = typeof MEANING_PROTECTED_TABLES[number];
 
