@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LogoUpload } from '@/components/booking/LogoUpload';
@@ -18,13 +19,30 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   LayoutGrid, Palette, Banknote, ShieldCheck, Rocket, Smartphone as SmartphoneIcon,
   ArrowLeft, ArrowRight, Check, Globe, Smartphone, Building2,
-  CheckCircle2, XCircle, Loader2, Upload, Camera,
+  CheckCircle2, XCircle, Loader2, Upload, Camera, AlertCircle,
+  Sparkles, Eye,
 } from 'lucide-react';
 
 const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'] as const;
 const THEMES = ['marketplace', 'rentals', 'eventServices', 'generic'] as const;
 const TONES = ['professional', 'friendly', 'luxury', 'casual'] as const;
 const CANCELLATION_POLICIES = ['flexible', 'standard', 'strict'] as const;
+
+const COLOR_PRESETS = [
+  { id: 'modernBlue', name: 'Modern Blue', primary: '#3B82F6', accent: '#F59E0B' },
+  { id: 'warmCoral', name: 'Warm Coral', primary: '#F43F5E', accent: '#A78BFA' },
+  { id: 'elegantGold', name: 'Elegant Gold', primary: '#D97706', accent: '#1E293B' },
+  { id: 'freshGreen', name: 'Fresh Green', primary: '#10B981', accent: '#6366F1' },
+  { id: 'luxuryDark', name: 'Luxury Dark', primary: '#1E293B', accent: '#F59E0B' },
+  { id: 'royalPurple', name: 'Royal Purple', primary: '#7C3AED', accent: '#F97316' },
+] as const;
+
+const THEME_PREVIEWS: Record<string, { color: string; icon: string }> = {
+  marketplace: { color: '#3B82F6', icon: '🏪' },
+  rentals: { color: '#10B981', icon: '🏠' },
+  eventServices: { color: '#F43F5E', icon: '🎉' },
+  generic: { color: '#6366F1', icon: '⚡' },
+};
 
 interface WizardData {
   theme_template: string;
@@ -80,7 +98,6 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     app_description: (settings as any)?.app_description ?? '',
   });
 
-  // Debounced slug for availability check
   const [debouncedSlug, setDebouncedSlug] = useState(data.tenant_slug);
 
   useEffect(() => {
@@ -89,7 +106,6 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
   }, [data.tenant_slug]);
 
   const RESERVED_SLUGS = ['admin', 'apps', 'api', 'v', 'b', 'login', 'signup', 'settings', 'auth', 'public', 'dashboard'];
-
   const isReservedSlug = RESERVED_SLUGS.includes(debouncedSlug);
 
   const { data: slugTaken, isLoading: slugChecking } = useQuery({
@@ -123,7 +139,6 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
       {
         onSuccess: async () => {
           if (goLive) {
-            // Ensure subscription record exists
             if (currentWorkspace) {
               await supabase
                 .from('booking_subscriptions')
@@ -182,6 +197,16 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     return true;
   };
 
+  // Pre-launch checklist items
+  const checklistItems = [
+    { label: t('booking.wizard.checklist.theme', 'Theme selected'), done: !!data.theme_template, value: t(`booking.wizard.theme.${data.theme_template}`) },
+    { label: t('booking.wizard.checklist.colors', 'Brand colors'), done: !!data.primary_color, value: data.primary_color },
+    { label: t('booking.wizard.checklist.currency', 'Currency'), done: !!data.currency, value: data.currency },
+    { label: t('booking.wizard.checklist.policy', 'Cancellation policy'), done: !!data.cancellation_policy, value: t(`booking.wizard.policies.${data.cancellation_policy}`) },
+    { label: t('booking.wizard.checklist.appName', 'App name'), done: data.app_name.length >= 3, value: data.app_name || '—' },
+    { label: t('booking.wizard.checklist.slug', 'Public URL'), done: data.tenant_slug.length >= 3 && !slugUnavailable, value: data.tenant_slug ? `/b/${data.tenant_slug}` : '—' },
+  ];
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Progress */}
@@ -209,23 +234,39 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
               onValueChange={(v) => update('theme_template', v)}
               className="grid grid-cols-1 sm:grid-cols-2 gap-3"
             >
-              {THEMES.map(theme => (
-                <Label
-                  key={theme}
-                  htmlFor={`theme-${theme}`}
-                  className={`flex flex-col gap-1 rounded-lg border p-4 cursor-pointer transition-colors ${
-                    data.theme_template === theme ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <RadioGroupItem value={theme} id={`theme-${theme}`} />
-                    <span className="font-medium text-foreground">{t(`booking.wizard.theme.${theme}`)}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground ps-6">
-                    {t(`booking.wizard.theme.${theme}Desc`)}
-                  </span>
-                </Label>
-              ))}
+              {THEMES.map(theme => {
+                const preview = THEME_PREVIEWS[theme];
+                return (
+                  <Label
+                    key={theme}
+                    htmlFor={`theme-${theme}`}
+                    className={`flex flex-col gap-2 rounded-lg border p-4 cursor-pointer transition-colors ${
+                      data.theme_template === theme ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    {/* Visual Preview */}
+                    <div className="rounded-md overflow-hidden border border-border bg-muted/50 p-3 mb-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="h-3 w-3 rounded-full" style={{ backgroundColor: preview.color }} />
+                        <div className="h-2 w-16 rounded bg-muted" />
+                      </div>
+                      <div className="flex gap-1">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex-1 h-8 rounded-sm bg-muted" />
+                        ))}
+                      </div>
+                      <div className="text-center mt-1 text-lg">{preview.icon}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value={theme} id={`theme-${theme}`} />
+                      <span className="font-medium text-foreground">{t(`booking.wizard.theme.${theme}`)}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground ps-6">
+                      {t(`booking.wizard.theme.${theme}Desc`)}
+                    </span>
+                  </Label>
+                );
+              })}
             </RadioGroup>
           </CardContent>
         </Card>
@@ -241,7 +282,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
             </CardTitle>
             <CardDescription>{t('booking.wizard.brand.subtitle')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {/* Logo Upload */}
             {currentWorkspace && (
               <LogoUpload
@@ -250,6 +291,41 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                 onUploadComplete={(url) => update('logo_url', url)}
               />
             )}
+
+            {/* Color Presets */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                {t('booking.wizard.brand.colorPresets', 'Color Presets')}
+              </Label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {COLOR_PRESETS.map(preset => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => {
+                      update('primary_color', preset.primary);
+                      update('accent_color', preset.accent);
+                    }}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-all text-center ${
+                      data.primary_color === preset.primary && data.accent_color === preset.accent
+                        ? 'border-primary ring-1 ring-primary bg-primary/5'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="flex gap-1">
+                      <div className="h-5 w-5 rounded-full ring-1 ring-border" style={{ backgroundColor: preset.primary }} />
+                      <div className="h-5 w-5 rounded-full ring-1 ring-border" style={{ backgroundColor: preset.accent }} />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground leading-tight">
+                      {t(`booking.wizard.brand.preset.${preset.id}`, preset.name)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Color Pickers */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t('booking.wizard.brand.primaryColor')}</Label>
@@ -284,6 +360,34 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                 </div>
               </div>
             </div>
+
+            {/* Live Brand Preview */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                {t('booking.wizard.brand.livePreview', 'Live Preview')}
+              </Label>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <div className="h-12 flex items-center px-4 gap-3" style={{ backgroundColor: data.primary_color }}>
+                  {data.logo_url ? (
+                    <img src={data.logo_url} alt="Logo" className="h-7 w-7 rounded object-cover" />
+                  ) : (
+                    <div className="h-7 w-7 rounded bg-background/20" />
+                  )}
+                  <div className="h-2.5 w-24 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.4)' }} />
+                  <div className="ms-auto h-7 px-3 rounded-md flex items-center text-xs font-medium" style={{ backgroundColor: data.accent_color, color: '#fff' }}>
+                    {t('booking.wizard.brand.previewBtn', 'Book Now')}
+                  </div>
+                </div>
+                <div className="p-4 bg-card">
+                  <div className="flex gap-2">
+                    <div className="h-2 w-16 rounded" style={{ backgroundColor: data.primary_color + '30' }} />
+                    <div className="h-2 w-12 rounded bg-muted" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label>{t('booking.wizard.brand.tone')}</Label>
               <Select value={data.tone} onValueChange={(v) => update('tone', v)}>
@@ -517,20 +621,48 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                   </p>
                 </div>
               </div>
-              {/* Phone preview */}
-              {data.app_icon_url && data.app_name && (
-                <div className="mt-3 flex flex-col items-center gap-1 p-4 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-2">{t('booking.wizard.app.preview', 'Home Screen Preview')}</p>
-                  <img
-                    src={data.app_icon_url}
-                    alt="Preview"
-                    className="h-14 w-14 rounded-[22%] shadow-md"
-                  />
-                  <span className="text-xs font-medium text-foreground mt-1 truncate max-w-[80px]">
-                    {data.app_name}
-                  </span>
+
+              {/* Phone previews (iOS + Android style) */}
+              {data.app_name && (
+                <div className="mt-3 flex gap-6 justify-center p-4 bg-muted/50 rounded-lg">
+                  {/* iOS style */}
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-[10px] text-muted-foreground mb-1">iOS</p>
+                    {data.app_icon_url ? (
+                      <img src={data.app_icon_url} alt="iOS" className="h-14 w-14 rounded-[22%] shadow-md" />
+                    ) : (
+                      <div className="h-14 w-14 rounded-[22%] shadow-md flex items-center justify-center" style={{ backgroundColor: data.primary_color }}>
+                        <span className="text-xl font-bold" style={{ color: '#fff' }}>{data.app_name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="text-[10px] font-medium text-foreground mt-0.5 truncate max-w-[72px]">
+                      {data.app_name}
+                    </span>
+                  </div>
+                  {/* Android style */}
+                  <div className="flex flex-col items-center gap-1">
+                    <p className="text-[10px] text-muted-foreground mb-1">Android</p>
+                    {data.app_icon_url ? (
+                      <img src={data.app_icon_url} alt="Android" className="h-14 w-14 rounded-full shadow-md" />
+                    ) : (
+                      <div className="h-14 w-14 rounded-full shadow-md flex items-center justify-center" style={{ backgroundColor: data.primary_color }}>
+                        <span className="text-xl font-bold" style={{ color: '#fff' }}>{data.app_name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="text-[10px] font-medium text-foreground mt-0.5 truncate max-w-[72px]">
+                      {data.app_name}
+                    </span>
+                  </div>
                 </div>
               )}
+
+              {/* Apple tip */}
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <AlertCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  {t('booking.wizard.app.appleTip', 'Apple requires no transparency in icons. Rounded corners are added automatically by the OS.')}
+                </p>
+              </div>
             </div>
 
             {/* App Description */}
@@ -601,25 +733,42 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                 )}
               </div>
               {data.tenant_slug && data.tenant_slug.length >= 3 && isReservedSlug && (
-                <p className="text-xs text-destructive">
-                  {t('booking.wizard.goLive.slugReserved', 'This slug is reserved')}
-                </p>
+                <p className="text-xs text-destructive">{t('booking.wizard.goLive.slugReserved', 'This slug is reserved')}</p>
               )}
               {data.tenant_slug && data.tenant_slug.length >= 3 && slugTaken && !isReservedSlug && (
-                <p className="text-xs text-destructive">
-                  {t('booking.wizard.goLive.slugTaken', 'This slug is already taken')}
-                </p>
+                <p className="text-xs text-destructive">{t('booking.wizard.goLive.slugTaken', 'This slug is already taken')}</p>
               )}
               {data.tenant_slug && data.tenant_slug.length >= 3 && !slugUnavailable && !slugChecking && (
-                <p className="text-xs text-muted-foreground">
-                  {t('booking.wizard.goLive.slugHint', { slug: data.tenant_slug })}
-                </p>
+                <p className="text-xs text-muted-foreground">{t('booking.wizard.goLive.slugHint', { slug: data.tenant_slug })}</p>
               )}
               {data.tenant_slug && data.tenant_slug.length < 3 && (
-                <p className="text-xs text-muted-foreground">
-                  {t('booking.wizard.goLive.slugMinLength', 'Slug must be at least 3 characters')}
-                </p>
+                <p className="text-xs text-muted-foreground">{t('booking.wizard.goLive.slugMinLength', 'Slug must be at least 3 characters')}</p>
               )}
+            </div>
+
+            {/* Pre-launch Checklist */}
+            <div className="space-y-3">
+              <Label className="font-medium flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                {t('booking.wizard.checklist.title', 'Pre-launch Checklist')}
+              </Label>
+              <div className="space-y-2 rounded-lg border border-border p-4">
+                {checklistItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      {item.done ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                      ) : (
+                        <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                      )}
+                      <span className={item.done ? 'text-foreground' : 'text-muted-foreground'}>{item.label}</span>
+                    </div>
+                    <Badge variant={item.done ? 'default' : 'secondary'} className="text-xs">
+                      {item.value}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-3">
