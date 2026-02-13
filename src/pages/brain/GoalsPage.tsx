@@ -229,7 +229,9 @@ export default function GoalsPage() {
                     <SelectContent className="bg-popover border-border">
                       <SelectItem value="">{t('goalsPage.noGoal', 'No goal')}</SelectItem>
                       {goals.map(goal => (
-                        <SelectItem key={goal.id} value={goal.id}>{goal.title}</SelectItem>
+                        <SelectItem key={goal.id} value={goal.id}>
+                          <ULLText meaningId={goal.meaning_object_id} table="goals" id={goal.id} field="title" fallback={goal.title} sourceLang={goal.source_lang || 'en'} />
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

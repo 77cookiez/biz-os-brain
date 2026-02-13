@@ -2,10 +2,13 @@ import { Target, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import { ULLText } from '@/components/ull/ULLText';
 
 export interface GoalReview {
   goalId: string;
   title: string;
+  meaningObjectId?: string | null;
+  sourceLang?: string;
   status: 'on_track' | 'off_track' | 'pending';
   kpiCurrent?: number | null;
   kpiTarget?: number | null;
@@ -37,7 +40,7 @@ export default function StepGoalReview({ goalReviews, onUpdateStatus }: Props) {
             <div key={goal.goalId} className="p-3 rounded-lg border border-border space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{goal.title}</p>
+                  <ULLText meaningId={goal.meaningObjectId} table="goals" id={goal.goalId} field="title" fallback={goal.title} sourceLang={goal.sourceLang || 'en'} className="text-sm font-medium text-foreground truncate" as="p" />
                   {goal.kpiName && (
                     <p className="text-xs text-muted-foreground">
                       {goal.kpiName}: {goal.kpiCurrent ?? 0} / {goal.kpiTarget ?? '—'}
