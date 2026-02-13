@@ -145,6 +145,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          deleted_at: string | null
           id: string
           meaning_object_id: string
           metadata: Json | null
@@ -156,6 +157,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           meaning_object_id: string
           metadata?: Json | null
@@ -167,6 +169,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          deleted_at?: string | null
           id?: string
           meaning_object_id?: string
           metadata?: Json | null
@@ -562,6 +565,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           id: string
@@ -578,6 +582,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -594,6 +599,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           id?: string
@@ -628,6 +634,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          deleted_at: string | null
           description: string | null
           id: string
           meaning_object_id: string
@@ -641,6 +648,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           meaning_object_id: string
@@ -654,6 +662,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           meaning_object_id?: string
@@ -685,6 +694,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string
+          deleted_at: string | null
           id: string
           meaning_json: Json
           source_lang: string
@@ -694,6 +704,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by: string
+          deleted_at?: string | null
           id?: string
           meaning_json?: Json
           source_lang?: string
@@ -703,6 +714,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
           id?: string
           meaning_json?: Json
           source_lang?: string
@@ -834,6 +846,35 @@ export type Database = {
           },
         ]
       }
+      onboarding_completions: {
+        Row: {
+          completed_at: string
+          id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_completions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_events: {
         Row: {
           created_at: string
@@ -928,6 +969,7 @@ export type Database = {
           ai_generated: boolean | null
           created_at: string
           created_by: string
+          deleted_at: string | null
           description: string | null
           goal_id: string | null
           id: string
@@ -943,6 +985,7 @@ export type Database = {
           ai_generated?: boolean | null
           created_at?: string
           created_by: string
+          deleted_at?: string | null
           description?: string | null
           goal_id?: string | null
           id?: string
@@ -958,6 +1001,7 @@ export type Database = {
           ai_generated?: boolean | null
           created_at?: string
           created_by?: string
+          deleted_at?: string | null
           description?: string | null
           goal_id?: string | null
           id?: string
@@ -1036,6 +1080,7 @@ export type Database = {
           created_at: string
           created_by: string
           definition_of_done: string | null
+          deleted_at: string | null
           description: string | null
           due_date: string | null
           goal_id: string | null
@@ -1060,6 +1105,7 @@ export type Database = {
           created_at?: string
           created_by: string
           definition_of_done?: string | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           goal_id?: string | null
@@ -1084,6 +1130,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           definition_of_done?: string | null
+          deleted_at?: string | null
           description?: string | null
           due_date?: string | null
           goal_id?: string | null

@@ -29,3 +29,12 @@ verify_jwt = false
 
 [functions.oil-compute]
 verify_jwt = false
+
+[functions.send-invite-email]
+verify_jwt = false
+
+[functions.onboarding-create]
+verify_jwt = false
+
+[functions.gdpr-export]
+verify_jwt = false

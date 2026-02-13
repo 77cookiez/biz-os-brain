@@ -679,5 +679,36 @@
     "aiSuggestionReason": "AI suggested: {{reason}}",
     "taskCreated": "Task created!",
     "taskCreateFailed": "Failed to create task"
+  },
+  "tour": {
+    "step1Title": "Welcome to AiBizOS",
+    "step1Desc": "Your sidebar is your navigation hub. Access the Brain, Workboard, Chat, and Settings from here.",
+    "step2Title": "The Business Brain",
+    "step2Desc": "Your AI thinking partner. Ask strategic questions, get plans, and let it draft decisions — you always confirm.",
+    "step3Title": "Workboard & Tasks",
+    "step3Desc": "Manage tasks, goals, and plans. Everything flows through the Workboard for execution.",
+    "step4Title": "Multi-Language Support",
+    "step4Desc": "Content is stored as meaning, then projected into your preferred language automatically.",
+    "step5Title": "Settings & Team",
+    "step5Desc": "Manage your account, company, team members, and intelligence settings from the Settings page.",
+    "next": "Next",
+    "finish": "Get Started"
+  },
+  "privacy": {
+    "title": "Privacy & Data",
+    "subtitle": "Manage your data and privacy settings",
+    "exportTitle": "Export My Data",
+    "exportDesc": "Download a JSON file containing all your data including tasks, goals, plans, ideas, and conversations.",
+    "exportBtn": "Export Data",
+    "exportSuccess": "Data exported successfully",
+    "exportFailed": "Failed to export data",
+    "deleteTitle": "Request Data Deletion",
+    "deleteDesc": "Request deletion of all your content data. This will soft-delete your tasks, goals, plans, ideas, and brain messages. This action cannot be undone.",
+    "deleteBtn": "Request Deletion",
+    "deleteSuccess": "Deletion request submitted",
+    "deleteFailed": "Failed to submit deletion request",
+    "confirmTitle": "Confirm Data Deletion",
+    "confirmDesc": "This will permanently mark all your content for deletion. Tasks, goals, plans, ideas, and brain messages will be removed. This cannot be undone.",
+    "confirmBtn": "Yes, Delete My Data"
   }
 }

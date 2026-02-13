@@ -6,11 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import {
-  Loader2, Lightbulb, CheckCircle2, ShieldAlert,
-  MessageSquare, Target, AlertTriangle, Sparkles, Clock,
+  Lightbulb, CheckCircle2, ShieldAlert,
+  MessageSquare, Target, AlertTriangle, Clock,
   ListChecks, TrendingUp, Archive
 } from 'lucide-react';
 import { useInsights } from '@/hooks/useInsights';
+import { InsightsSkeleton } from '@/components/ui/list-skeleton';
 import { ULLText } from '@/components/ull/ULLText';
 import { InsightsNarrative } from '@/components/insights/InsightsNarrative';
 import { DecisionSuggestions } from '@/components/insights/DecisionSuggestions';
@@ -22,8 +23,8 @@ export default function InsightsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="mx-auto max-w-3xl space-y-6 pt-2">
+        <InsightsSkeleton />
       </div>
     );
   }
