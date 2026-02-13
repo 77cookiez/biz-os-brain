@@ -8,8 +8,8 @@ const corsHeaders = {
 
 // ── Lightweight in-memory rate limiter (per-isolate) ──
 const rateLimitMap = new Map<string, { count: number; windowStart: number }>();
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX = 10; // max 10 requests per minute per user
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10;
 
 function isRateLimited(userId: string): boolean {
   const now = Date.now();
@@ -23,8 +23,7 @@ function isRateLimited(userId: string): boolean {
   return false;
 }
 
-// ── Payload size limit ──
-const MAX_PAYLOAD_BYTES = 4096; // 4 KB
+const MAX_PAYLOAD_BYTES = 4096;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,16 +39,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Payload size check ──
     const contentLength = req.headers.get("content-length");
     if (contentLength && parseInt(contentLength) > MAX_PAYLOAD_BYTES) {
-      return new Response(
-        JSON.stringify({ error: "Payload too large" }),
-        {
-          status: 413,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Payload too large" }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -58,13 +53,10 @@ Deno.serve(async (req) => {
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
 
     if (!lovableApiKey) {
-      return new Response(
-        JSON.stringify({ error: "AI not configured" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "AI not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Verify user
@@ -82,7 +74,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Rate limit ──
     if (isRateLimited(user.id)) {
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }),
@@ -95,20 +86,17 @@ Deno.serve(async (req) => {
 
     const body = await req.text();
     if (body.length > MAX_PAYLOAD_BYTES) {
-      return new Response(
-        JSON.stringify({ error: "Payload too large" }),
-        {
-          status: 413,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Payload too large" }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const { prompt, context } = JSON.parse(body);
+    const { prompt, context, tenant_slug } = JSON.parse(body);
 
-    if (!prompt) {
+    if (!prompt || !tenant_slug) {
       return new Response(
-        JSON.stringify({ error: "prompt is required" }),
+        JSON.stringify({ error: "prompt and tenant_slug are required" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -116,18 +104,35 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── SECURITY: Verify requester is an APPROVED vendor ──
-    // Use service role to check vendor status without RLS interference
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Find a workspace for this vendor. If context provides vendorName,
-    // we look up the vendor by owner_user_id + approved status.
+    // ── SECURITY: Derive workspace_id from tenant_slug server-side ──
+    const { data: tenantSettings, error: tenantError } = await admin
+      .from("booking_settings")
+      .select("workspace_id")
+      .eq("tenant_slug", tenant_slug)
+      .eq("is_live", true)
+      .maybeSingle();
+
+    if (tenantError || !tenantSettings) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or inactive tenant" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const tenantWorkspaceId = tenantSettings.workspace_id;
+
+    // ── SECURITY: Verify requester is an APPROVED vendor in THIS workspace ──
     const { data: vendorRecord, error: vendorError } = await admin
       .from("booking_vendors")
       .select("id, workspace_id, status")
       .eq("owner_user_id", user.id)
+      .eq("workspace_id", tenantWorkspaceId)
       .eq("status", "approved")
-      .limit(1)
       .maybeSingle();
 
     if (vendorError || !vendorRecord) {
@@ -215,7 +220,6 @@ Prices should be realistic for the service type described.`;
     const content =
       aiData.choices?.[0]?.message?.content || '{"message": "No response"}';
 
-    // Try to parse as JSON
     let parsed;
     try {
       const cleaned = content
@@ -227,18 +231,23 @@ Prices should be realistic for the service type described.`;
       parsed = { message: content };
     }
 
-    // ── Audit log for AI usage ──
-    await admin.from("audit_logs").insert({
-      workspace_id: vendorRecord.workspace_id,
-      actor_user_id: user.id,
-      action: "booking.vendor_ai_assist",
-      entity_type: "booking_vendor",
-      entity_id: vendorRecord.id,
-      metadata: {
-        prompt_length: prompt.length,
-        has_suggestions: !!parsed.suggestions,
-      },
-    });
+    // ── Audit log (non-blocking) ──
+    admin
+      .from("audit_logs")
+      .insert({
+        workspace_id: tenantWorkspaceId,
+        actor_user_id: user.id,
+        action: "booking.vendor_ai_assist",
+        entity_type: "booking_vendor",
+        entity_id: vendorRecord.id,
+        metadata: {
+          prompt_length: prompt.length,
+          has_suggestions: !!parsed.suggestions,
+        },
+      })
+      .then(({ error }) => {
+        if (error) console.error("audit_logs insert error (non-fatal):", error);
+      });
 
     return new Response(JSON.stringify(parsed), {
       status: 200,
