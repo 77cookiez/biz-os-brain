@@ -11,10 +11,8 @@ import {
   Eye,
   ArrowRight,
   ArrowUp,
-  CheckCircle2,
-  XCircle,
   RefreshCw,
-  FileText,
+  XCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,15 +21,13 @@ import ReactMarkdown from 'react-markdown';
 import { useTranslation } from 'react-i18next';
 import { useBrainChat } from '@/hooks/useBrainChat';
 import { useBrainCommand } from '@/contexts/BrainCommandContext';
+import { useBrainExecute, type BrainProposal } from '@/hooks/useBrainExecute';
+import { ProposalCard } from '@/components/brain/ProposalCard';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useBrainWorkboardIntegration } from '@/hooks/useBrainWorkboardIntegration';
-import { createMeaningObject, MeaningJsonV1Schema } from '@/lib/meaningObject';
-import type { MeaningJsonV1 } from '@/lib/meaningObject';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { OILPulseStrip } from '@/components/oil/OILPulseStrip';
 import { OILInsightCard } from '@/components/oil/OILInsightCard';
@@ -88,17 +84,16 @@ function useSmartSuggestions(): SmartSuggestion[] {
 export default function BrainPage() {
   const { t } = useTranslation();
   const { messages, isLoading, sendMessage } = useBrainChat();
+  const { signProposals, executeProposal, signedProposals, isSigningProposals, isExecuting, clearProposals } = useBrainExecute();
   const [input, setInput] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const [pendingProposals, setPendingProposals] = useState<BrainProposal[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const suggestions = useSmartSuggestions();
   const capabilities = useSmartCapabilities();
-  const navigate = useNavigate();
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
   const { currentLanguage } = useLanguage();
-  const { isWorkboardInstalled, installWorkboard, createTasksFromPlan } = useBrainWorkboardIntegration();
   const { pendingMessage, setPendingMessage } = useBrainCommand();
 
   // Auto-send pending message from command bar
@@ -138,6 +133,8 @@ export default function BrainPage() {
     setInput('');
     if (isListening) stopListening();
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    clearProposals();
+    setPendingProposals([]);
     await sendMessage(message);
   };
 
@@ -160,52 +157,59 @@ export default function BrainPage() {
 
   const hasMessages = messages.length > 0;
 
-  // Extract meaning blocks
-  const extractMeaningBlocks = useCallback((content: string): MeaningJsonV1[] => {
-    const regex = /```ULL_MEANING_V1\s*([\s\S]*?)```/g;
-    const blocks: MeaningJsonV1[] = [];
+  // Extract BRAIN_PROPOSALS from assistant messages
+  const extractProposals = useCallback((content: string): BrainProposal[] => {
+    const regex = /```BRAIN_PROPOSALS\s*([\s\S]*?)```/g;
+    const proposals: BrainProposal[] = [];
     let match;
     while ((match = regex.exec(content)) !== null) {
       try {
         const parsed = JSON.parse(match[1].trim());
         const items = Array.isArray(parsed) ? parsed : [parsed];
         for (const item of items) {
-          const validated = MeaningJsonV1Schema.safeParse(item);
-          if (validated.success) blocks.push(validated.data);
+          if (item.id && item.type && item.title) {
+            proposals.push(item as BrainProposal);
+          }
         }
-      } catch { /* skip */ }
+      } catch { /* skip invalid JSON */ }
     }
-    return blocks;
+    return proposals;
   }, []);
 
-  const handleSendToWorkboard = useCallback(async () => {
-    const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
-    if (!lastAssistant || !currentWorkspace || !user) return;
-    const meaningBlocks = extractMeaningBlocks(lastAssistant.content);
-    if (meaningBlocks.length === 0) { toast.success(t('brain.noted')); return; }
-    if (!isWorkboardInstalled) await installWorkboard();
-    setIsSending(true);
-    try {
-      const items = [];
-      for (const meaning of meaningBlocks) {
-        const meaningId = await createMeaningObject({
-          workspaceId: currentWorkspace.id, createdBy: user.id,
-          type: meaning.type as any, sourceLang: 'en', meaningJson: meaning,
-        });
-        if (meaning.type === 'TASK') {
-          items.push({ type: 'task' as const, title: meaning.subject, description: meaning.description, status: 'backlog' as const, meaning_object_id: meaningId });
-        }
-      }
-      if (items.length > 0) {
-        await createTasksFromPlan(items as any);
-        navigate('/apps/workboard/backlog');
-      }
-    } finally { setIsSending(false); }
-  }, [messages, currentWorkspace, user, extractMeaningBlocks, isWorkboardInstalled, installWorkboard, createTasksFromPlan, navigate, t]);
+  // Auto-sign proposals when new assistant message arrives with proposals
+  useEffect(() => {
+    if (isLoading || messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== 'assistant' || !lastMsg.content.includes('BRAIN_PROPOSALS')) return;
 
-  const handleSaveAsDraft = useCallback(() => { toast.success(t('brain.noted')); }, [t]);
+    const proposals = extractProposals(lastMsg.content);
+    if (proposals.length === 0) return;
 
-  const cleanContent = (content: string) => content.replace(/```ULL_MEANING_V1[\s\S]*?```/g, '').trim();
+    // Only sign if we haven't already signed these
+    if (pendingProposals.length > 0 || signedProposals.length > 0) return;
+
+    setPendingProposals(proposals);
+    signProposals(proposals).then(signed => {
+      if (signed.length > 0) {
+        setPendingProposals([]);
+      }
+    });
+  }, [messages, isLoading, extractProposals, signProposals, pendingProposals.length, signedProposals.length]);
+
+  const handleConfirmProposal = useCallback(async (proposal: BrainProposal) => {
+    const result = await executeProposal(proposal);
+    if (result.success) {
+      toast.success(t('brain.executionSuccess', `"${proposal.title}" created successfully`));
+    }
+  }, [executeProposal, t]);
+
+  const handleRejectProposal = useCallback((proposal: BrainProposal) => {
+    clearProposals();
+    setPendingProposals([]);
+    toast.info(t('brain.proposalDismissed', 'Proposal dismissed'));
+  }, [clearProposals, t]);
+
+  const cleanContent = (content: string) => content.replace(/```BRAIN_PROPOSALS[\s\S]*?```/g, '').replace(/```ULL_MEANING_V1[\s\S]*?```/g, '').trim();
 
   return (
     <div className="flex flex-col h-[calc(100dvh-3.5rem-2rem)] max-w-3xl mx-auto w-full">
@@ -298,17 +302,24 @@ export default function BrainPage() {
                   )}
                 </div>
 
-                {/* Decision Panel after last assistant message */}
-                {message.role === 'assistant' && i === messages.length - 1 && message.content.includes('ULL_MEANING_V1') && (
-                  <div className="mt-2 ml-9 sm:ml-10 flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleSaveAsDraft} disabled={isSending}>
-                      <FileText className="h-3 w-3 mr-1" />
-                      {t('brainPage.decisionPanel.saveAsDraft')}
-                    </Button>
-                    <Button variant="outline" size="sm" className="text-xs h-8" onClick={handleSendToWorkboard} disabled={isSending}>
-                      {isSending ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <ArrowRight className="h-3 w-3 mr-1" />}
-                      {t('brainPage.decisionPanel.sendToWorkboard')}
-                    </Button>
+                {/* Proposal Cards — secure execution flow */}
+                {message.role === 'assistant' && i === messages.length - 1 && (signedProposals.length > 0 || isSigningProposals) && (
+                  <div className="mt-3 ml-9 sm:ml-10 space-y-2 max-w-md">
+                    {isSigningProposals && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {t('brain.signingProposals', 'Preparing proposals...')}
+                      </div>
+                    )}
+                    {signedProposals.map((proposal) => (
+                      <ProposalCard
+                        key={proposal.id}
+                        proposal={proposal}
+                        onConfirm={handleConfirmProposal}
+                        onReject={handleRejectProposal}
+                        isExecuting={isExecuting}
+                      />
+                    ))}
                   </div>
                 )}
               </div>
