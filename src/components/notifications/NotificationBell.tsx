@@ -29,7 +29,13 @@ export function NotificationBell() {
       return;
     }
     if (notification.type === 'booking.quote_sent') {
-      navigate(data?.link || '/apps/booking/quotes');
+      // Customer-facing: use tenant_slug for public page if available
+      const tenantSlug = data?.tenant_slug;
+      if (tenantSlug) {
+        navigate(`/b/${tenantSlug}/my`);
+      } else {
+        navigate(data?.link || '/apps/booking/quotes');
+      }
       return;
     }
     if (notification.type === 'booking.quote_accepted') {

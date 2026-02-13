@@ -92,7 +92,7 @@ export default function PublicVendorDetailPage() {
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             {whatsappNumber && (
               <a
-                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t('booking.public.whatsappMessage', { vendor: vendorName }))}`}
+                href={`https://web.whatsapp.com/send?phone=${whatsappNumber}&text=${encodeURIComponent(t('booking.public.whatsappMessage', { vendor: vendorName }))}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
