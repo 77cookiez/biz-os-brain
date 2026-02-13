@@ -52,7 +52,7 @@ export function TopBar({ onMenuToggle }: TopBarProps) {
       )}
 
       {/* Global Brain Command Bar — hidden on /brain to avoid duplication */}
-      {!isBrainPage && <div className="hidden md:block"><BrainCommandBar /></div>}
+      {!isBrainPage && <BrainCommandBar />}
 
       {/* Company & Workspace Switcher */}
       <DropdownMenu>

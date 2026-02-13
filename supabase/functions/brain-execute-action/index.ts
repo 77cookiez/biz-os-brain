@@ -313,15 +313,15 @@ serve(async (req) => {
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await authClient.auth.getUser(token);
+    if (userError || !user) {
       return new Response(
         JSON.stringify({ code: "EXECUTION_DENIED", reason: "Invalid token", suggested_action: "login" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const userId = claimsData.claims.sub as string;
+    const userId = user.id;
 
     // Service client for DB operations (bypasses RLS for execution)
     const sbService = createClient(supabaseUrl, serviceKey);
