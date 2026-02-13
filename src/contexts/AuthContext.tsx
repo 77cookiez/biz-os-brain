@@ -104,10 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return;
     
+    // Use upsert to handle cases where profile row doesn't exist yet
     const { data } = await supabase
       .from('profiles')
-      .update(updates)
-      .eq('user_id', user.id)
+      .upsert({ user_id: user.id, ...updates }, { onConflict: 'user_id' })
       .select()
       .single();
     
