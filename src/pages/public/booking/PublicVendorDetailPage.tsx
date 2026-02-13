@@ -7,13 +7,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ULLText } from '@/components/ull/ULLText';
-import { ArrowLeft, Package, Calendar } from 'lucide-react';
+import { ArrowLeft, Package, Calendar, MessageCircle, Mail } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatCurrency';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 
 export default function PublicVendorDetailPage() {
   const { t } = useTranslation();
   const { vendorId, tenantSlug } = useParams<{ vendorId: string; tenantSlug: string }>();
   const { settings } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { currentLanguage } = useLanguage();
   const workspaceId = settings?.workspace_id;
+  const currency = settings?.currency || 'AED';
 
   const { data: vendor, isLoading: vLoading } = useQuery({
     queryKey: ['public-vendor', vendorId],
@@ -45,6 +50,12 @@ export default function PublicVendorDetailPage() {
     enabled: !!vendorId,
   });
 
+  const vendorName = vendor?.profile?.display_name || '';
+  useDocumentMeta({
+    title: vendorName ? `${vendorName} — Booking` : 'Vendor',
+    description: vendor?.profile?.bio || `View services from ${vendorName}`,
+  });
+
   if (vLoading) {
     return <div className="space-y-4"><Skeleton className="h-48" /><Skeleton className="h-32" /></div>;
   }
@@ -52,6 +63,9 @@ export default function PublicVendorDetailPage() {
   if (!vendor) {
     return <p className="text-muted-foreground">{t('booking.public.vendorNotFound')}</p>;
   }
+
+  const whatsappNumber = vendor.profile?.whatsapp?.replace(/\D/g, '');
+  const contactEmail = vendor.profile?.email;
 
   return (
     <div className="space-y-6">
@@ -74,6 +88,29 @@ export default function PublicVendorDetailPage() {
               <ULLText meaningId={vendor.profile?.bio_meaning_object_id} fallback={vendor.profile.bio} />
             </p>
           )}
+          {/* Contact buttons */}
+          <div className="flex items-center gap-2 mt-3 flex-wrap">
+            {whatsappNumber && (
+              <a
+                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t('booking.public.whatsappMessage', { vendor: vendorName }))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button size="sm" variant="outline" className="gap-1.5 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10">
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </Button>
+              </a>
+            )}
+            {contactEmail && (
+              <a href={`mailto:${contactEmail}`}>
+                <Button size="sm" variant="outline" className="gap-1.5">
+                  <Mail className="h-4 w-4" />
+                  {t('booking.public.email')}
+                </Button>
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
@@ -97,7 +134,9 @@ export default function PublicVendorDetailPage() {
                       <ULLText meaningId={s.title_meaning_object_id} fallback={s.title} />
                     </CardTitle>
                     {s.price_type !== 'custom_quote' && s.price_amount && (
-                      <Badge variant="secondary">{s.currency} {s.price_amount}</Badge>
+                      <Badge variant="secondary">
+                        {formatCurrency(s.price_amount, s.currency || currency, currentLanguage.code)}
+                      </Badge>
                     )}
                   </div>
                 </CardHeader>

@@ -1032,7 +1032,9 @@
       "submitRequest": "Submit Request",
       "requestSent": "Quote Request Sent!",
       "requestSentDesc": "The vendor will review your request and send you a quote. You can track it in My Bookings.",
-      "viewMyBookings": "View My Bookings"
+      "viewMyBookings": "View My Bookings",
+      "whatsappMessage": "Hi, I'd like to inquire about your services.",
+      "email": "Email"
     },
     "vendor": {
       "portalTitle": "Vendor Portal",

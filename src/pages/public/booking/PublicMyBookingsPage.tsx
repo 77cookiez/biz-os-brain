@@ -13,11 +13,14 @@ import { useBookingBookings } from '@/hooks/useBookingBookings';
 import { useAuth } from '@/contexts/AuthContext';
 import { BookOpen, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/formatCurrency';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function PublicMyBookingsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { tenantSlug } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { settings, tenantSlug } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { currentLanguage } = useLanguage();
   const { quoteRequests, isLoading: qLoading } = useBookingQuotes();
   const { bookings, isLoading: bLoading } = useBookingBookings();
   const [tab, setTab] = useState('requests');
@@ -99,7 +102,7 @@ export default function PublicMyBookingsPage() {
               <Card key={b.id}>
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{b.currency} {b.total_amount}</CardTitle>
+                    <CardTitle className="text-base">{formatCurrency(b.total_amount, b.currency, currentLanguage.code)}</CardTitle>
                     <BookingStatusBadge status={b.status} />
                   </div>
                 </CardHeader>

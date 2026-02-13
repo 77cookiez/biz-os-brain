@@ -929,7 +929,7 @@
       "paymentFailed": "فشل تسجيل الدفع"
     },
     "chat": { "title": "المحادثة", "noThread": "لا يوجد محادثة مرتبطة", "empty": "لا رسائل بعد. ابدأ المحادثة!", "placeholder": "اكتب رسالة...", "emptyTitle": "لا محادثات", "emptyDesc": "ستظهر المحادثات عند إنشاء طلبات عروض أسعار." },
-    "public": { "browse": "تصفح", "myBookings": "حجوزاتي", "vendors": "مقدمو الخدمات", "services": "الخدمات", "noVendors": "لا يوجد مقدمو خدمات حالياً.", "noServices": "لا توجد خدمات حالياً.", "notFound": "السوق غير موجود", "notFoundDesc": "هذا السوق غير موجود أو غير مفعّل.", "vendorNotFound": "مقدم الخدمة غير موجود", "requestQuote": "طلب عرض سعر", "submitRequest": "إرسال الطلب", "requestSent": "تم إرسال طلب عرض السعر!", "requestSentDesc": "سيراجع مقدم الخدمة طلبك ويرسل لك عرض سعر.", "viewMyBookings": "عرض حجوزاتي" },
+    "public": { "browse": "تصفح", "myBookings": "حجوزاتي", "vendors": "مقدمو الخدمات", "services": "الخدمات", "noVendors": "لا يوجد مقدمو خدمات حالياً.", "noServices": "لا توجد خدمات حالياً.", "notFound": "السوق غير موجود", "notFoundDesc": "هذا السوق غير موجود أو غير مفعّل.", "vendorNotFound": "مقدم الخدمة غير موجود", "requestQuote": "طلب عرض سعر", "submitRequest": "إرسال الطلب", "requestSent": "تم إرسال طلب عرض السعر!", "requestSentDesc": "سيراجع مقدم الخدمة طلبك ويرسل لك عرض سعر.", "viewMyBookings": "عرض حجوزاتي", "whatsappMessage": "مرحباً، أود الاستفسار عن خدماتكم.", "email": "البريد الإلكتروني" },
     "vendor": { "portalTitle": "بوابة مقدم الخدمة", "dashboard": "لوحة التحكم", "quotes": "عروض الأسعار", "calendar": "التقويم", "chat": "المحادثة", "noAccess": "الوصول مرفوض", "noAccessDesc": "أنت غير مسجل كمقدم خدمة.", "pendingRequests": "طلبات معلقة", "upcomingBookings": "حجوزات قادمة", "recentRequests": "طلبات حديثة" }
   }
 }

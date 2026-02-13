@@ -7,11 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ULLText } from '@/components/ull/ULLText';
 import { Store, Package } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatCurrency';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function PublicBrowsePage() {
   const { t } = useTranslation();
   const { settings, tenantSlug } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { currentLanguage } = useLanguage();
   const workspaceId = settings?.workspace_id;
+  const currency = settings?.currency || 'AED';
 
   const { data: vendors = [], isLoading: vLoading } = useQuery({
     queryKey: ['public-vendors', workspaceId],
@@ -133,7 +137,7 @@ export default function PublicBrowsePage() {
                       <ULLText meaningId={s.vendor_display_name_meaning_id} fallback={s.vendor_display_name} />
                     </span>
                     {s.price_type !== 'custom_quote' && s.price_amount && (
-                      <Badge variant="secondary">{s.currency} {s.price_amount}</Badge>
+                      <Badge variant="secondary">{formatCurrency(s.price_amount, s.currency || currency, currentLanguage.code)}</Badge>
                     )}
                   </div>
                 </CardContent>

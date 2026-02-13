@@ -1,13 +1,16 @@
-import { Outlet, NavLink, useParams, Navigate } from 'react-router-dom';
+import { Outlet, NavLink, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Store, Search, User, Loader2 } from 'lucide-react';
+import { Store, Search, User, Plus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDocumentMeta } from '@/hooks/useDocumentMeta';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function PublicBookingLayout() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
 
   const { data: settings, isLoading, error } = useQuery({
     queryKey: ['public-booking-settings', tenantSlug],
@@ -23,6 +26,13 @@ export default function PublicBookingLayout() {
       return data;
     },
     enabled: !!tenantSlug,
+  });
+
+  const workspaceName = (settings as any)?.workspace?.name || tenantSlug || '';
+
+  useDocumentMeta({
+    title: workspaceName ? `${workspaceName} — Booking` : 'Booking',
+    description: `Browse services and book with ${workspaceName}`,
   });
 
   if (isLoading) {
@@ -43,47 +53,111 @@ export default function PublicBookingLayout() {
     );
   }
 
+  const tenantPrimary = settings.primary_color || undefined;
+  const tenantAccent = settings.accent_color || undefined;
+
+  const tenantStyle = {
+    '--tenant-primary': tenantPrimary,
+    '--tenant-accent': tenantAccent,
+  } as React.CSSProperties;
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) => cn(
+    'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors',
+    isActive
+      ? 'font-semibold'
+      : 'text-muted-foreground hover:text-foreground'
+  );
+
+  const activeNavStyle = (isActive: boolean): React.CSSProperties =>
+    isActive && tenantPrimary
+      ? { color: tenantPrimary, backgroundColor: `${tenantPrimary}15` }
+      : {};
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Public header — no OS navigation */}
-      <header className="border-b border-border bg-card px-4 py-3">
+    <div className="min-h-screen bg-background pb-16 sm:pb-0" style={tenantStyle}>
+      {/* Public header */}
+      <header
+        className="border-b border-border bg-card px-4 py-3"
+        style={tenantPrimary ? { borderBottomColor: `${tenantPrimary}30` } : {}}
+      >
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             {settings.logo_url && (
               <img src={settings.logo_url} alt="" className="h-8 w-8 rounded-md object-cover" />
             )}
             <span className="text-lg font-semibold text-foreground">
-              {(settings as any).workspace?.name || tenantSlug}
+              {workspaceName}
             </span>
           </div>
-          <nav className="flex items-center gap-2">
+          {/* Desktop nav */}
+          <nav className="hidden sm:flex items-center gap-2">
             <NavLink
               to={`/b/${tenantSlug}`}
               end
-              className={({ isActive }) => cn(
-                'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors',
-                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
-              )}
+              className={navLinkClass}
+              style={({ isActive }) => activeNavStyle(isActive)}
             >
               <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('booking.public.browse')}</span>
+              {t('booking.public.browse')}
             </NavLink>
             <NavLink
               to={`/b/${tenantSlug}/my`}
-              className={({ isActive }) => cn(
-                'flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-colors',
-                isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
-              )}
+              className={navLinkClass}
+              style={({ isActive }) => activeNavStyle(isActive)}
             >
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('booking.public.myBookings')}</span>
+              {t('booking.public.myBookings')}
             </NavLink>
           </nav>
         </div>
       </header>
+
       <main className="max-w-5xl mx-auto px-4 py-6">
         <Outlet context={{ settings, tenantSlug }} />
       </main>
+
+      {/* Mobile bottom navigation */}
+      {isMobile && (
+        <nav
+          className="fixed bottom-0 inset-x-0 border-t border-border bg-card z-50 flex items-center justify-around h-14"
+          style={tenantPrimary ? { borderTopColor: `${tenantPrimary}30` } : {}}
+        >
+          <NavLink
+            to={`/b/${tenantSlug}`}
+            end
+            className={({ isActive }) => cn(
+              'flex flex-col items-center gap-0.5 text-[10px] py-1 px-3 rounded-md transition-colors',
+              isActive ? 'font-semibold' : 'text-muted-foreground'
+            )}
+            style={({ isActive }) => activeNavStyle(isActive)}
+          >
+            <Search className="h-5 w-5" />
+            {t('booking.public.browse')}
+          </NavLink>
+          <NavLink
+            to={`/b/${tenantSlug}/request`}
+            className={({ isActive }) => cn(
+              'flex flex-col items-center gap-0.5 text-[10px] py-1 px-3 rounded-md transition-colors',
+              isActive ? 'font-semibold' : 'text-muted-foreground'
+            )}
+            style={({ isActive }) => activeNavStyle(isActive)}
+          >
+            <Plus className="h-5 w-5" />
+            {t('booking.public.requestQuote')}
+          </NavLink>
+          <NavLink
+            to={`/b/${tenantSlug}/my`}
+            className={({ isActive }) => cn(
+              'flex flex-col items-center gap-0.5 text-[10px] py-1 px-3 rounded-md transition-colors',
+              isActive ? 'font-semibold' : 'text-muted-foreground'
+            )}
+            style={({ isActive }) => activeNavStyle(isActive)}
+          >
+            <User className="h-5 w-5" />
+            {t('booking.public.myBookings')}
+          </NavLink>
+        </nav>
+      )}
     </div>
   );
 }
