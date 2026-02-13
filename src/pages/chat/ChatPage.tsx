@@ -42,7 +42,7 @@ export default function ChatPage() {
   const { threads, loading: threadsLoading, createThread, deleteThread, refreshThreads } = useChatThreads();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [newThreadOpen, setNewThreadOpen] = useState(false);
-  const { messages, loading: messagesLoading, sendMessage, deleteMessage } = useChatMessages(selectedThreadId);
+  const { messages, loading: messagesLoading, loadingMore, hasMore, loadMore, sendMessage, deleteMessage } = useChatMessages(selectedThreadId);
   const { typingUsers, broadcastTyping } = useTypingIndicator(selectedThreadId);
   const { markAsRead } = useReadReceipts(selectedThreadId);
   const { logAction } = useChatAudit();
@@ -100,8 +100,8 @@ export default function ChatPage() {
     }
   }, [deleteMessage, logAction]);
 
-  const handleSend = useCallback(async (text: string) => {
-    const ok = await sendMessage(text);
+  const handleSend = useCallback(async (text: string, files?: File[]) => {
+    const ok = await sendMessage(text, files);
     if (ok) {
       if (showWelcome && currentWorkspace) {
         markWelcomeSeen(currentWorkspace.id);
@@ -165,6 +165,9 @@ export default function ChatPage() {
             <MessageView
               messages={messages}
               loading={messagesLoading}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              onLoadMore={loadMore}
               typingUsers={typingUsers}
               onDeleteMessage={handleDeleteMessage}
               onCreateTaskFromMessage={createTaskFromMessage}

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useMemo } from 'react';
+import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ULLText } from '@/components/ull/ULLText';
@@ -6,14 +6,17 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Trash2, CheckCheck, ListPlus, CircleCheck } from 'lucide-react';
+import { MoreVertical, Trash2, CheckCheck, ListPlus, CircleCheck, Loader2, FileIcon, Download } from 'lucide-react';
 import { useChatTaskLinks } from '@/hooks/useChatTaskLinks';
 import { useNavigate } from 'react-router-dom';
-import type { ChatMessage } from '@/hooks/useChatMessages';
+import type { ChatMessage, ChatAttachment } from '@/hooks/useChatMessages';
 
 interface MessageViewProps {
   messages: ChatMessage[];
   loading: boolean;
+  loadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
   typingUsers?: string[];
   onDeleteMessage?: (id: string) => void;
   onCreateTaskFromMessage?: (message: ChatMessage) => void;
@@ -26,6 +29,14 @@ function extractFallback(meaningJson?: Record<string, unknown>): string {
   return (meaningJson.description as string) || (meaningJson.subject as string) || '…';
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+
 /** Group consecutive messages by same sender within 2 minutes */
 function shouldShowMeta(msg: ChatMessage, prev?: ChatMessage): boolean {
   if (!prev) return true;
@@ -34,20 +45,115 @@ function shouldShowMeta(msg: ChatMessage, prev?: ChatMessage): boolean {
   return gap > 2 * 60 * 1000;
 }
 
-export function MessageView({ messages, loading, typingUsers = [], onDeleteMessage, onCreateTaskFromMessage, isAdmin, showWelcome }: MessageViewProps) {
+function AttachmentDisplay({ attachments, isOwn }: { attachments: ChatAttachment[]; isOwn: boolean }) {
+  const images = attachments.filter(a => IMAGE_TYPES.includes(a.file_type));
+  const files = attachments.filter(a => !IMAGE_TYPES.includes(a.file_type));
+
+  return (
+    <div className="mt-1.5 space-y-1.5">
+      {/* Image grid */}
+      {images.length > 0 && (
+        <div className={cn(
+          "grid gap-1",
+          images.length === 1 ? "grid-cols-1" : images.length === 2 ? "grid-cols-2" : "grid-cols-2"
+        )}>
+          {images.map((img) => (
+            <a
+              key={img.id}
+              href={img.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-lg overflow-hidden hover:opacity-90 transition-opacity"
+            >
+              <img
+                src={img.file_url}
+                alt={img.file_name}
+                loading="lazy"
+                className={cn(
+                  "w-full object-cover",
+                  images.length === 1 ? "max-h-64 rounded-lg" : "h-32"
+                )}
+              />
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* File list */}
+      {files.map((file) => (
+        <a
+          key={file.id}
+          href={file.file_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          download={file.file_name}
+          className={cn(
+            "flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors text-xs",
+            isOwn
+              ? "bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
+              : "bg-background/60 hover:bg-background/80 text-foreground"
+          )}
+        >
+          <FileIcon className="h-4 w-4 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="truncate font-medium">{file.file_name}</p>
+            <p className={cn(
+              "text-[10px]",
+              isOwn ? "text-primary-foreground/60" : "text-muted-foreground"
+            )}>
+              {formatFileSize(file.file_size)}
+            </p>
+          </div>
+          <Download className="h-3.5 w-3.5 shrink-0 opacity-60" />
+        </a>
+      ))}
+    </div>
+  );
+}
+
+export function MessageView({ messages, loading, loadingMore, hasMore, onLoadMore, typingUsers = [], onDeleteMessage, onCreateTaskFromMessage, isAdmin, showWelcome }: MessageViewProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const topSentinelRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [createdTaskMsgIds, setCreatedTaskMsgIds] = useState<Set<string>>(new Set());
+  const prevMessagesLengthRef = useRef(0);
 
   // Chat → Task awareness: detect which messages have linked tasks
   const messageIds = useMemo(() => messages.map(m => m.id), [messages]);
   const { links: taskLinks } = useChatTaskLinks(messageIds);
 
+  // Auto-scroll to bottom only for new messages (not when loading older)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, typingUsers.length]);
+    if (messages.length > prevMessagesLengthRef.current) {
+      // Check if new messages were appended (not prepended)
+      const wasAppend = prevMessagesLengthRef.current === 0 || 
+        messages.length - prevMessagesLengthRef.current < PAGE_SIZE_HINT;
+      if (wasAppend) {
+        bottomRef.current?.scrollIntoView({ behavior: prevMessagesLengthRef.current === 0 ? 'auto' : 'smooth' });
+      }
+    }
+    prevMessagesLengthRef.current = messages.length;
+  }, [messages.length]);
+
+  // Intersection observer for infinite scroll (load more when scrolling up)
+  useEffect(() => {
+    if (!hasMore || !onLoadMore || !topSentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(topSentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, onLoadMore, loadingMore]);
 
   const handleCreateTask = (msg: ChatMessage) => {
     if (onCreateTaskFromMessage) {
@@ -69,8 +175,17 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="flex-1" ref={scrollAreaRef}>
       <div className="flex flex-col px-4 py-3 max-w-2xl mx-auto">
+        {/* Load more sentinel */}
+        {hasMore && (
+          <div ref={topSentinelRef} className="flex justify-center py-2">
+            {loadingMore && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        )}
+
         {/* Welcome banner */}
         {showWelcome && messages.length === 0 && (
           <div className="flex justify-center my-12">
@@ -93,6 +208,8 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
           const canCreateTask = isOwn && onCreateTaskFromMessage && !createdTaskMsgIds.has(msg.id) && !taskLinks.has(msg.id);
           const hasActions = (isAdmin || isOwn) && onDeleteMessage;
           const linkedTask = taskLinks.get(msg.id);
+          const hasAttachments = msg.attachments && msg.attachments.length > 0;
+          const isFileOnly = hasAttachments && (!msg.meaning_json?.description || msg.meaning_json.description === `[${msg.attachments!.length} file(s)]`);
 
           return (
             <div
@@ -132,10 +249,19 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
                         )
                   )}
                 >
-                  <ULLText
-                    meaningId={msg.meaning_object_id}
-                    fallback={fallback}
-                  />
+                  {/* Text content — hide if file-only message */}
+                  {!isFileOnly && (
+                    <ULLText
+                      meaningId={msg.meaning_object_id}
+                      fallback={fallback}
+                    />
+                  )}
+
+                  {/* Attachments */}
+                  {hasAttachments && (
+                    <AttachmentDisplay attachments={msg.attachments!} isOwn={isOwn} />
+                  )}
+
                   {/* Timestamp + read status — inline at bottom-right */}
                   <span className={cn(
                     "float-right ml-3 mt-1 flex items-center gap-0.5 text-[10px] leading-none select-none",
@@ -220,3 +346,6 @@ export function MessageView({ messages, loading, typingUsers = [], onDeleteMessa
     </ScrollArea>
   );
 }
+
+// Used for append detection heuristic
+const PAGE_SIZE_HINT = 40;
