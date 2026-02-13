@@ -49,14 +49,14 @@ export default function BookingSettingsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Subscription
+              {t('booking.subscription.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-3">
               <BookingStatusBadge status={subscription.status} />
               <span className="text-sm text-muted-foreground">
-                Plan: {subscription.plan}
+                {t('booking.subscription.plan')}: {subscription.plan}
               </span>
             </div>
           </CardContent>
@@ -79,20 +79,20 @@ export default function BookingSettingsPage() {
           {settings && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
               <div>
-                <span className="text-muted-foreground">Theme:</span>{' '}
-                <span className="text-foreground font-medium">{settings.theme_template}</span>
+                <span className="text-muted-foreground">{t('booking.settings.themeLabel')}:</span>{' '}
+                <span className="text-foreground font-medium">{t(`booking.wizard.theme.${settings.theme_template}`)}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Currency:</span>{' '}
+                <span className="text-muted-foreground">{t('booking.wizard.money.currency')}:</span>{' '}
                 <span className="text-foreground font-medium">{settings.currency}</span>
               </div>
               <div>
-                <span className="text-muted-foreground">Status:</span>{' '}
+                <span className="text-muted-foreground">{t('booking.vendors.status')}:</span>{' '}
                 <BookingStatusBadge status={settings.is_live ? 'active' : 'pending'} />
               </div>
               {settings.tenant_slug && (
                 <div className="col-span-2 sm:col-span-3">
-                  <span className="text-muted-foreground">Slug:</span>{' '}
+                  <span className="text-muted-foreground">{t('booking.settings.slugLabel')}:</span>{' '}
                   <code className="text-foreground font-mono text-xs bg-muted px-1.5 py-0.5 rounded break-all">
                     /b/{settings.tenant_slug}
                   </code>

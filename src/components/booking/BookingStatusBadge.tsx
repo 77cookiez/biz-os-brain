@@ -17,6 +17,7 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 
   approved: 'default',
   suspended: 'destructive',
   active: 'default',
+  trial: 'secondary',
   expired: 'destructive',
   grace: 'secondary',
 };

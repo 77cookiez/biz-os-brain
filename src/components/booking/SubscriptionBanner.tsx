@@ -1,14 +1,30 @@
 import { useTranslation } from 'react-i18next';
 import { useBookingSubscription } from '@/hooks/useBookingSubscription';
-import { AlertTriangle, XCircle } from 'lucide-react';
+import { AlertTriangle, XCircle, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 export function SubscriptionBanner() {
   const { t } = useTranslation();
-  const { isActive, isGracePeriod, isSuspended, daysRemaining, isLoading } = useBookingSubscription();
+  const { isActive, isTrial, isGracePeriod, isSuspended, daysRemaining, isLoading } = useBookingSubscription();
 
   if (isLoading || isActive) return null;
+
+  if (isTrial) {
+    return (
+      <Alert className="border-primary/50 bg-primary/10 mb-4">
+        <Info className="h-4 w-4 text-primary" />
+        <AlertDescription className="flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-sm">
+            {t('booking.subscription.trial', { days: daysRemaining ?? '—' })}
+          </span>
+          <Button size="sm" variant="outline" className="shrink-0">
+            {t('booking.subscription.upgradePlan')}
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   if (isGracePeriod) {
     return (

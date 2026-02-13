@@ -53,7 +53,7 @@ export default function BookingDashboard() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {pendingCount} vendor(s) awaiting approval. Go to the Vendors tab to review.
+              {t('booking.dashboard.pendingVendorsHint', { count: pendingCount })}
             </p>
           </CardContent>
         </Card>

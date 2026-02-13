@@ -742,7 +742,8 @@
       "overview": "Overview",
       "totalRevenue": "Total Revenue",
       "pendingQuotes": "Pending Quotes",
-      "activeBookings": "Active Bookings"
+      "activeBookings": "Active Bookings",
+      "pendingVendorsHint": "{{count}} vendor(s) awaiting approval. Go to the Vendors tab to review."
     },
     "vendors": {
       "title": "Vendors",
@@ -766,22 +767,110 @@
     "services": {
       "title": "Services",
       "emptyTitle": "No services yet",
-      "emptyDesc": "Vendors can add their packages and services."
+      "emptyDesc": "Vendors can add their packages and services.",
+      "addService": "Add Service",
+      "serviceTitle": "Service Title",
+      "serviceDescription": "Description",
+      "priceType": "Price Type",
+      "priceFixed": "Fixed Price",
+      "priceHourly": "Hourly",
+      "priceCustom": "Custom Quote",
+      "priceAmount": "Price",
+      "minGuests": "Min Guests",
+      "maxGuests": "Max Guests",
+      "durationMinutes": "Duration (min)",
+      "createService": "Create Service",
+      "serviceCreated": "Service created successfully",
+      "serviceCreateFailed": "Failed to create service",
+      "serviceUpdated": "Service updated",
+      "serviceUpdateFailed": "Failed to update service",
+      "active": "Active",
+      "inactive": "Inactive",
+      "vendor": "Vendor",
+      "price": "Price",
+      "editService": "Edit Service",
+      "deleteService": "Delete Service"
     },
     "calendar": {
       "title": "Calendar",
       "emptyTitle": "No availability set",
-      "emptyDesc": "Vendors can configure their weekly availability."
+      "emptyDesc": "Vendors can configure their weekly availability.",
+      "weeklyAvailability": "Weekly Availability",
+      "blackoutDates": "Blackout Dates",
+      "addBlackout": "Add Blackout Date",
+      "blackoutAdded": "Blackout date added",
+      "blackoutRemoved": "Blackout date removed",
+      "blackoutFailed": "Failed to update blackout dates",
+      "reason": "Reason (optional)",
+      "noBlackouts": "No blackout dates set",
+      "availabilityUpdated": "Availability updated",
+      "availabilityFailed": "Failed to update availability",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday",
+      "closed": "Closed",
+      "startTime": "Start",
+      "endTime": "End"
     },
     "quotes": {
       "title": "Quotes",
       "emptyTitle": "No quotes yet",
-      "emptyDesc": "Quote requests from customers will appear here."
+      "emptyDesc": "Quote requests from customers will appear here.",
+      "requestQuote": "Request Quote",
+      "sendQuote": "Send Quote",
+      "quoteAmount": "Quote Amount",
+      "depositAmount": "Deposit Amount",
+      "expiresIn": "Expires in",
+      "hours": "hours",
+      "expiryPreset": "Expiry Preset",
+      "quoteSent": "Quote sent successfully",
+      "quoteFailed": "Failed to send quote",
+      "acceptQuote": "Accept Quote",
+      "quoteAccepted": "Quote accepted",
+      "quoteAcceptFailed": "Failed to accept quote",
+      "notes": "Notes",
+      "eventDate": "Event Date",
+      "eventTime": "Event Time",
+      "guestCount": "Number of Guests",
+      "selectService": "Select Service",
+      "selectVendor": "Select Vendor",
+      "requestSubmitted": "Quote request submitted",
+      "requestFailed": "Failed to submit quote request",
+      "filter": {
+        "all": "All",
+        "requested": "Requested",
+        "quoted": "Quoted",
+        "accepted": "Accepted"
+      }
     },
     "bookings": {
       "title": "Bookings",
       "emptyTitle": "No bookings yet",
-      "emptyDesc": "Confirmed bookings will appear here."
+      "emptyDesc": "Confirmed bookings will appear here.",
+      "confirmPayment": "Confirm Payment",
+      "markComplete": "Mark Complete",
+      "cancelBooking": "Cancel Booking",
+      "cancellationReason": "Cancellation Reason",
+      "paymentConfirmed": "Payment confirmed",
+      "paymentFailed": "Failed to confirm payment",
+      "bookingCompleted": "Booking marked as completed",
+      "bookingCompleteFailed": "Failed to complete booking",
+      "bookingCancelled": "Booking cancelled",
+      "bookingCancelFailed": "Failed to cancel booking",
+      "totalAmount": "Total Amount",
+      "depositPaid": "Deposit Paid",
+      "eventDate": "Event Date",
+      "customer": "Customer",
+      "filter": {
+        "all": "All",
+        "active": "Active",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      }
     },
     "settings": {
       "title": "Settings",
@@ -789,7 +878,9 @@
       "setupDesc": "Configure your booking marketplace in minutes.",
       "goLiveDesc": "Your marketplace is ready to go live.",
       "launchWizard": "Launch Setup Wizard",
-      "editSettings": "Edit Settings"
+      "editSettings": "Edit Settings",
+      "themeLabel": "Theme",
+      "slugLabel": "Slug"
     },
     "wizard": {
       "title": "Setup Your Booking Marketplace",
@@ -876,14 +967,21 @@
       "quoteSent": "Quote received for {{service_name}}",
       "quoteAccepted": "Quote accepted by {{customer_name}}",
       "paymentConfirmed": "Payment confirmed for booking",
-      "bookingCancelled": "Booking cancelled"
+      "bookingCancelled": "Booking cancelled",
+      "bookingCompleted": "Booking completed",
+      "newMessage": "New message in booking chat"
     },
     "subscription": {
+      "title": "Subscription",
+      "plan": "Plan",
       "inactive": "Your subscription is inactive. Renew to resume bookings.",
       "gracePeriod": "Your subscription expires in {{days}} days. Renew to avoid interruption.",
+      "trial": "You are on a free trial. {{days}} days remaining.",
       "suspended": "Your marketplace is suspended. Contact support to reactivate.",
       "renewNow": "Renew Now",
+      "upgradePlan": "Upgrade Plan",
       "active": "Active",
+      "trialStatus": "Trial",
       "expired": "Expired",
       "grace": "Grace Period"
     },
@@ -893,7 +991,24 @@
       "accepted": "Accepted",
       "paid_confirmed": "Paid & Confirmed",
       "completed": "Completed",
-      "cancelled": "Cancelled"
+      "cancelled": "Cancelled",
+      "pending": "Pending",
+      "approved": "Approved",
+      "suspended": "Suspended",
+      "trial": "Trial"
+    },
+    "payment": {
+      "title": "Payment",
+      "provider": "Provider",
+      "reference": "Reference",
+      "amount": "Amount",
+      "status": "Status",
+      "manual": "Manual",
+      "deposit": "Deposit",
+      "fullPayment": "Full Payment",
+      "recordPayment": "Record Payment",
+      "paymentRecorded": "Payment recorded",
+      "paymentFailed": "Failed to record payment"
     }
   }
 }
