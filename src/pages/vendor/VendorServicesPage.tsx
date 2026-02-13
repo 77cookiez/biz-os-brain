@@ -136,6 +136,7 @@ export default function VendorServicesPage() {
         min_guests: form.min_guests ? Number(form.min_guests) : null,
         max_guests: form.max_guests ? Number(form.max_guests) : null,
         is_active: form.is_active,
+        cover_url: form.cover_url || null,
         title_meaning_object_id: titleMeaningId,
         description_meaning_object_id: descMeaningId,
         source_lang: currentLanguage.code,
@@ -185,6 +186,7 @@ export default function VendorServicesPage() {
         min_guests: form.min_guests ? Number(form.min_guests) : null,
         max_guests: form.max_guests ? Number(form.max_guests) : null,
         is_active: form.is_active,
+        cover_url: form.cover_url || null,
       };
 
       const { error } = await supabase
@@ -280,7 +282,7 @@ export default function VendorServicesPage() {
       min_guests: service.min_guests?.toString() || '',
       max_guests: service.max_guests?.toString() || '',
       is_active: service.is_active ?? true,
-      cover_url: '',
+      cover_url: service.cover_url || '',
     });
     setDialogOpen(true);
   };
@@ -307,6 +309,25 @@ export default function VendorServicesPage() {
 
   return (
     <div className="space-y-6">
+      {/* DEV-only debug helper */}
+      {import.meta.env.DEV && (
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              console.log('[DEV] VendorServicesPage context:', { workspaceId, vendorId, tenantSlug });
+              console.log('[DEV] First service:', services[0] || 'none');
+            }}
+          >
+            🐛 Log Context
+          </Button>
+          <span className="text-xs text-muted-foreground font-mono">
+            ws:{workspaceId?.slice(0, 8)} v:{vendorId?.slice(0, 8)}
+          </span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">{t('booking.services.title')}</h1>
         <Button onClick={openCreate} className="gap-1.5">

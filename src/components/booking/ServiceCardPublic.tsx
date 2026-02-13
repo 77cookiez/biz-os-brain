@@ -20,6 +20,7 @@ interface ServiceCardPublicProps {
     duration_minutes?: number | null;
     min_guests?: number | null;
     max_guests?: number | null;
+    cover_url?: string | null;
   };
   vendorName?: string;
   vendorNameMeaningId?: string | null;
@@ -49,15 +50,26 @@ export function ServiceCardPublic({
 
   return (
     <Card className={`group relative overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 duration-200 ${featured ? 'ring-2 ring-primary/30' : ''}`}>
-      {/* Gradient top accent */}
-      <div
-        className="h-1.5 w-full"
-        style={{
-          background: primaryColor
-            ? `linear-gradient(90deg, ${primaryColor}, ${primaryColor}80)`
-            : 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.5))',
-        }}
-      />
+      {/* Cover image or gradient accent */}
+      {service.cover_url ? (
+        <div className="w-full h-36 overflow-hidden">
+          <img
+            src={service.cover_url}
+            alt={service.title}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+          />
+        </div>
+      ) : (
+        <div
+          className="h-1.5 w-full"
+          style={{
+            background: primaryColor
+              ? `linear-gradient(90deg, ${primaryColor}, ${primaryColor}80)`
+              : 'linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.5))',
+          }}
+        />
+      )}
       {featured && (
         <div className="absolute top-3 right-3 z-10">
           <Badge className="gap-1 text-xs" style={primaryColor ? { backgroundColor: primaryColor, color: '#fff' } : {}}>
