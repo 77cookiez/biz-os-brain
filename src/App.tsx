@@ -73,6 +73,7 @@ import VendorPortalLayoutV2 from "@/pages/vendor/v2/VendorPortalLayoutV2";
 import VendorProfilePage from "@/pages/vendor/v2/VendorProfilePage";
 import VendorQuotesPageV2 from "@/pages/vendor/v2/VendorQuotesPageV2";
 import PublicMyBookingsV2 from "@/pages/public/booking/v2/PublicMyBookingsV2";
+import BookingAdminPage from "@/pages/admin/BookingAdminPage";
 
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PrivacySettingsPage from "@/pages/settings/PrivacySettingsPage";
@@ -263,6 +264,15 @@ const AppRoutes = () => (
       <Route path="profile" element={<VendorProfilePage />} />
       <Route path="chat" element={<VendorChatPage />} />
     </Route>
+    {/* Admin Backoffice (protected) */}
+    <Route
+      path="/admin/booking/:tenantSlug"
+      element={
+        <ProtectedRoute>
+          <BookingAdminPage />
+        </ProtectedRoute>
+      }
+    />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

@@ -1,14 +1,14 @@
 /**
  * V2 Customer My Bookings Page
  * Shows quote requests + received quotes with accept flow.
- * Accept creates a booking confirmation record + audit.
+ * Accept: validates expiry, sets status='confirmed', declines other quotes.
  */
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOutletContext, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -96,32 +96,59 @@ export default function PublicMyBookingsV2() {
   });
 
   // Map quotes by request id
-  const quotesByRequest: Record<string, any> = {};
+  const quotesByRequest: Record<string, any[]> = {};
   receivedQuotes.forEach((q: any) => {
-    quotesByRequest[q.quote_request_id] = q;
+    if (!quotesByRequest[q.quote_request_id]) quotesByRequest[q.quote_request_id] = [];
+    quotesByRequest[q.quote_request_id].push(q);
   });
 
-  // Accept quote mutation
+  // Accept quote mutation — HARDENED
   const acceptQuote = useMutation({
     mutationFn: async (quote: any) => {
       if (!user || !workspaceId) throw new Error('Not authenticated');
-      const request = myRequests.find((r: any) => r.id === quote.quote_request_id);
 
-      // 1. Update quote status
+      // 1. Validate quote is still pending
+      if (quote.status !== 'pending') {
+        throw new Error(`Quote is no longer pending (status: ${quote.status})`);
+      }
+
+      // 2. Check expiry
+      if (quote.expires_at && new Date(quote.expires_at) < new Date()) {
+        throw new Error('This quote has expired');
+      }
+
+      // 3. Verify ownership — customer owns the request
+      const request = myRequests.find((r: any) => r.id === quote.quote_request_id);
+      if (!request || request.customer_user_id !== user.id) {
+        throw new Error('Unauthorized: you do not own this quote request');
+      }
+
+      // 4. Accept the quote
       const { error: qErr } = await supabase
         .from('booking_quotes')
         .update({ status: 'accepted' } as any)
         .eq('id', quote.id);
       if (qErr) throw qErr;
 
-      // 2. Update request status
+      // 5. Decline all OTHER quotes for same request
+      const otherQuotes = (quotesByRequest[quote.quote_request_id] || [])
+        .filter((q: any) => q.id !== quote.id && q.status === 'pending');
+      if (otherQuotes.length > 0) {
+        const otherIds = otherQuotes.map((q: any) => q.id);
+        await supabase
+          .from('booking_quotes')
+          .update({ status: 'declined' } as any)
+          .in('id', otherIds);
+      }
+
+      // 6. Update request status to accepted
       const { error: rErr } = await supabase
         .from('booking_quote_requests')
         .update({ status: 'accepted' as any })
         .eq('id', quote.quote_request_id);
       if (rErr) throw rErr;
 
-      // 3. Create booking confirmation record (idempotent)
+      // 7. Create booking (idempotent via unique quote_id)
       const { data: existing } = await supabase
         .from('booking_bookings')
         .select('id')
@@ -140,16 +167,27 @@ export default function PublicMyBookingsV2() {
             customer_user_id: user.id,
             total_amount: quote.amount,
             currency: quote.currency,
-            event_date: request?.event_date || null,
-            status: 'paid_confirmed' as any,
+            event_date: request.event_date || null,
+            status: 'confirmed' as any,
           } as any)
           .select('id')
           .single();
         if (bErr) throw bErr;
         bookingId = newBooking.id;
+
+        // Audit booking creation
+        await auditAndEmit({
+          workspace_id: workspaceId,
+          actor_user_id: user.id,
+          action: 'booking.booking_created',
+          event_type: 'booking.booking_created',
+          entity_type: 'booking_booking',
+          entity_id: bookingId,
+          metadata: { quote_id: quote.id, quote_request_id: quote.quote_request_id, vendor_id: quote.vendor_id },
+        });
       }
 
-      // 4. Audit + OIL
+      // 8. Audit quote acceptance
       await auditAndEmit({
         workspace_id: workspaceId,
         actor_user_id: user.id,
@@ -158,7 +196,7 @@ export default function PublicMyBookingsV2() {
         entity_type: 'booking_quote',
         entity_id: quote.id,
         meaning_object_id: quote.meaning_object_id,
-        metadata: { booking_id: bookingId },
+        metadata: { booking_id: bookingId, quote_request_id: quote.quote_request_id },
       });
 
       return bookingId;
@@ -169,7 +207,7 @@ export default function PublicMyBookingsV2() {
       queryClient.invalidateQueries({ queryKey: ['my-bookings-v2'] });
       toast.success(t('booking.quotes.quoteAccepted'));
     },
-    onError: () => toast.error(t('booking.quotes.quoteAcceptFailed')),
+    onError: (err: Error) => toast.error(err.message || t('booking.quotes.quoteAcceptFailed')),
   });
 
   const isLoading = rLoading || qLoading || bLoading;
@@ -203,8 +241,11 @@ export default function PublicMyBookingsV2() {
         ) : (
           <div className="space-y-4">
             {myRequests.map((qr: any) => {
-              const quote = quotesByRequest[qr.id];
+              const quotes = quotesByRequest[qr.id] || [];
+              const pendingQuote = quotes.find((q: any) => q.status === 'pending');
+              const acceptedQuote = quotes.find((q: any) => q.status === 'accepted');
               const bookingExists = myBookings.some((b: any) => b.quote_request_id === qr.id);
+              const displayQuote = acceptedQuote || pendingQuote || quotes[0];
 
               return (
                 <Card key={qr.id}>
@@ -227,41 +268,46 @@ export default function PublicMyBookingsV2() {
                     </div>
 
                     {/* Show quote if received */}
-                    {quote && (
+                    {displayQuote && (
                       <div className="bg-muted/40 rounded-lg p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-semibold text-foreground">
-                            {formatCurrency(quote.amount, quote.currency, currentLanguage.code)}
+                            {formatCurrency(displayQuote.amount, displayQuote.currency, currentLanguage.code)}
                           </span>
-                          <Badge variant="secondary" className="text-[10px]">{quote.status}</Badge>
+                          <Badge variant="secondary" className="text-[10px]">{displayQuote.status}</Badge>
                         </div>
-                        {quote.deposit_amount && (
+                        {displayQuote.deposit_amount && (
                           <p className="text-xs text-muted-foreground">
-                            Deposit: {formatCurrency(quote.deposit_amount, quote.currency, currentLanguage.code)}
+                            Deposit: {formatCurrency(displayQuote.deposit_amount, displayQuote.currency, currentLanguage.code)}
                           </p>
                         )}
-                        {quote.notes && (
+                        {displayQuote.notes && (
                           <p className="text-xs text-muted-foreground">
-                            <ULLText meaningId={quote.meaning_object_id} fallback={quote.notes} />
+                            <ULLText meaningId={displayQuote.meaning_object_id} fallback={displayQuote.notes} />
                           </p>
                         )}
-                        {quote.expires_at && (
+                        {displayQuote.expires_at && (
                           <p className="text-[10px] text-muted-foreground">
-                            Expires: {format(new Date(quote.expires_at), 'PPp')}
+                            Expires: {format(new Date(displayQuote.expires_at), 'PPp')}
+                            {new Date(displayQuote.expires_at) < new Date() && (
+                              <Badge variant="destructive" className="ml-2 text-[9px]">Expired</Badge>
+                            )}
                           </p>
                         )}
 
-                        {/* Accept button — only if status is pending/quoted and no booking yet */}
-                        {quote.status === 'pending' && !bookingExists && (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 w-full"
-                            onClick={() => acceptQuote.mutate(quote)}
-                            disabled={acceptQuote.isPending}
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            {t('booking.quotes.acceptQuote')}
-                          </Button>
+                        {/* Accept — only pending, not expired, no booking yet */}
+                        {displayQuote.status === 'pending' && !bookingExists && (
+                          !(displayQuote.expires_at && new Date(displayQuote.expires_at) < new Date()) ? (
+                            <Button
+                              size="sm"
+                              className="gap-1.5 w-full"
+                              onClick={() => acceptQuote.mutate(displayQuote)}
+                              disabled={acceptQuote.isPending}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              {t('booking.quotes.acceptQuote')}
+                            </Button>
+                          ) : null
                         )}
 
                         {bookingExists && (
