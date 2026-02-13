@@ -690,5 +690,112 @@
     "aiSuggestionReason": "KI-Vorschlag: {{reason}}",
     "taskCreated": "Aufgabe erstellt!",
     "taskCreateFailed": "Aufgabe konnte nicht erstellt werden"
+  },
+  "booking": {
+    "tabs": {
+      "dashboard": "Dashboard",
+      "vendors": "Anbieter",
+      "services": "Dienstleistungen",
+      "calendar": "Kalender",
+      "quotes": "Angebote",
+      "bookings": "Buchungen",
+      "settings": "Einstellungen"
+    },
+    "dashboard": {
+      "title": "Booking OS",
+      "vendors": "Anbieter",
+      "services": "Dienstleistungen",
+      "quotes": "Angebote",
+      "bookings": "Buchungen",
+      "overview": "Übersicht",
+      "totalRevenue": "Gesamteinnahmen",
+      "pendingQuotes": "Offene Angebote",
+      "activeBookings": "Aktive Buchungen"
+    },
+    "vendors": {
+      "title": "Anbieter",
+      "emptyTitle": "Noch keine Anbieter",
+      "emptyDesc": "Laden Sie Anbieter ein, um Buchungen zu erhalten.",
+      "approve": "Genehmigen",
+      "suspend": "Sperren",
+      "reactivate": "Reaktivieren",
+      "approved": "Genehmigt",
+      "pending": "Ausstehend",
+      "suspended": "Gesperrt",
+      "vendorApproved": "Anbieter erfolgreich genehmigt",
+      "vendorSuspended": "Anbieter gesperrt",
+      "vendorReactivated": "Anbieter reaktiviert",
+      "actionFailed": "Statusaktualisierung fehlgeschlagen",
+      "owner": "Inhaber",
+      "status": "Status",
+      "actions": "Aktionen",
+      "joinedAt": "Beigetreten"
+    },
+    "services": {
+      "title": "Dienstleistungen",
+      "emptyTitle": "Keine Dienstleistungen",
+      "emptyDesc": "Anbieter können ihre Pakete und Dienstleistungen hinzufügen."
+    },
+    "calendar": {
+      "title": "Kalender",
+      "emptyTitle": "Keine Verfügbarkeit eingestellt",
+      "emptyDesc": "Anbieter können ihre wöchentliche Verfügbarkeit konfigurieren."
+    },
+    "quotes": {
+      "title": "Angebote",
+      "emptyTitle": "Keine Angebote",
+      "emptyDesc": "Angebotsanfragen von Kunden erscheinen hier."
+    },
+    "bookings": {
+      "title": "Buchungen",
+      "emptyTitle": "Keine Buchungen",
+      "emptyDesc": "Bestätigte Buchungen erscheinen hier."
+    },
+    "settings": {
+      "title": "Einstellungen",
+      "setupWizard": "Einrichtungsassistent",
+      "setupDesc": "Konfigurieren Sie Ihren Marketplace in Minuten.",
+      "goLiveDesc": "Ihr Marketplace ist startbereit.",
+      "launchWizard": "Assistent starten",
+      "editSettings": "Einstellungen bearbeiten"
+    },
+    "wizard": {
+      "title": "Marketplace einrichten",
+      "subtitle": "Bringen Sie Ihren Marketplace in unter 10 Minuten online",
+      "step": "Schritt {{current}} von {{total}}",
+      "theme": { "title": "Thema wählen", "subtitle": "Wählen Sie die passende Vorlage", "marketplace": "Marketplace", "marketplaceDesc": "Multi-Anbieter-Marketplace", "rentals": "Vermietung", "rentalsDesc": "Buchungssystem für Vermietungen", "eventServices": "Eventservices", "eventServicesDesc": "Hochzeits- und Eventdienstleistungen", "generic": "Generisch", "genericDesc": "Flexible Vorlage für jedes Geschäft" },
+      "brand": { "title": "Markenkit", "subtitle": "Laden Sie Ihr Logo hoch und wählen Sie Farben", "logo": "Logo", "uploadLogo": "Logo hochladen", "primaryColor": "Primärfarbe", "accentColor": "Akzentfarbe", "tone": "Markenton", "professional": "Professionell", "friendly": "Freundlich", "luxury": "Luxus", "casual": "Lässig" },
+      "money": { "title": "Zahlungseinrichtung", "subtitle": "Konfigurieren Sie Währung, Provisionen und Anzahlungen", "currency": "Währung", "commissionMode": "Einnahmemodell", "subscription": "Abonnement (monatlich fest)", "commission": "Provision (% pro Buchung)", "commissionRate": "Provisionssatz (%)", "depositEnabled": "Anzahlung verlangen", "depositType": "Anzahlungsart", "percentage": "Prozentsatz", "fixed": "Fester Betrag", "depositValue": "Anzahlungswert", "paymentProvider": "Zahlungsanbieter", "connectLater": "Später verbinden", "manual": "Manuell / Zahlungslink" },
+      "policies": { "title": "Richtlinien", "subtitle": "Legen Sie Stornierungs- und Erstattungsregeln fest", "cancellation": "Stornierungsrichtlinie", "flexible": "Flexibel", "flexibleDesc": "Kostenlose Stornierung bis 24h vorher", "standard": "Standard", "standardDesc": "Kostenlose Stornierung bis 48h, 50% danach", "strict": "Streng", "strictDesc": "Keine Erstattung nach Bestätigung", "whatsapp": "WhatsApp-Nummer", "whatsappHint": "Für Kundenanfragen", "contactEmail": "Kontakt-E-Mail" },
+      "goLive": { "title": "Live gehen", "subtitle": "Legen Sie Ihre öffentliche URL fest und starten Sie", "tenantSlug": "Öffentlicher URL-Slug", "slugHint": "Ihr Marketplace wird auf /b/{{slug}} sein", "publicLink": "Öffentlicher Link", "vendorInviteLink": "Anbieter-Einladungslink", "dashboardLink": "Admin-Dashboard", "distribution": "Vertriebsoptionen", "pwaDefault": "Web-App (PWA) — installiert sich wie eine App.", "containerApp": "Container-App — eine gemeinsame App in den Stores.", "enterpriseApp": "Dedizierte App — nur für Unternehmen.", "launch": "Starten", "saveDraft": "Als Entwurf speichern" },
+      "saved": "Einstellungen gespeichert",
+      "saveFailed": "Speichern fehlgeschlagen",
+      "launched": "Ihr Marketplace ist jetzt live!",
+      "launchFailed": "Start fehlgeschlagen"
+    },
+    "notifications": {
+      "newQuoteRequest": "Neue Angebotsanfrage von {{customer_name}}",
+      "quoteSent": "Angebot erhalten für {{service_name}}",
+      "quoteAccepted": "Angebot akzeptiert von {{customer_name}}",
+      "paymentConfirmed": "Zahlung für Buchung bestätigt",
+      "bookingCancelled": "Buchung storniert"
+    },
+    "subscription": {
+      "inactive": "Ihr Abonnement ist inaktiv. Erneuern Sie es, um fortzufahren.",
+      "gracePeriod": "Ihr Abonnement läuft in {{days}} Tagen ab.",
+      "suspended": "Ihr Marketplace ist gesperrt.",
+      "renewNow": "Jetzt erneuern",
+      "active": "Aktiv",
+      "expired": "Abgelaufen",
+      "grace": "Gnadenfrist"
+    },
+    "status": {
+      "requested": "Angefragt",
+      "quoted": "Angeboten",
+      "accepted": "Akzeptiert",
+      "paid_confirmed": "Bezahlt & bestätigt",
+      "completed": "Abgeschlossen",
+      "cancelled": "Storniert"
+    }
   }
 }

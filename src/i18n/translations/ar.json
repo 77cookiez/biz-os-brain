@@ -722,12 +722,30 @@
       "vendors": "مقدمو الخدمات",
       "services": "الخدمات",
       "quotes": "عروض الأسعار",
-      "bookings": "الحجوزات"
+      "bookings": "الحجوزات",
+      "overview": "نظرة عامة",
+      "totalRevenue": "إجمالي الإيرادات",
+      "pendingQuotes": "عروض أسعار معلقة",
+      "activeBookings": "حجوزات نشطة"
     },
     "vendors": {
       "title": "مقدمو الخدمات",
       "emptyTitle": "لا يوجد مقدمو خدمات بعد",
-      "emptyDesc": "قم بدعوة مقدمي الخدمات لبدء استقبال الحجوزات."
+      "emptyDesc": "قم بدعوة مقدمي الخدمات لبدء استقبال الحجوزات.",
+      "approve": "موافقة",
+      "suspend": "تعليق",
+      "reactivate": "إعادة تفعيل",
+      "approved": "موافق عليه",
+      "pending": "قيد الانتظار",
+      "suspended": "معلّق",
+      "vendorApproved": "تمت الموافقة على مقدم الخدمة بنجاح",
+      "vendorSuspended": "تم تعليق مقدم الخدمة",
+      "vendorReactivated": "تم إعادة تفعيل مقدم الخدمة",
+      "actionFailed": "فشل تحديث حالة مقدم الخدمة",
+      "owner": "المالك",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "joinedAt": "تاريخ الانضمام"
     },
     "services": {
       "title": "الخدمات",
@@ -752,7 +770,90 @@
     "settings": {
       "title": "الإعدادات",
       "setupWizard": "معالج الإعداد",
-      "setupDesc": "قم بتهيئة سوق الحجوزات الخاص بك في دقائق."
+      "setupDesc": "قم بتهيئة سوق الحجوزات الخاص بك في دقائق.",
+      "goLiveDesc": "سوقك جاهز للإطلاق.",
+      "launchWizard": "بدء معالج الإعداد",
+      "editSettings": "تعديل الإعدادات"
+    },
+    "wizard": {
+      "title": "إعداد سوق الحجوزات",
+      "subtitle": "اجعل سوقك جاهزاً في أقل من 10 دقائق",
+      "step": "الخطوة {{current}} من {{total}}",
+      "theme": {
+        "title": "اختر القالب",
+        "subtitle": "اختر القالب الأنسب لعملك",
+        "marketplace": "سوق إلكتروني",
+        "marketplaceDesc": "سوق متعدد البائعين مع تصفح وبحث",
+        "rentals": "تأجير",
+        "rentalsDesc": "نظام حجز تأجير المعدات أو الأماكن",
+        "eventServices": "خدمات المناسبات",
+        "eventServicesDesc": "خدمات الأعراس والمناسبات",
+        "generic": "عام",
+        "genericDesc": "قالب مرن ونظيف لأي نشاط تجاري"
+      },
+      "brand": {
+        "title": "الهوية البصرية",
+        "subtitle": "ارفع شعارك واختر ألوان علامتك التجارية",
+        "logo": "الشعار",
+        "uploadLogo": "رفع الشعار",
+        "primaryColor": "اللون الأساسي",
+        "accentColor": "اللون المميز",
+        "tone": "نبرة العلامة التجارية",
+        "professional": "احترافي",
+        "friendly": "ودّي",
+        "luxury": "فاخر",
+        "casual": "عفوي"
+      },
+      "money": {
+        "title": "إعداد الدفع",
+        "subtitle": "حدد العملة والعمولات والعربون",
+        "currency": "العملة",
+        "commissionMode": "نموذج الإيرادات",
+        "subscription": "اشتراك (شهري ثابت)",
+        "commission": "عمولة (% لكل حجز)",
+        "commissionRate": "نسبة العمولة (%)",
+        "depositEnabled": "طلب عربون",
+        "depositType": "نوع العربون",
+        "percentage": "نسبة مئوية",
+        "fixed": "مبلغ ثابت",
+        "depositValue": "قيمة العربون",
+        "paymentProvider": "مزود الدفع",
+        "connectLater": "الاتصال لاحقاً",
+        "manual": "يدوي / رابط دفع"
+      },
+      "policies": {
+        "title": "السياسات",
+        "subtitle": "حدد قواعد الإلغاء والاسترداد",
+        "cancellation": "سياسة الإلغاء",
+        "flexible": "مرنة",
+        "flexibleDesc": "إلغاء مجاني حتى 24 ساعة قبل الموعد",
+        "standard": "معيارية",
+        "standardDesc": "إلغاء مجاني حتى 48 ساعة، 50% بعد ذلك",
+        "strict": "صارمة",
+        "strictDesc": "لا استرداد بعد تأكيد الحجز",
+        "whatsapp": "رقم واتساب",
+        "whatsappHint": "لاستفسارات العملاء (مثل 971501234567+)",
+        "contactEmail": "البريد الإلكتروني للتواصل"
+      },
+      "goLive": {
+        "title": "الإطلاق",
+        "subtitle": "حدد رابطك العام وأطلق السوق",
+        "tenantSlug": "رابط URL العام",
+        "slugHint": "سيكون سوقك على /b/{{slug}}",
+        "publicLink": "الرابط العام",
+        "vendorInviteLink": "رابط دعوة مقدمي الخدمات",
+        "dashboardLink": "لوحة تحكم الإدارة",
+        "distribution": "خيارات التوزيع",
+        "pwaDefault": "تطبيق ويب (PWA) — يُثبت كتطبيق ويعمل على جميع الأجهزة. هذا هو الخيار الافتراضي والموصى به.",
+        "containerApp": "تطبيق حاوية — تطبيق واحد مشترك في متاجر التطبيقات يحمل علامتك التجارية برمز QR.",
+        "enterpriseApp": "تطبيق مخصص — للمؤسسات فقط، يُنشر تحت حسابات المطورين الخاصة بشركتك.",
+        "launch": "إطلاق",
+        "saveDraft": "حفظ كمسودة"
+      },
+      "saved": "تم حفظ الإعدادات بنجاح",
+      "saveFailed": "فشل حفظ الإعدادات",
+      "launched": "سوقك أصبح مباشراً الآن!",
+      "launchFailed": "فشل إطلاق السوق"
     },
     "notifications": {
       "newQuoteRequest": "طلب عرض سعر جديد من {{customer_name}}",
@@ -763,7 +864,20 @@
     },
     "subscription": {
       "inactive": "اشتراكك غير نشط. قم بالتجديد لاستئناف الحجوزات.",
-      "gracePeriod": "ينتهي اشتراكك خلال {{days}} يوم. جدد لتجنب الانقطاع."
+      "gracePeriod": "ينتهي اشتراكك خلال {{days}} يوم. جدد لتجنب الانقطاع.",
+      "suspended": "سوقك معلّق. تواصل مع الدعم لإعادة التفعيل.",
+      "renewNow": "جدد الآن",
+      "active": "نشط",
+      "expired": "منتهي",
+      "grace": "فترة سماح"
+    },
+    "status": {
+      "requested": "مطلوب",
+      "quoted": "تم التسعير",
+      "accepted": "مقبول",
+      "paid_confirmed": "مدفوع ومؤكد",
+      "completed": "مكتمل",
+      "cancelled": "ملغي"
     }
   }
 }
