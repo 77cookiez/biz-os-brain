@@ -10,6 +10,7 @@ import {
   Store, Mail, Phone, User as UserIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DiagnosticsPanel } from '@/components/booking/DiagnosticsPanel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -484,9 +485,9 @@ export default function VendorPortalLayout() {
   const basePath = `/v/${tenantSlug}`;
   const tabs = [
     { labelKey: 'booking.vendor.dashboard', icon: LayoutDashboard, path: basePath },
+    { labelKey: 'booking.services.title', icon: Package, path: `${basePath}/services` },
     { labelKey: 'booking.vendor.quotes', icon: MessageSquare, path: `${basePath}/quotes` },
     { labelKey: 'booking.vendor.calendar', icon: Calendar, path: `${basePath}/calendar` },
-    { labelKey: 'booking.vendor.chat', icon: Package, path: `${basePath}/chat` },
   ];
 
   return (
@@ -565,6 +566,8 @@ export default function VendorPortalLayout() {
         vendorName={data.vendorName}
         tenantSlug={tenantSlug || ''}
       />
+
+      <DiagnosticsPanel tenantSlug={tenantSlug || ''} workspaceId={data.workspaceId} />
     </div>
   );
 }

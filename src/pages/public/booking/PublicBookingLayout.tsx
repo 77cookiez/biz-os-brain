@@ -10,6 +10,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { PublicHero } from '@/components/booking/PublicHero';
 import { PublicFooter } from '@/components/booking/PublicFooter';
 import { Button } from '@/components/ui/button';
+import { DiagnosticsPanel } from '@/components/booking/DiagnosticsPanel';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -302,6 +303,10 @@ export default function PublicBookingLayout() {
             </Button>
           </Link>
         </div>
+      )}
+      {/* Diagnostics (admin + dev only) */}
+      {settings?.workspace_id && (
+        <DiagnosticsPanel tenantSlug={tenantSlug!} workspaceId={settings.workspace_id} />
       )}
     </div>
   );
