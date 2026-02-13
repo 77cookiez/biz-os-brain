@@ -86,7 +86,9 @@ export function NotificationBell() {
                     )} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">
-                        {n.title}
+                        {t(n.title, n.data_json as Record<string, string>) !== n.title
+                          ? t(n.title, n.data_json as Record<string, string>)
+                          : n.title}
                       </p>
                       {n.body && (
                         <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">

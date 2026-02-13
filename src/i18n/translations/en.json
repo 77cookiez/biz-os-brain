@@ -963,9 +963,9 @@
       "launchFailed": "Failed to launch marketplace"
     },
     "notifications": {
-      "newQuoteRequest": "New quote request from {{customer_name}}",
-      "quoteSent": "Quote received for {{service_name}}",
-      "quoteAccepted": "Quote accepted by {{customer_name}}",
+      "newQuoteRequest": "You have a new quote request",
+      "quoteSent": "You received a new quote",
+      "quoteAccepted": "Your quote has been accepted",
       "paymentConfirmed": "Payment confirmed for booking",
       "bookingCancelled": "Booking cancelled",
       "bookingCompleted": "Booking completed",

@@ -881,9 +881,9 @@
       "launchFailed": "فشل إطلاق السوق"
     },
     "notifications": {
-      "newQuoteRequest": "طلب عرض سعر جديد من {{customer_name}}",
-      "quoteSent": "تم استلام عرض سعر لـ {{service_name}}",
-      "quoteAccepted": "تم قبول عرض السعر من {{customer_name}}",
+      "newQuoteRequest": "لديك طلب عرض سعر جديد",
+      "quoteSent": "تم استلام عرض سعر جديد",
+      "quoteAccepted": "تم قبول عرض السعر الخاص بك",
       "paymentConfirmed": "تم تأكيد الدفع للحجز",
       "bookingCancelled": "تم إلغاء الحجز",
       "bookingCompleted": "تم إتمام الحجز",
