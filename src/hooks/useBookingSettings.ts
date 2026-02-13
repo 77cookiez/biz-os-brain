@@ -33,6 +33,12 @@ export interface BookingSettings {
   app_splash_url: string | null;
   app_description: string | null;
   app_bundle_id: string | null;
+  app_keywords: string | null;
+  app_support_email: string | null;
+  app_privacy_url: string | null;
+  app_version: string | null;
+  app_build_number: number | null;
+  publishing_progress: Record<string, Record<string, boolean>> | null;
   created_at: string;
   updated_at: string;
 }

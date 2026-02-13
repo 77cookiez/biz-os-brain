@@ -70,13 +70,17 @@ Deno.serve(async (req) => {
     const primaryColor = settings.primary_color || "#6366f1";
     const accentColor = settings.accent_color || "#f59e0b";
     const appDescription = settings.app_description || "";
+    const appKeywords = settings.app_keywords || "";
+    const appSupportEmail = settings.app_support_email || "";
+    const appPrivacyUrl = settings.app_privacy_url || "";
+    const appVersion = settings.app_version || "1.0.0";
+    const appBuildNumber = settings.app_build_number || 1;
     const domain =
       Deno.env.get("PUBLIC_BOOKING_BASE_URL") ||
       `https://${Deno.env.get("SUPABASE_URL")?.replace("https://", "").replace(".supabase.co", "")}.lovable.app`;
 
     const zip = new JSZip();
 
-    // capacitor.config.json (shared)
     const capacitorConfig = {
       appId: bundleId,
       appName: appName,
@@ -88,25 +92,31 @@ Deno.serve(async (req) => {
     };
     zip.file("config/capacitor.config.json", JSON.stringify(capacitorConfig, null, 2));
 
-    // app.json (shared)
     const appJson = {
       name: appName,
       slug: slug,
       bundleId: bundleId,
       description: appDescription,
-      version: "1.0.0",
+      keywords: appKeywords,
+      supportEmail: appSupportEmail,
+      privacyUrl: appPrivacyUrl,
+      version: appVersion,
+      buildNumber: appBuildNumber,
       primaryColor,
       accentColor,
     };
     zip.file("config/app.json", JSON.stringify(appJson, null, 2));
 
-    // branding/colors.json
     zip.file("branding/colors.json", JSON.stringify({ primary: primaryColor, accent: accentColor }, null, 2));
 
+    // Shared files
+    generateSecurityMd(zip);
+    generateTroubleshootingMd(zip, platform);
+
     if (platform === "ios") {
-      generateIosPack(zip, { appName, slug, bundleId, domain, appDescription });
+      generateIosPack(zip, { appName, slug, bundleId, domain, appDescription, appKeywords, appSupportEmail, appPrivacyUrl, appVersion });
     } else {
-      generateAndroidPack(zip, { appName, slug, bundleId, domain, appDescription });
+      generateAndroidPack(zip, { appName, slug, bundleId, domain, appDescription, appKeywords, appSupportEmail, appPrivacyUrl, appVersion });
     }
 
     // Download icon if available
@@ -156,6 +166,207 @@ interface PackContext {
   bundleId: string;
   domain: string;
   appDescription: string;
+  appKeywords: string;
+  appSupportEmail: string;
+  appPrivacyUrl: string;
+  appVersion: string;
+}
+
+function generateSecurityMd(zip: JSZip) {
+  zip.file("SECURITY.md", `# Security Notice
+
+## What Bookivo Does NOT Store
+- ❌ Apple Developer passwords or credentials
+- ❌ Google Play Console credentials
+- ❌ Code signing keys or certificates
+- ❌ Keystore files or provisioning profiles
+
+## What This Pack Contains
+- ✅ Pre-configured Capacitor project settings
+- ✅ Your app metadata (name, description, colors)
+- ✅ Your uploaded assets (icon, logo)
+- ✅ Publishing guides and instructions
+
+## Your Responsibility
+- Keep your signing keys secure and backed up
+- Never share your developer account credentials
+- Use a strong, unique password for your developer accounts
+- Enable two-factor authentication on all developer accounts
+
+## Data Privacy
+This pack contains only the configuration and assets you provided in your Bookivo settings.
+No user data, analytics, or tracking is embedded in this pack.
+`);
+}
+
+function generateTroubleshootingMd(zip: JSZip, platform: string) {
+  const platformSpecific = platform === "ios"
+    ? `
+## iOS-Specific Issues
+
+### "No signing certificate" error
+1. Open Xcode → Preferences → Accounts
+2. Sign in with your Apple Developer account
+3. Xcode will automatically manage certificates
+
+### "Provisioning profile" errors
+1. In Xcode, go to Signing & Capabilities
+2. Enable "Automatically manage signing"
+3. Select your team
+
+### Build fails on M1/M2 Mac
+Run: \`sudo arch -x86_64 gem install ffi\`
+Then try building again.
+`
+    : `
+## Android-Specific Issues
+
+### "SDK not found" error
+1. Open Android Studio → SDK Manager
+2. Install the latest Android SDK
+3. Set ANDROID_HOME environment variable
+
+### Keystore issues
+1. Generate a new keystore: \`keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000\`
+2. Store it securely — you cannot recover a lost keystore
+
+### Build fails with memory error
+Add to \`gradle.properties\`: \`org.gradle.jvmargs=-Xmx4096m\`
+`;
+
+  zip.file("TROUBLESHOOTING.md", `# Troubleshooting Guide
+
+## Common Issues
+
+### "npm install" fails
+- Make sure you have Node.js v18+ installed
+- Try deleting \`node_modules\` and \`package-lock.json\`, then run \`npm install\` again
+- On Mac, you may need to run: \`sudo npm install\`
+
+### "cap sync" fails
+- Run \`npx cap sync\` (not \`cap sync\` directly)
+- Make sure capacitor.config.json is in your project root
+- Check that @capacitor/core is installed
+
+### App shows blank screen
+- Verify the URL in capacitor.config.json is correct and accessible
+- Check your internet connection
+- Try opening the URL directly in a browser first
+
+### App icon not showing
+- Make sure icon-1024.png is at least 1024×1024 pixels
+- For iOS: no transparency allowed (use solid background)
+- For Android: use the Asset Studio in Android Studio to generate adaptive icons
+${platformSpecific}
+
+## Still Stuck?
+- Check the platform-specific guide in the \`guides/\` folder
+- Visit [Capacitor Docs](https://capacitorjs.com/docs)
+- Contact Bookivo support
+`);
+}
+
+function generateCloudBuildGuideMd(zip: JSZip, platform: string) {
+  if (platform === "ios") {
+    zip.file("CLOUD_BUILD_GUIDE.md", `# Cloud Build Guide (iOS)
+
+## Option 1: EAS Build (Recommended)
+Expo Application Services can build your iOS app in the cloud.
+
+1. Install EAS CLI: \`npm install -g eas-cli\`
+2. Login: \`eas login\`
+3. Configure: \`eas build:configure\`
+4. Build: \`eas build --platform ios\`
+
+**Note:** You still need an Apple Developer Account for signing.
+
+## Option 2: GitHub Actions
+Set up a GitHub Actions workflow with a macOS runner:
+- Use \`macos-latest\` runner
+- Install Xcode and certificates via fastlane
+- Archive and upload to App Store Connect
+
+## Option 3: Mac in the Cloud
+Services like MacStadium or AWS EC2 Mac instances let you
+rent a Mac for building without owning one.
+
+## Important
+- All options require an Apple Developer Account ($99/year)
+- You must provide your signing certificates
+- Bookivo never handles your signing keys
+`);
+  } else {
+    zip.file("CLOUD_BUILD_GUIDE.md", `# Cloud Build Guide (Android)
+
+## Option 1: EAS Build (Recommended)
+Expo Application Services can build your Android app in the cloud.
+
+1. Install EAS CLI: \`npm install -g eas-cli\`
+2. Login: \`eas login\`
+3. Configure: \`eas build:configure\`
+4. Build: \`eas build --platform android\`
+
+## Option 2: GitHub Actions
+Set up a GitHub Actions workflow:
+- Use \`ubuntu-latest\` runner
+- Install Java and Android SDK
+- Build AAB with Gradle
+
+## Option 3: Local Build (Any OS)
+Android apps can be built on Windows, Mac, or Linux:
+1. Install Android Studio
+2. Open the project
+3. Build → Generate Signed Bundle/APK
+
+## Important
+- You need a Google Play Developer Account ($25 one-time)
+- Generate and securely store your keystore file
+- Bookivo never handles your signing keys
+`);
+  }
+}
+
+function generateSetupScript(zip: JSZip, platform: string) {
+  const script = `#!/bin/bash
+# Bookivo App Setup Script
+# This script sets up your development environment
+
+set -e
+
+echo "🚀 Setting up Bookivo ${platform === "ios" ? "iOS" : "Android"} project..."
+
+# Check Node.js
+if ! command -v node &> /dev/null; then
+    echo "❌ Node.js is not installed. Please install Node.js v18+ from https://nodejs.org"
+    exit 1
+fi
+
+echo "✅ Node.js $(node --version) found"
+
+# Initialize project
+echo "📦 Installing dependencies..."
+npm init -y
+npm install @capacitor/core @capacitor/cli @capacitor/${platform === "ios" ? "ios" : "android"}
+
+# Copy config
+echo "📋 Copying configuration..."
+cp config/capacitor.config.json ./capacitor.config.json
+
+# Add platform
+echo "📱 Adding ${platform === "ios" ? "iOS" : "Android"} platform..."
+npx cap add ${platform === "ios" ? "ios" : "android"}
+npx cap sync ${platform === "ios" ? "ios" : "android"}
+
+echo ""
+echo "✅ Setup complete!"
+echo ""
+echo "Next steps:"
+${platform === "ios"
+    ? 'echo "  1. Run: npx cap open ios"\necho "  2. Set your Team in Xcode"\necho "  3. Build and run!"'
+    : 'echo "  1. Run: npx cap open android"\necho "  2. Build → Generate Signed Bundle/APK"\necho "  3. Upload to Play Console!"'
+}
+`;
+  zip.file("scripts/setup.sh", script);
 }
 
 function generateIosPack(zip: JSZip, ctx: PackContext) {
@@ -165,22 +376,20 @@ This pack contains everything needed to publish **${ctx.appName}** on the **Appl
 
 ## Quick Start
 
-1. Install [Node.js](https://nodejs.org/) (v18+)
-2. Create a new Capacitor project:
+1. Run the setup script: \`bash scripts/setup.sh\`
+
+   Or manually:
    \`\`\`bash
    npm init -y
    npm install @capacitor/core @capacitor/cli @capacitor/ios
-   \`\`\`
-3. Copy \`config/capacitor.config.json\` to your project root
-4. Copy the \`assets/\` folder to your project
-5. Run:
-   \`\`\`bash
+   cp config/capacitor.config.json ./capacitor.config.json
    npx cap add ios
    npx cap sync ios
    \`\`\`
-6. Open in Xcode: \`npx cap open ios\`
-7. Replace the default app icon with \`assets/icon-1024.png\`
-8. Build, archive, and submit!
+
+2. Open in Xcode: \`npx cap open ios\`
+3. Replace the default app icon with \`assets/icon-1024.png\`
+4. Build, archive, and submit!
 
 ## How It Works
 
@@ -193,10 +402,14 @@ Any changes to your Bookivo settings update the app automatically.
 ## Files Included
 
 - \`config/capacitor.config.json\` — Pre-configured Capacitor settings
-- \`config/app.json\` — App metadata
+- \`config/app.json\` — App metadata (name, keywords, version)
 - \`branding/colors.json\` — Your brand colors
 - \`assets/icon-1024.png\` — Your app icon (1024×1024)
 - \`guides/APPLE_STORE_GUIDE.md\` — Step-by-step publishing guide
+- \`SECURITY.md\` — Security and data privacy notice
+- \`TROUBLESHOOTING.md\` — Common issues and solutions
+- \`CLOUD_BUILD_GUIDE.md\` — Build without a local Mac
+- \`scripts/setup.sh\` — Automated setup script
 `);
 
   zip.file("REQUIREMENTS.md", `# Requirements for iOS
@@ -207,6 +420,8 @@ Before you can publish your app on the Apple App Store:
 - [ ] A Mac with Xcode installed (free from App Store)
 - [ ] Node.js v18+ installed — [nodejs.org](https://nodejs.org)
 - [ ] Your app icon (included in this pack as assets/icon-1024.png)
+${ctx.appPrivacyUrl ? `- [ ] Privacy policy at: ${ctx.appPrivacyUrl}` : "- [ ] A privacy policy URL (required by Apple)"}
+${ctx.appSupportEmail ? `- [ ] Support email: ${ctx.appSupportEmail}` : "- [ ] A support email address"}
 
 ## Important Notes
 - You **must** use a Mac to build and submit iOS apps
@@ -226,10 +441,8 @@ Before you can publish your app on the Apple App Store:
 3. Wait for approval (usually 24-48 hours)
 
 ## Step 2: Prepare Your Project
-1. Install dependencies: \`npm install\`
-2. Add iOS platform: \`npx cap add ios\`
-3. Sync: \`npx cap sync ios\`
-4. Open in Xcode: \`npx cap open ios\`
+1. Run: \`bash scripts/setup.sh\` (or install manually — see README)
+2. Open in Xcode: \`npx cap open ios\`
 
 ## Step 3: Configure in Xcode
 1. Set your Team (your Apple Developer account)
@@ -248,8 +461,9 @@ Before you can publish your app on the Apple App Store:
 1. Go to [App Store Connect](https://appstoreconnect.apple.com)
 2. Create a new app
 3. Fill in the details using info from \`config/app.json\`
-4. Add screenshots (take them from your Simulator)
-5. Submit for review
+${ctx.appKeywords ? `4. Keywords: ${ctx.appKeywords}` : "4. Add relevant keywords"}
+5. Add screenshots (take them from your Simulator)
+6. Submit for review
 `);
 
   zip.file("guides/DEVELOPER_ACCOUNT_SETUP.md", `# Setting Up Apple Developer Account
@@ -265,6 +479,9 @@ Before you can publish your app on the Apple App Store:
 - Keep your signing certificates in a secure location
 - Take screenshots from your Simulator for the App Store listing
 `);
+
+  generateCloudBuildGuideMd(zip, "ios");
+  generateSetupScript(zip, "ios");
 }
 
 function generateAndroidPack(zip: JSZip, ctx: PackContext) {
@@ -274,22 +491,20 @@ This pack contains everything needed to publish **${ctx.appName}** on the **Goog
 
 ## Quick Start
 
-1. Install [Node.js](https://nodejs.org/) (v18+)
-2. Create a new Capacitor project:
+1. Run the setup script: \`bash scripts/setup.sh\`
+
+   Or manually:
    \`\`\`bash
    npm init -y
    npm install @capacitor/core @capacitor/cli @capacitor/android
-   \`\`\`
-3. Copy \`config/capacitor.config.json\` to your project root
-4. Copy the \`assets/\` folder to your project
-5. Run:
-   \`\`\`bash
+   cp config/capacitor.config.json ./capacitor.config.json
    npx cap add android
    npx cap sync android
    \`\`\`
-6. Open in Android Studio: \`npx cap open android\`
-7. Replace the default app icon with icons from \`assets/\`
-8. Build a signed APK/AAB and submit!
+
+2. Open in Android Studio: \`npx cap open android\`
+3. Replace the default app icon with icons from \`assets/\`
+4. Build a signed APK/AAB and submit!
 
 ## How It Works
 
@@ -302,10 +517,14 @@ Any changes to your Bookivo settings update the app automatically.
 ## Files Included
 
 - \`config/capacitor.config.json\` — Pre-configured Capacitor settings
-- \`config/app.json\` — App metadata
+- \`config/app.json\` — App metadata (name, keywords, version)
 - \`branding/colors.json\` — Your brand colors
 - \`assets/icon-1024.png\` — Source icon (use to generate adaptive icons)
 - \`guides/GOOGLE_PLAY_GUIDE.md\` — Step-by-step publishing guide
+- \`SECURITY.md\` — Security and data privacy notice
+- \`TROUBLESHOOTING.md\` — Common issues and solutions
+- \`CLOUD_BUILD_GUIDE.md\` — Build in the cloud
+- \`scripts/setup.sh\` — Automated setup script
 `);
 
   zip.file("REQUIREMENTS.md", `# Requirements for Android
@@ -316,6 +535,8 @@ Before you can publish your app on the Google Play Store:
 - [ ] Android Studio installed — [developer.android.com/studio](https://developer.android.com/studio)
 - [ ] Node.js v18+ installed — [nodejs.org](https://nodejs.org)
 - [ ] Your app icon (included in this pack as assets/icon-1024.png)
+${ctx.appPrivacyUrl ? `- [ ] Privacy policy at: ${ctx.appPrivacyUrl}` : "- [ ] A privacy policy URL (required by Google)"}
+${ctx.appSupportEmail ? `- [ ] Support email: ${ctx.appSupportEmail}` : "- [ ] A support email address"}
 
 ## Important Notes
 - Android Studio works on **Windows, Mac, and Linux**
@@ -335,10 +556,8 @@ Before you can publish your app on the Google Play Store:
 3. Complete your developer profile
 
 ## Step 2: Prepare Your Project
-1. Install dependencies: \`npm install\`
-2. Add Android platform: \`npx cap add android\`
-3. Sync: \`npx cap sync android\`
-4. Open in Android Studio: \`npx cap open android\`
+1. Run: \`bash scripts/setup.sh\` (or install manually — see README)
+2. Open in Android Studio: \`npx cap open android\`
 
 ## Step 3: Configure in Android Studio
 1. Verify the package name is: \`${ctx.bundleId}\`
@@ -354,9 +573,10 @@ Before you can publish your app on the Google Play Store:
 ## Step 5: Upload to Play Console
 1. Create a new app in Play Console
 2. Fill in the store listing using info from \`config/app.json\`
-3. Upload your AAB file
-4. Add screenshots (take them from your emulator)
-5. Submit for review
+${ctx.appKeywords ? `3. Keywords: ${ctx.appKeywords}` : "3. Add relevant keywords"}
+4. Upload your AAB file
+5. Add screenshots (take them from your emulator)
+6. Submit for review
 `);
 
   zip.file("guides/DEVELOPER_ACCOUNT_SETUP.md", `# Setting Up Google Play Developer Account
@@ -372,4 +592,7 @@ Before you can publish your app on the Google Play Store:
 - Keep your signing keystore in a secure location
 - Take screenshots from your emulator for the Play Store listing
 `);
+
+  generateCloudBuildGuideMd(zip, "android");
+  generateSetupScript(zip, "android");
 }

@@ -29,12 +29,20 @@ const TONES = ['professional', 'friendly', 'luxury', 'casual'] as const;
 const CANCELLATION_POLICIES = ['flexible', 'standard', 'strict'] as const;
 
 const COLOR_PRESETS = [
+  // Row 1: Core presets
   { id: 'modernBlue', name: 'Modern Blue', primary: '#3B82F6', accent: '#F59E0B' },
   { id: 'warmCoral', name: 'Warm Coral', primary: '#F43F5E', accent: '#A78BFA' },
   { id: 'elegantGold', name: 'Elegant Gold', primary: '#D97706', accent: '#1E293B' },
   { id: 'freshGreen', name: 'Fresh Green', primary: '#10B981', accent: '#6366F1' },
   { id: 'luxuryDark', name: 'Luxury Dark', primary: '#1E293B', accent: '#F59E0B' },
   { id: 'royalPurple', name: 'Royal Purple', primary: '#7C3AED', accent: '#F97316' },
+  // Row 2: Industry-standard global palettes
+  { id: 'oceanTeal', name: 'Ocean Teal', primary: '#0891B2', accent: '#F43F5E' },
+  { id: 'sunsetOrange', name: 'Sunset Orange', primary: '#EA580C', accent: '#0284C7' },
+  { id: 'rosePink', name: 'Rose Pink', primary: '#E11D48', accent: '#7C3AED' },
+  { id: 'slatePro', name: 'Slate Professional', primary: '#475569', accent: '#3B82F6' },
+  { id: 'emeraldFinance', name: 'Emerald Finance', primary: '#059669', accent: '#F59E0B' },
+  { id: 'midnightPremium', name: 'Midnight Premium', primary: '#0F172A', accent: '#A78BFA' },
 ] as const;
 
 const THEME_PREVIEWS: Record<string, { color: string; icon: string }> = {
@@ -64,6 +72,9 @@ interface WizardData {
   app_icon_url: string | null;
   app_splash_url: string | null;
   app_description: string;
+  app_keywords: string;
+  app_support_email: string;
+  app_privacy_url: string;
 }
 
 const STEP_ICONS = [LayoutGrid, Palette, Banknote, ShieldCheck, SmartphoneIcon, Rocket];
@@ -92,10 +103,13 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     whatsapp_number: settings?.whatsapp_number ?? '',
     contact_email: settings?.contact_email ?? '',
     tenant_slug: settings?.tenant_slug ?? '',
-    app_name: (settings as any)?.app_name ?? '',
-    app_icon_url: (settings as any)?.app_icon_url ?? null,
-    app_splash_url: (settings as any)?.app_splash_url ?? null,
-    app_description: (settings as any)?.app_description ?? '',
+    app_name: settings?.app_name ?? '',
+    app_icon_url: settings?.app_icon_url ?? null,
+    app_splash_url: settings?.app_splash_url ?? null,
+    app_description: settings?.app_description ?? '',
+    app_keywords: settings?.app_keywords ?? '',
+    app_support_email: settings?.app_support_email ?? '',
+    app_privacy_url: settings?.app_privacy_url ?? '',
   });
 
   const [debouncedSlug, setDebouncedSlug] = useState(data.tenant_slug);
@@ -298,7 +312,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                 <Sparkles className="h-4 w-4 text-primary" />
                 {t('booking.wizard.brand.colorPresets', 'Color Presets')}
               </Label>
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 max-h-[200px] overflow-y-auto">
                 {COLOR_PRESETS.map(preset => (
                   <button
                     key={preset.id}
@@ -695,6 +709,56 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                 </p>
               </div>
             )}
+            {/* App Keywords */}
+            <div className="space-y-2">
+              <Label>{t('booking.wizard.app.keywordsLabel', 'Keywords')}</Label>
+              <Input
+                value={data.app_keywords}
+                onChange={(e) => update('app_keywords', e.target.value)}
+                placeholder={t('booking.wizard.app.keywordsPlaceholder', 'wedding, events, booking (comma-separated)')}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('booking.wizard.app.keywordsHint', 'Comma-separated keywords for App Store optimization')}
+              </p>
+            </div>
+
+            {/* Support Email */}
+            <div className="space-y-2">
+              <Label>{t('booking.wizard.app.supportEmailLabel', 'Support Email')}</Label>
+              <Input
+                type="email"
+                value={data.app_support_email}
+                onChange={(e) => update('app_support_email', e.target.value)}
+                placeholder="support@yourbusiness.com"
+              />
+            </div>
+
+            {/* Privacy Policy URL */}
+            <div className="space-y-2">
+              <Label>{t('booking.wizard.app.privacyUrlLabel', 'Privacy Policy URL')}</Label>
+              <Input
+                type="url"
+                value={data.app_privacy_url}
+                onChange={(e) => update('app_privacy_url', e.target.value)}
+                placeholder="https://yourbusiness.com/privacy"
+                dir="ltr"
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('booking.wizard.app.privacyUrlHint', 'Required by both Apple and Google for store submission')}
+              </p>
+            </div>
+
+            {/* Version Info (read-only) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('booking.wizard.app.versionLabel', 'Version')}</Label>
+                <Input value={settings?.app_version ?? '1.0.0'} readOnly className="bg-muted font-mono text-sm" dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('booking.wizard.app.buildLabel', 'Build')}</Label>
+                <Input value={String(settings?.app_build_number ?? 1)} readOnly className="bg-muted font-mono text-sm" dir="ltr" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -910,7 +910,34 @@
       "googlePlayStore": "Google Play Store",
       "downloadIosPack": "Download iOS Pack",
       "downloadAndroidPack": "Download Android Pack",
-      "requireAndroidStudio": "Android Studio (Windows, Mac, or Linux)"
+      "requireAndroidStudio": "Android Studio (Windows, Mac, or Linux)",
+      "live": "Live",
+      "draft": "Draft",
+      "mode1Title": "Hosted Store + PWA",
+      "recommended": "Recommended",
+      "pwaDesc": "Recommended for most users — Your store is instantly available as an installable web app. Customers can add it to their home screen directly from the browser. No app store submission required.",
+      "pwaInstallHint": "Customers can install your store as an app directly from the browser. No app store submission required.",
+      "mode2Title": "Custom Domain",
+      "comingSoon": "Coming Soon",
+      "customDomainDesc": "Connect your own domain (e.g., booking.yourbusiness.com) for a fully branded experience.",
+      "mode3Title": "Native App Publishing",
+      "advanced": "Advanced",
+      "mode3Desc": "Publish your branded app on Apple App Store and Google Play Store.",
+      "securityDisclaimer": "Bookivo never stores your signing keys, developer passwords, or App Store credentials. Publishing is completed by you directly in App Store Connect or Google Play Console.",
+      "mode4Title": "Done-for-You Publishing",
+      "premium": "Premium",
+      "mode4Desc": "Let our team handle building, signing, and submitting your app to the stores. Focus on your business while we handle the technical details.",
+      "contactUs": "Contact Us",
+      "whatYouNeed": "What You Need",
+      "publishingProgress": "Publishing Progress",
+      "step": {
+        "configure": "Configure",
+        "generate": "Generate Pack",
+        "build": "Build",
+        "upload": "Upload",
+        "submit": "Submit",
+        "approved": "Approved"
+      }
     },
     "wizard": {
       "title": "Setup Your Booking Marketplace",
@@ -935,7 +962,15 @@
         "bundleId": "Bundle ID",
         "bundleIdHint": "Auto-generated from your URL slug",
         "preview": "Home Screen Preview",
-        "appleTip": "Apple requires no transparency in icons. Rounded corners are added automatically by the OS."
+        "appleTip": "Apple requires no transparency in icons. Rounded corners are added automatically by the OS.",
+        "keywordsLabel": "Keywords",
+        "keywordsPlaceholder": "wedding, events, booking (comma-separated)",
+        "keywordsHint": "Comma-separated keywords for App Store optimization",
+        "supportEmailLabel": "Support Email",
+        "privacyUrlLabel": "Privacy Policy URL",
+        "privacyUrlHint": "Required by both Apple and Google for store submission",
+        "versionLabel": "Version",
+        "buildLabel": "Build"
       },
       "theme": {
         "title": "Choose Theme",
@@ -971,7 +1006,13 @@
           "elegantGold": "Elegant Gold",
           "freshGreen": "Fresh Green",
           "luxuryDark": "Luxury Dark",
-          "royalPurple": "Royal Purple"
+          "royalPurple": "Royal Purple",
+          "oceanTeal": "Ocean Teal",
+          "sunsetOrange": "Sunset Orange",
+          "rosePink": "Rose Pink",
+          "slatePro": "Slate Professional",
+          "emeraldFinance": "Emerald Finance",
+          "midnightPremium": "Midnight Premium"
         }
       },
       "money": {
