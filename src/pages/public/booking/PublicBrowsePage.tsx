@@ -10,7 +10,8 @@ import { VendorCardPublic } from '@/components/booking/VendorCardPublic';
 
 export default function PublicBrowsePage() {
   const { t } = useTranslation();
-  const { settings, tenantSlug } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { settings, tenantSlug, basePath } = useOutletContext<{ settings: any; tenantSlug: string; basePath?: string }>();
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
   const { currentLanguage } = useLanguage();
   const workspaceId = settings?.workspace_id;
   const currency = settings?.currency || 'USD';
@@ -117,6 +118,7 @@ export default function PublicBrowsePage() {
               key={v.id}
               vendor={v}
               tenantSlug={tenantSlug}
+              basePath={resolvedBase}
               serviceCount={vendorServiceCount[v.id] || 0}
               primaryColor={primaryColor}
               featured={featuredVendorIds.has(v.id)}
@@ -151,6 +153,7 @@ export default function PublicBrowsePage() {
               vendorName={s.vendor_display_name}
               vendorNameMeaningId={s.vendor_display_name_meaning_id}
               tenantSlug={tenantSlug}
+              basePath={resolvedBase}
               vendorId={s.vendor_id}
               currency={currency}
               languageCode={currentLanguage.code}

@@ -14,7 +14,8 @@ import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 export default function PublicVendorDetailPage() {
   const { t } = useTranslation();
   const { vendorId, tenantSlug } = useParams<{ vendorId: string; tenantSlug: string }>();
-  const { settings } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { settings, basePath } = useOutletContext<{ settings: any; tenantSlug: string; basePath?: string }>();
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
   const { currentLanguage } = useLanguage();
   const currency = settings?.currency || 'USD';
   const primaryColor = settings?.primary_color || undefined;
@@ -68,7 +69,7 @@ export default function PublicVendorDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to={`/b/${tenantSlug}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link to={resolvedBase} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" />
         {t('common.back')}
       </Link>
@@ -155,6 +156,7 @@ export default function PublicVendorDetailPage() {
                 key={s.id}
                 service={s}
                 tenantSlug={tenantSlug!}
+                basePath={resolvedBase}
                 vendorId={vendorId}
                 currency={currency}
                 languageCode={currentLanguage.code}

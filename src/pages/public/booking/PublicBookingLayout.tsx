@@ -232,7 +232,7 @@ export default function PublicBookingLayout() {
 
       {/* Main content */}
       <main className="max-w-5xl mx-auto px-4 py-6 flex-1 w-full">
-        <Outlet context={{ settings, tenantSlug }} />
+        <Outlet context={{ settings, tenantSlug, basePath: `/b/${tenantSlug}` }} />
       </main>
 
       {/* Footer (hide on auth page) */}

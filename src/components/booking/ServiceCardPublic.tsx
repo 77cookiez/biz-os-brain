@@ -24,6 +24,7 @@ interface ServiceCardPublicProps {
   vendorName?: string;
   vendorNameMeaningId?: string | null;
   tenantSlug: string;
+  basePath?: string;
   vendorId?: string;
   currency: string;
   languageCode: string;
@@ -36,6 +37,7 @@ export function ServiceCardPublic({
   vendorName,
   vendorNameMeaningId,
   tenantSlug,
+  basePath,
   vendorId,
   currency,
   languageCode,
@@ -43,6 +45,7 @@ export function ServiceCardPublic({
   featured,
 }: ServiceCardPublicProps) {
   const { t } = useTranslation();
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
 
   return (
     <Card className={`group relative overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 duration-200 ${featured ? 'ring-2 ring-primary/30' : ''}`}>
@@ -103,7 +106,7 @@ export function ServiceCardPublic({
               {t('booking.public.serviceCard.getQuote')}
             </span>
           )}
-          <Link to={`/b/${tenantSlug}/request?vendor=${vendorId || ''}&service=${service.id}`}>
+          <Link to={`${resolvedBase}/request?vendor=${vendorId || ''}&service=${service.id}`}>
             <Button
               size="sm"
               className="rounded-full text-xs px-4 gap-1.5"

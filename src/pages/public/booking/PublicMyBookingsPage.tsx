@@ -19,7 +19,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 export default function PublicMyBookingsPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { settings, tenantSlug } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { settings, tenantSlug, basePath } = useOutletContext<{ settings: any; tenantSlug: string; basePath?: string }>();
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
   const { currentLanguage } = useLanguage();
   const { quoteRequests, isLoading: qLoading } = useBookingQuotes();
   const { bookings, isLoading: bLoading } = useBookingBookings();
@@ -27,7 +28,7 @@ export default function PublicMyBookingsPage() {
   const [selectedThread, setSelectedThread] = useState<string | null>(null);
 
   if (!user) {
-    return <Navigate to={`/b/${tenantSlug}/auth?redirect=/b/${tenantSlug}/my`} replace />;
+    return <Navigate to={`${resolvedBase}/auth?redirect=${resolvedBase}/my`} replace />;
   }
 
   // Filter to current user's requests/bookings

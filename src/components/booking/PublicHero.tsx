@@ -8,6 +8,7 @@ interface PublicHeroProps {
   theme: string;
   workspaceName: string;
   tenantSlug: string;
+  basePath?: string;
   primaryColor?: string;
   logoUrl?: string | null;
   tone?: string | null;
@@ -28,8 +29,9 @@ function InitialsAvatar({ name, color }: { name: string; color?: string }) {
   );
 }
 
-export function PublicHero({ theme, workspaceName, tenantSlug, primaryColor, logoUrl, tone }: PublicHeroProps) {
+export function PublicHero({ theme, workspaceName, tenantSlug, basePath, primaryColor, logoUrl, tone }: PublicHeroProps) {
   const { t } = useTranslation();
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
 
   const toneMessage: Record<string, string> = {
     professional: 'Professional service, exceptional results.',
@@ -69,7 +71,7 @@ export function PublicHero({ theme, workspaceName, tenantSlug, primaryColor, log
             </p>
           )}
           <div className="flex items-center justify-center gap-3 pt-2">
-            <Link to={`/b/${tenantSlug}/request`}>
+            <Link to={`${resolvedBase}/request`}>
               <Button size="lg" className="gap-2 rounded-full px-8 font-semibold shadow-lg"
                 style={{
                   backgroundColor: '#ffffff',

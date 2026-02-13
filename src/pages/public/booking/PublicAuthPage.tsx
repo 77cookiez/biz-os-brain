@@ -17,7 +17,10 @@ export default function PublicAuthPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const redirect = searchParams.get('redirect') || `/b/${tenantSlug}`;
+  // Detect basePath from current URL (v2 vs v1)
+  const currentPath = window.location.pathname;
+  const basePath = currentPath.startsWith('/b2/') ? `/b2/${tenantSlug}` : `/b/${tenantSlug}`;
+  const redirect = searchParams.get('redirect') || basePath;
 
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
