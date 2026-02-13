@@ -47,3 +47,9 @@ verify_jwt = false
 
 [functions.generate-app-pack]
 verify_jwt = false
+
+[functions.register-vendor]
+verify_jwt = false
+
+[functions.vendor-ai-assist]
+verify_jwt = false
