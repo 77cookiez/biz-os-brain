@@ -124,7 +124,7 @@ export default function EnterpriseOverviewPage() {
             variant="outline"
             size="sm"
             className="gap-1.5"
-            onClick={() => compute()}
+            onClick={() => compute(7)}
             disabled={isComputing}
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isComputing ? 'animate-spin' : ''}`} />
@@ -323,7 +323,7 @@ export default function EnterpriseOverviewPage() {
             <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
               {t('risk.emptyDesc', 'Click "Recompute" to run your first enterprise risk assessment.')}
             </p>
-            <Button onClick={() => compute()} disabled={isComputing} size="sm">
+            <Button onClick={() => compute(7)} disabled={isComputing} size="sm">
               <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isComputing ? 'animate-spin' : ''}`} />
               {t('risk.runFirst', 'Run Assessment')}
             </Button>
