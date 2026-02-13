@@ -40,6 +40,7 @@ import WorkboardGoalsPage from "@/pages/workboard/WorkboardGoalsPage";
 import WorkboardCalendarPage from "@/pages/workboard/WorkboardCalendarPage";
 import WorkboardBrainstormPage from "@/pages/workboard/WorkboardBrainstormPage";
 import ChatPage from "@/pages/chat/ChatPage";
+import RiskDashboardPage from "@/pages/enterprise/RiskDashboardPage";
 import { Loader2 } from "lucide-react";
 
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
@@ -184,6 +185,7 @@ const AppRoutes = () => (
         <Route path="tasks" element={<Navigate to="/apps/workboard" replace />} />
       </Route>
       <Route path="/apps/chat" element={<ChatPage />} />
+      <Route path="/enterprise/risk-dashboard" element={<RiskDashboardPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
