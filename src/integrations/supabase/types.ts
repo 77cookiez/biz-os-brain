@@ -479,6 +479,50 @@ export type Database = {
           },
         ]
       }
+      company_risk_scores: {
+        Row: {
+          company_id: string
+          computed_at: string
+          created_at: string
+          id: string
+          metadata: Json
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          risk_type: string
+          window_days: number
+        }
+        Insert: {
+          company_id: string
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          risk_type: string
+          window_days?: number
+        }
+        Update: {
+          company_id?: string
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          risk_type?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_risk_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_translations: {
         Row: {
           created_at: string
@@ -554,47 +598,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "digest_preferences_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspaces"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      enterprise_risk_scores: {
-        Row: {
-          computed_at: string
-          created_at: string
-          drivers: Json
-          id: string
-          risk_level: Database["public"]["Enums"]["risk_level"]
-          risk_score: number
-          risk_type: string
-          workspace_id: string
-        }
-        Insert: {
-          computed_at?: string
-          created_at?: string
-          drivers?: Json
-          id?: string
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          risk_score?: number
-          risk_type: string
-          workspace_id: string
-        }
-        Update: {
-          computed_at?: string
-          created_at?: string
-          drivers?: Json
-          id?: string
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          risk_score?: number
-          risk_type?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "enterprise_risk_scores_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -1113,33 +1116,46 @@ export type Database = {
       }
       risk_forecasts: {
         Row: {
-          confidence: number
+          company_id: string
+          computed_at: string
           created_at: string
-          forecast_date: string
+          forecast: Json
+          horizon_days: number
           id: string
-          predicted_score: number
+          model_meta: Json
           risk_type: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
-          confidence?: number
+          company_id: string
+          computed_at?: string
           created_at?: string
-          forecast_date: string
+          forecast?: Json
+          horizon_days?: number
           id?: string
-          predicted_score: number
+          model_meta?: Json
           risk_type: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
-          confidence?: number
+          company_id?: string
+          computed_at?: string
           created_at?: string
-          forecast_date?: string
+          forecast?: Json
+          horizon_days?: number
           id?: string
-          predicted_score?: number
+          model_meta?: Json
           risk_type?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "risk_forecasts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "risk_forecasts_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -1151,36 +1167,37 @@ export type Database = {
       }
       risk_snapshots: {
         Row: {
+          company_id: string
           created_at: string
           id: string
-          metadata: Json | null
-          risk_level: Database["public"]["Enums"]["risk_level"]
-          risk_score: number
-          risk_type: string
+          metrics: Json
           snapshot_date: string
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
+          company_id: string
           created_at?: string
           id?: string
-          metadata?: Json | null
-          risk_level: Database["public"]["Enums"]["risk_level"]
-          risk_score: number
-          risk_type: string
+          metrics?: Json
           snapshot_date?: string
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
+          company_id?: string
           created_at?: string
           id?: string
-          metadata?: Json | null
-          risk_level?: Database["public"]["Enums"]["risk_level"]
-          risk_score?: number
-          risk_type?: string
+          metrics?: Json
           snapshot_date?: string
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "risk_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "risk_snapshots_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -1520,6 +1537,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_risk_scores: {
+        Row: {
+          company_id: string
+          computed_at: string
+          created_at: string
+          id: string
+          metadata: Json
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          risk_score: number
+          risk_type: string
+          window_days: number
+          workspace_id: string
+        }
+        Insert: {
+          company_id: string
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          risk_type: string
+          window_days?: number
+          workspace_id: string
+        }
+        Update: {
+          company_id?: string
+          computed_at?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          risk_score?: number
+          risk_type?: string
+          window_days?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_risk_scores_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_risk_scores_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
