@@ -55,6 +55,27 @@ Deno.serve(async (req) => {
     // Use service role for atomic operations
     const admin = createClient(supabaseUrl, serviceKey);
 
+    // ── SECURITY: Validate workspace_id belongs to a live booking tenant ──
+    // This prevents arbitrary workspace_id injection. Only workspaces with
+    // is_live=true AND a tenant_slug can accept vendor registrations.
+    const { data: tenantSettings, error: tenantError } = await admin
+      .from("booking_settings")
+      .select("workspace_id, tenant_slug")
+      .eq("workspace_id", workspace_id)
+      .eq("is_live", true)
+      .not("tenant_slug", "is", null)
+      .maybeSingle();
+
+    if (tenantError || !tenantSettings) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or inactive workspace" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // 1. Check if user is already a vendor in this workspace
     const { data: existingVendor } = await admin
       .from("booking_vendors")
@@ -76,7 +97,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 2. Ensure user is a workspace member (add if not)
+    // 2. Ensure user is a workspace member (add if not, with 'vendor' role)
     const { data: existingMember } = await admin
       .from("workspace_members")
       .select("id")
