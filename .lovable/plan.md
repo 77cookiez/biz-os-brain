@@ -1,362 +1,184 @@
-ممتاز 👌  
-سأعيد كتابة الخطة **بنفس أسلوبه وتنظيمه بالضبط**، بدون تغيير أي شيء مما كتبه — فقط سأضيف الأقسام الخمسة المطلوبة بشكل واضح ومنظم حتى ينفذها الفريق بدون ارتباك.
 
----
 
-# Bookivo: World-Class Public Storefront + Vendor Back Office (Enhanced)
+# Bookivo: Complete Vendor Management, Portal Access Fix, and Storefront Polish
 
 ## Overview
 
-This is a major upgrade transforming the public storefront (`/b/:slug`) from a plain listing into a commercially competitive booking marketplace, and polishing the vendor portal (`/v/:slug`) into a complete back office.
-
-No database migrations are needed -- all existing tables and columns are sufficient.
-
-This version also includes commercial-grade enhancements: Featured logic, Empty States, SEO optimization, Sticky Mobile CTA, and AI Assist placeholder for vendor portal.
+This plan addresses 5 critical issues: (1) Vendor portal showing "Access Denied" because there's no way to register as a vendor, (2) Empty vendors page in the admin dashboard with no ability to add/manage vendors, (3) Footer and header polish to match world-class standards, (4) Missing vendor self-registration from the public store, and (5) Making the AI Assist actually functional using built-in AI models.
 
 ---
 
-# Part 1: New Components to Create
+## Part 1: Vendor Portal Access Fix + Vendor Registration
 
-### 1.1 PublicHero.tsx
+### Problem
+When a user clicks "Vendor Login" on the public store, they're redirected to `/v/:tenantSlug`. The `VendorPortalLayout` queries `booking_vendors` for a record where `owner_user_id = user.id`. Since no vendor record exists, it shows "Access Denied."
 
-(unchanged from previous specification)
+### Solution
+Create a **Vendor Registration Flow** at `/v/:tenantSlug`:
 
-Theme-aware hero section that reads `theme_template` from settings:
+1. If user is NOT logged in: redirect to `/b/:tenantSlug/auth?redirect=/v/:tenantSlug` (tenant-branded auth)
+2. If user IS logged in but has NO vendor record: show a **"Join as Vendor"** registration form instead of "Access Denied"
+3. If user IS logged in and HAS a vendor record: show the portal as normal
 
-- eventServices → Full-width gradient banner
-- marketplace → Search-forward compact hero
-- rentals → Date-focused hero
-- generic → Minimal hero
+The registration form collects:
+- Display name (business name)
+- Bio / description
+- Email and WhatsApp
+- Logo upload (optional)
 
-All themes must support logo fallback to initials avatar using `primary_color`.
+On submit, it creates:
+- A `booking_vendors` record with `status = 'pending'`
+- A `booking_vendor_profiles` record with the entered details
+- A `meaning_objects` record for the display name (ULL compliance)
 
----
+The vendor sees a "Pending Approval" state until the workspace admin approves them from the dashboard.
 
-### 1.2 PublicFooter.tsx
-
-(unchanged)
-
-Professional footer component with:
-
-- Contact section (Email + WhatsApp conditional)
-- Privacy Policy link (if exists)
-- Powered by Bookivo branding
-- Copyright (dynamic year)
-- Vendor Login link (`/v/:slug`)
-- Tenant color accent styling
+### Files
+- **Modify**: `src/pages/vendor/VendorPortalLayout.tsx` -- replace "No Access" screen with registration form; redirect unauthenticated users to tenant-scoped auth instead of `/auth`
 
 ---
 
-### 1.3 ServiceCardPublic.tsx
+## Part 2: Admin Vendor Management Page
 
-(unchanged + featured enhancement below)
+### Problem
+`BookingVendorsPage` is a static empty page with no functionality.
 
-Enhanced service card:
+### Solution
+Build a full vendor management page with:
 
-- Title (ULL-projected)
-- Description (2-line truncate)
-- Prominent price badge
-- Duration + Guest range
-- Vendor attribution
-- CTA button
-- Gradient fallback image
+1. **Vendor List**: Table/cards showing all vendors with status badges (Pending, Approved, Suspended)
+2. **Add Vendor Button**: Dialog to manually add a vendor by entering their email (looks up existing user or shows instructions to invite them)
+3. **Vendor Actions**: Approve, Suspend, Reactivate buttons (already exist in `useBookingVendors` hook)
+4. **Vendor Detail**: Click to see vendor's profile, services count, and quote request count
+5. **Invite Vendor Link**: Generate a link like `/v/:tenantSlug` that vendors can use to self-register
 
-NEW:
+The existing `useBookingVendors` hook already has `approveVendor`, `suspendVendor`, and `reactivateVendor` mutations -- they just need a UI.
 
-- Support `featured` visual badge (if logic determines item is featured)
-- Featured items should visually appear before regular items
-
----
-
-### 1.4 VendorCardPublic.tsx
-
-(unchanged + featured enhancement)
-
-Enhanced vendor card:
-
-- Logo or initials avatar
-- Display name
-- Bio truncated
-- Service count badge
-- Click to vendor detail
-
-NEW:
-
-- Support `featured` visual badge
-- Featured vendors should render before others (sorting logic only, no DB changes required)
+### Files
+- **Modify**: `src/pages/apps/booking/BookingVendorsPage.tsx` -- complete rebuild with vendor list, actions, and add vendor dialog
 
 ---
 
-### 1.5 PublicAuthPage.tsx
+## Part 3: Enhanced Footer
 
-(unchanged)
+### Current State
+The footer has 3 columns (brand, contact, links) with basic content.
 
-Tenant-scoped authentication at `/b/:slug/auth`:
+### Enhancements
+- Add a subtle gradient top border using tenant colors
+- Add social media links section (if configured)
+- Add "Terms & Conditions" link alongside Privacy Policy
+- Add "Become a Vendor" CTA link in footer pointing to `/v/:tenantSlug`
+- Better spacing and typography matching world-class booking sites (Calendly, Fresha style)
+- Add a small Bookivo logo mark next to "Powered by Bookivo"
 
-- Tenant branding (NOT AiBizos)
-- Sign In / Sign Up toggle
-- Supabase auth
-- Redirect handling
-- Loading states
-- Toast errors
-
----
-
-# Part 2: Modified Files
-
-## 2.1 PublicBookingLayout.tsx
-
-(unchanged + SEO + sticky CTA additions)
-
-Add:
-
-- Header with tenant branding
-- Customer auth state
-- Vendor login link
-- PublicHero
-- PublicFooter
-- Theme class on root
-- Mobile bottom nav
-
-NEW ADDITIONS:
-
-### SEO Meta Tags (Required)
-
-Add dynamic:
-
-- `<title>` = workspace name
-- `<meta name="description">` based on tone or tagline
-- OpenGraph image (logo or fallback)
-- Canonical URL
-- og:title
-- og:description
-
-These must update per tenant.
+### Files
+- **Modify**: `src/components/booking/PublicFooter.tsx`
 
 ---
 
-### Sticky Mobile CTA (Required)
+## Part 4: Enhanced Header
 
-Add a bottom-fixed CTA bar on mobile:
+### Current State
+Header has logo, name, browse/my-bookings nav, and auth state. Functional but could be more polished.
 
-- Primary button: “Request Quote”
-- Styled with tenant primary color
-- Visible on scroll
-- Hidden on auth pages
+### Enhancements
+- Better visual separation between brand and navigation
+- Add a "Request Quote" CTA button on desktop (primary action, always visible)
+- Polish the mobile bottom nav with better active state indicators using tenant colors
+- Add subtle hover animations on nav links
+- Better avatar dropdown for logged-in users (with sign out option)
 
-This increases conversion significantly.
-
----
-
-## 2.2 PublicBrowsePage.tsx
-
-(unchanged)
-
-Theme-aware section ordering:
-
-- eventServices → Vendors then Services
-- marketplace → Services then Vendors
-- rentals → Services then Vendors
-- generic → Services then Vendors
-
-Use new ServiceCardPublic + VendorCardPublic components.
-
-Grid layouts as previously specified.
+### Files
+- **Modify**: `src/pages/public/booking/PublicBookingLayout.tsx`
 
 ---
 
-## 2.3 PublicRequestQuotePage.tsx
+## Part 5: Functional AI Vendor Assistant
 
-Redirect to `/b/:slug/auth?redirect=...`
+### Current State
+AI Assist button opens a static placeholder modal listing future features.
 
----
+### Solution
+Make it a real AI assistant using the built-in Lovable AI models (no API key needed). The workflow:
 
-## 2.4 PublicMyBookingsPage.tsx
+1. Vendor clicks "AI Assist" button
+2. Modal opens with a chat-style interface
+3. Vendor types what they need: "Create a wedding photography service package"
+4. AI generates a structured draft (title EN/AR, description, suggested price range, add-ons, terms)
+5. Vendor sees a **Preview Card** with the generated content
+6. Vendor clicks **"Apply"** to create the service, or **"Edit"** to modify, or **"Discard"**
 
-Redirect to `/b/:slug/auth?redirect=...`
+This follows the system principle: **Ask -> Draft -> Preview -> Confirm -> Execute**
 
----
+Implementation:
+- Create a new edge function `vendor-ai-assist` that takes a prompt + vendor context and returns structured service/package suggestions
+- The edge function uses the Lovable AI proxy (no API key needed)
+- The modal becomes a real conversational interface
 
-## 2.5 PublicVendorDetailPage.tsx
-
-Polish layout:
-
-- Cover area (gradient fallback)
-- Larger logo
-- Use ServiceCardPublic
-- Back to browse link
-
----
-
-## 2.6 VendorPortalLayout.tsx
-
-Add:
-
-- Tenant logo in header
-- Vendor display name
-- “View My Store” link
-- Improved tab styling
-
-NEW ADDITION:
-
-### AI Assist Placeholder (Required)
-
-Inside Vendor Portal layout, add a visible but optional section:
-
-- Button: “AI Assist (Coming Soon)” or “AI Assistant Beta”
-- Clicking opens modal placeholder with:
-  - Description of future AI features
-  - Disabled input field (non-functional)
-  - Clear label: “Draft → Preview → Confirm workflow will be available soon”
-
-No backend logic required now. UI only.
-
-This prepares structure for future AI Vendor Agent.
+### Files
+- **Create**: `supabase/functions/vendor-ai-assist/index.ts` -- Edge function for AI generation
+- **Modify**: `src/pages/vendor/VendorPortalLayout.tsx` -- Replace placeholder modal with functional AI chat
 
 ---
 
-## 2.7 App.tsx
+## Part 6: i18n Updates
 
-Add route:
+Add translation keys for:
+- Vendor registration form labels and messages
+- Admin vendor management page
+- Enhanced footer links
+- AI assist conversational UI
+- Pending approval status messages
 
-`/b/:tenantSlug/auth` → PublicAuthPage
-
-Lazy load.
-
----
-
-## 2.8 i18n Updates
-
-(unchanged from previous plan)
-
-Add keys for hero, footer, auth, serviceCard, vendorCard.
-
-Also add:
-
-- `featured`: "Featured"
-- `empty.noServices`: "No services available yet."
-- `empty.noVendors`: "No vendors available yet."
-- `sticky.requestQuote`: "Request Quote"
-
-Arabic equivalents required.
+### Files
+- **Modify**: `src/i18n/translations/en.json`
+- **Modify**: `src/i18n/translations/ar.json`
 
 ---
 
-# Part 3: Theme Token System
+## Technical Details
 
-(unchanged)
+### Database Changes
+No new tables or columns needed. All required tables exist:
+- `booking_vendors` (status: pending/approved/suspended)
+- `booking_vendor_profiles` (display_name, bio, email, whatsapp, logo_url)
+- `meaning_objects` (for ULL compliance)
 
-Theme variations driven by `theme_template`:
+The RLS policies already support:
+- Workspace members can create vendors (`ws_members_create_vendors` policy requires `owner_user_id = auth.uid()`)
+- Vendor owners can manage their own profiles
+- Admins can approve/suspend vendors
 
+### Edge Function: vendor-ai-assist
+- Uses `google/gemini-2.5-flash` via the Lovable AI proxy
+- Accepts: `{ prompt: string, context: { vendorName, existingServices, locale } }`
+- Returns: `{ suggestions: [{ type: 'service'|'package', title_en, title_ar, description_en, description_ar, suggestedPrice, duration, addons, terms }] }`
+- Requires auth (vendor must be logged in)
 
-| Aspect        | eventServices | marketplace    | rentals        | generic        |
-| ------------- | ------------- | -------------- | -------------- | -------------- |
-| Hero          | Large banner  | Search-forward | Date-forward   | Minimal        |
-| Section order | Vendors first | Services first | Services first | Services first |
-| Layout        | 2/3 grid      | 3-col grid     | 2-col wide     | 1-col          |
-| Intensity     | Bold          | Medium         | Medium         | Minimal        |
+### Vendor Registration RLS
+The existing `ws_members_create_vendors` policy requires `is_workspace_member(auth.uid(), workspace_id)`. This means the registering user must be a workspace member. For public vendor registration, we need to first add the user as a workspace member (with a minimal role), then create the vendor record. This can be handled in a single transaction or via a new RPC function.
 
+**Alternative approach**: Create a `register-vendor` edge function that handles the workspace membership + vendor creation atomically using the service role key. This is more secure and avoids RLS complexity.
 
----
+### Files Summary
 
-# Part 4: Commercial Enhancements (NEW SECTION)
+| Action | File |
+|--------|------|
+| Modify | `src/pages/vendor/VendorPortalLayout.tsx` |
+| Modify | `src/pages/apps/booking/BookingVendorsPage.tsx` |
+| Modify | `src/components/booking/PublicFooter.tsx` |
+| Modify | `src/pages/public/booking/PublicBookingLayout.tsx` |
+| Modify | `src/i18n/translations/en.json` |
+| Modify | `src/i18n/translations/ar.json` |
+| Create | `supabase/functions/vendor-ai-assist/index.ts` |
+| Create | `supabase/functions/register-vendor/index.ts` |
 
-## 4.1 Featured Logic (No DB Migration)
-
-Implement front-end sorting logic:
-
-- First 2 services auto-marked as featured (temporary logic)
-- First 1 vendor auto-marked as featured
-- Or use existing metadata field if available
-- Featured items:
-  - Appear first
-  - Show badge
-  - Slightly stronger shadow or border
-
-No schema changes required.
-
----
-
-## 4.2 Empty States (Required)
-
-For all public pages:
-
-- If no services → show centered message + subtle icon
-- If no vendors → show message
-- If loading → show skeleton placeholders
-- If no logo → fallback avatar
-- If no WhatsApp/email → hide buttons gracefully
-
-Must never show broken layout.
-
----
-
-## 4.3 SEO Optimization (Required)
-
-Each tenant page must dynamically generate:
-
-- Title
-- Meta description
-- OG tags
-- Fallback OG image
-- Canonical link
-
-No hardcoded AiBizos branding.
-
----
-
-## 4.4 Sticky Mobile CTA (Required)
-
-Add bottom sticky CTA on mobile:
-
-- Button: Request Quote
-- Full width
-- Tenant primary color
-- Appears only on browse and vendor pages
-- Hidden on auth pages
-
----
-
-## 4.5 AI Vendor Assistant Placeholder (UI Only)
-
-Inside Vendor Portal:
-
-- AI Assist button
-- Modal placeholder
-- Clear workflow explanation
-- No backend logic yet
-
-This prepares future Agent-based workflow.
-
----
-
-# Part 5: What This Does NOT Change
-
-- No database migrations
-- No route renames
+### What Will NOT Change
+- Database schema (no migrations)
 - Module ID stays `booking`
-- `/b/:slug` and `/v/:slug` preserved
-- Wizard unchanged
-- Settings unchanged
-- Internal admin unchanged
-- Supabase auth unchanged
+- Existing routes unchanged
+- Wizard flow unchanged
+- Settings page unchanged
+- Public browse/detail pages unchanged
 
----
-
-# Files Summary
-
-(Create + Modify list remains identical to previous plan)
-
----
-
-# Final Note
-
-This version ensures:
-
-- Commercial storefront quality
-- Conversion-oriented UI
-- Tenant-branded authentication
-- Vendor-ready back office
-- SEO readiness
-- Mobile-first conversion
-- Future AI integration readiness
