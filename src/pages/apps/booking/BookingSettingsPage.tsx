@@ -7,14 +7,30 @@ import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Settings, Rocket } from 'lucide-react';
+import { Settings, Rocket, Globe, Copy, ExternalLink, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import BookingSetupWizard from './BookingSetupWizard';
+
+const PUBLISHED_DOMAIN = 'biz-os-brain.lovable.app';
 
 export default function BookingSettingsPage() {
   const { t } = useTranslation();
   const { settings, isLoading } = useBookingSettings();
   const { subscription } = useBookingSubscription();
   const [showWizard, setShowWizard] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const publicUrl = settings?.tenant_slug
+    ? `https://${PUBLISHED_DOMAIN}/b/${settings.tenant_slug}`
+    : null;
+
+  const handleCopy = async () => {
+    if (!publicUrl) return;
+    await navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    toast.success(t('common.copied', 'Copied!'));
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (isLoading) {
     return (
@@ -43,6 +59,56 @@ export default function BookingSettingsPage() {
     <div className="space-y-6">
       <SubscriptionBanner />
       <h1 className="text-2xl font-bold text-foreground">{t('booking.settings.title')}</h1>
+
+      {/* Public URL Card - show when live */}
+      {settings?.is_live && publicUrl && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Globe className="h-4 w-4 text-primary" />
+              {t('booking.settings.publicUrl', 'Public Site')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <code className="text-sm font-mono bg-muted px-3 py-1.5 rounded-md break-all text-foreground flex-1">
+                {publicUrl}
+              </code>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleCopy}>
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  <span className="ms-1">{copied ? t('common.copied', 'Copied') : t('common.copy', 'Copy')}</span>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="ms-1">{t('booking.settings.openSite', 'Open')}</span>
+                  </a>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Logo preview when live */}
+      {settings?.is_live && settings.logo_url && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center gap-4">
+              <img
+                src={settings.logo_url}
+                alt="Logo"
+                className="h-12 w-12 rounded-lg object-contain ring-1 ring-border bg-muted"
+              />
+              <div>
+                <p className="text-sm font-medium text-foreground">{t('booking.wizard.brand.logo', 'Logo')}</p>
+                <p className="text-xs text-muted-foreground">{t('booking.settings.editInWizard', 'Edit via Setup Wizard')}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Subscription status */}
       {subscription && (
