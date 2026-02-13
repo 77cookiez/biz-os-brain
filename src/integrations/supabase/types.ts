@@ -835,13 +835,14 @@ export type Database = {
       booking_vendor_profiles: {
         Row: {
           bio: string | null
+          bio_meaning_object_id: string | null
           cover_url: string | null
           created_at: string
           display_name: string
+          display_name_meaning_object_id: string
           email: string | null
           id: string
           logo_url: string | null
-          meaning_object_id: string
           source_lang: string | null
           updated_at: string
           vendor_id: string
@@ -850,13 +851,14 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          bio_meaning_object_id?: string | null
           cover_url?: string | null
           created_at?: string
           display_name: string
+          display_name_meaning_object_id: string
           email?: string | null
           id?: string
           logo_url?: string | null
-          meaning_object_id: string
           source_lang?: string | null
           updated_at?: string
           vendor_id: string
@@ -865,13 +867,14 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          bio_meaning_object_id?: string | null
           cover_url?: string | null
           created_at?: string
           display_name?: string
+          display_name_meaning_object_id?: string
           email?: string | null
           id?: string
           logo_url?: string | null
-          meaning_object_id?: string
           source_lang?: string | null
           updated_at?: string
           vendor_id?: string
@@ -879,13 +882,6 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "booking_vendor_profiles_meaning_object_id_fkey"
-            columns: ["meaning_object_id"]
-            isOneToOne: false
-            referencedRelation: "meaning_objects"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "booking_vendor_profiles_vendor_id_fkey"
             columns: ["vendor_id"]
@@ -898,6 +894,20 @@ export type Database = {
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bvp_bio_mo_fk"
+            columns: ["bio_meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bvp_display_name_mo_fk"
+            columns: ["display_name_meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
             referencedColumns: ["id"]
           },
         ]

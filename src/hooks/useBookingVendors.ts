@@ -22,7 +22,8 @@ export interface BookingVendor {
     bio: string | null;
     email: string | null;
     whatsapp: string | null;
-    meaning_object_id: string;
+    display_name_meaning_object_id: string;
+    bio_meaning_object_id: string | null;
   } | null;
 }
 

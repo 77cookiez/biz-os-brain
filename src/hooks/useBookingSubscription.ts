@@ -34,6 +34,7 @@ export function useBookingSubscription() {
   });
 
   const isActive = subscription?.status === 'active';
+  const isTrial = subscription?.status === 'trial';
   const isGracePeriod = subscription?.status === 'grace';
   const isSuspended = subscription?.status === 'suspended' || subscription?.status === 'expired';
 
@@ -44,12 +45,13 @@ export function useBookingSubscription() {
     daysRemaining = Math.max(0, Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
   }
 
-  const canWrite = isActive || isGracePeriod;
+  const canWrite = isActive || isTrial || isGracePeriod;
 
   return {
     subscription,
     isLoading,
     isActive,
+    isTrial,
     isGracePeriod,
     isSuspended,
     daysRemaining,

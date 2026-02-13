@@ -81,10 +81,10 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
                 .upsert(
                   {
                     workspace_id: currentWorkspace.id,
-                    status: 'active',
+                    status: 'trial',
                     plan: 'monthly',
                     started_at: new Date().toISOString(),
-                    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
                   },
                   { onConflict: 'workspace_id' }
                 );

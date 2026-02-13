@@ -7,7 +7,7 @@
 
 const MEANING_PROTECTED_TABLES = [
   'tasks', 'goals', 'ideas', 'brain_messages', 'plans', 'chat_messages',
-  'booking_vendor_profiles', 'booking_services', 'booking_service_addons',
+  'booking_services', 'booking_service_addons',
   'booking_quote_requests', 'booking_quotes',
 ] as const;
 
