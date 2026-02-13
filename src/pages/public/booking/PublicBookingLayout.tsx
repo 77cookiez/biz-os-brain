@@ -13,22 +13,37 @@ export default function PublicBookingLayout() {
   const isMobile = useIsMobile();
 
   const { data: settings, isLoading, error } = useQuery({
-    queryKey: ['public-booking-settings', tenantSlug],
+    queryKey: ['public-booking-tenant', tenantSlug],
     queryFn: async () => {
       if (!tenantSlug) return null;
-      const { data, error } = await supabase
-        .from('booking_settings')
-        .select('*, workspace:workspaces(id, name)')
-        .eq('tenant_slug', tenantSlug)
-        .eq('is_live', true)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_live_booking_tenant_by_slug', {
+        p_slug: tenantSlug,
+      });
       if (error) throw error;
-      return data;
+      return data as {
+        id: string;
+        workspace_id: string;
+        workspace_name: string;
+        tenant_slug: string;
+        is_live: boolean;
+        primary_color: string | null;
+        accent_color: string | null;
+        logo_url: string | null;
+        currency: string;
+        theme_template: string;
+        contact_email: string | null;
+        whatsapp_number: string | null;
+        cancellation_policy: string;
+        deposit_enabled: boolean;
+        deposit_type: string | null;
+        deposit_value: number | null;
+        tone: string | null;
+      } | null;
     },
     enabled: !!tenantSlug,
   });
 
-  const workspaceName = (settings as any)?.workspace?.name || tenantSlug || '';
+  const workspaceName = settings?.workspace_name || tenantSlug || '';
 
   useDocumentMeta({
     title: workspaceName ? `${workspaceName} — Booking` : 'Booking',

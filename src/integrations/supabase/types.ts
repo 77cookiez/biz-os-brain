@@ -2570,6 +2570,10 @@ export type Database = {
       }
       cleanup_old_org_events: { Args: never; Returns: undefined }
       cleanup_stale_memory: { Args: never; Returns: undefined }
+      get_live_booking_tenant_by_slug: {
+        Args: { p_slug: string }
+        Returns: Json
+      }
       get_thread_workspace: { Args: { _thread_id: string }; Returns: string }
       get_workspace_company: {
         Args: { _workspace_id: string }
