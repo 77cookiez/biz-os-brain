@@ -129,8 +129,8 @@ async function handleMeaningTranslation(
 
       if (mo) {
         if (mo.source_lang === targetLang) {
-          // Same language — use subject as-is
-          results[mId] = mo.meaning_json?.subject || "";
+          // Same language — use description (actual content) as-is
+          results[mId] = mo.meaning_json?.description || mo.meaning_json?.subject || "";
         } else {
           cacheMisses.push({ id: mId, meaningJson: mo.meaning_json, sourceLang: mo.source_lang });
         }
@@ -145,11 +145,10 @@ async function handleMeaningTranslation(
   }
 
   // Project meaning → language via AI
-  // IMPORTANT: Only use the English 'subject' field for translation.
-  // The 'description' field may be in a different language and confuses the model.
+  // Use the 'description' field which contains the actual user content.
   const textsToTranslate = cacheMisses.map((item, i) => {
     const mj = item.meaningJson;
-    return `[${i}] ${mj.subject || mj.description || ''}`;
+    return `[${i}] ${mj.description || mj.subject || ''}`;
   }).join("\n");
 
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -208,7 +207,7 @@ Output:
   } catch {
     console.error("Failed to parse AI meaning projection:", rawContent);
     for (const item of cacheMisses) {
-      results[item.id] = item.meaningJson?.subject || "";
+      results[item.id] = item.meaningJson?.description || item.meaningJson?.subject || "";
     }
     return new Response(JSON.stringify({ translations: results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -218,7 +217,7 @@ Output:
   // Store in cache and results
   for (let i = 0; i < cacheMisses.length; i++) {
     const item = cacheMisses[i];
-    const translatedText = translations[i] || item.meaningJson?.subject || "";
+    const translatedText = translations[i] || item.meaningJson?.description || item.meaningJson?.subject || "";
     results[item.id] = translatedText;
 
     // Cache in content_translations (best-effort, ignore errors)
