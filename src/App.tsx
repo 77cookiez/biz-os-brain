@@ -52,6 +52,16 @@ import BookingQuotesPage from "@/pages/apps/booking/BookingQuotesPage";
 import BookingBookingsPage from "@/pages/apps/booking/BookingBookingsPage";
 import BookingSettingsPage from "@/pages/apps/booking/BookingSettingsPage";
 import { AppInstalledGate } from "@/components/apps/AppInstalledGate";
+import PublicBookingLayout from "@/pages/public/booking/PublicBookingLayout";
+import PublicBrowsePage from "@/pages/public/booking/PublicBrowsePage";
+import PublicVendorDetailPage from "@/pages/public/booking/PublicVendorDetailPage";
+import PublicRequestQuotePage from "@/pages/public/booking/PublicRequestQuotePage";
+import PublicMyBookingsPage from "@/pages/public/booking/PublicMyBookingsPage";
+import VendorPortalLayout from "@/pages/vendor/VendorPortalLayout";
+import VendorDashboardPage from "@/pages/vendor/VendorDashboardPage";
+import VendorQuotesPage from "@/pages/vendor/VendorQuotesPage";
+import VendorCalendarPage from "@/pages/vendor/VendorCalendarPage";
+import VendorChatPage from "@/pages/vendor/VendorChatPage";
 import { Loader2 } from "lucide-react";
 
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
@@ -208,6 +218,20 @@ const AppRoutes = () => (
       <Route path="/apps/leadership" element={<AppInstalledGate appId="leadership"><LeadershipPage /></AppInstalledGate>} />
       <Route path="/apps/leadership/settings" element={<AppInstalledGate appId="leadership"><LeadershipSettingsPage /></AppInstalledGate>} />
       <Route path="/enterprise/risk-dashboard" element={<RiskDashboardPage />} />
+    </Route>
+    {/* Public Booking Tenant App */}
+    <Route path="/b/:tenantSlug" element={<PublicBookingLayout />}>
+      <Route index element={<PublicBrowsePage />} />
+      <Route path="v/:vendorId" element={<PublicVendorDetailPage />} />
+      <Route path="request" element={<PublicRequestQuotePage />} />
+      <Route path="my" element={<PublicMyBookingsPage />} />
+    </Route>
+    {/* Vendor Portal */}
+    <Route path="/v/:tenantSlug" element={<VendorPortalLayout />}>
+      <Route index element={<VendorDashboardPage />} />
+      <Route path="quotes" element={<VendorQuotesPage />} />
+      <Route path="calendar" element={<VendorCalendarPage />} />
+      <Route path="chat" element={<VendorChatPage />} />
     </Route>
     <Route path="*" element={<NotFound />} />
   </Routes>
