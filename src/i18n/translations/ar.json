@@ -706,5 +706,64 @@
     "confirmTitle": "تأكيد حذف البيانات",
     "confirmDesc": "سيتم وضع علامة حذف دائمة على جميع محتوياتك. لا يمكن التراجع عن هذا الإجراء.",
     "confirmBtn": "نعم، احذف بياناتي"
+  },
+  "booking": {
+    "tabs": {
+      "dashboard": "لوحة التحكم",
+      "vendors": "مقدمو الخدمات",
+      "services": "الخدمات",
+      "calendar": "التقويم",
+      "quotes": "عروض الأسعار",
+      "bookings": "الحجوزات",
+      "settings": "الإعدادات"
+    },
+    "dashboard": {
+      "title": "نظام الحجوزات",
+      "vendors": "مقدمو الخدمات",
+      "services": "الخدمات",
+      "quotes": "عروض الأسعار",
+      "bookings": "الحجوزات"
+    },
+    "vendors": {
+      "title": "مقدمو الخدمات",
+      "emptyTitle": "لا يوجد مقدمو خدمات بعد",
+      "emptyDesc": "قم بدعوة مقدمي الخدمات لبدء استقبال الحجوزات."
+    },
+    "services": {
+      "title": "الخدمات",
+      "emptyTitle": "لا توجد خدمات بعد",
+      "emptyDesc": "يمكن لمقدمي الخدمات إضافة باقاتهم وخدماتهم."
+    },
+    "calendar": {
+      "title": "التقويم",
+      "emptyTitle": "لم يتم تعيين التوفر",
+      "emptyDesc": "يمكن لمقدمي الخدمات تحديد أوقات توفرهم الأسبوعية."
+    },
+    "quotes": {
+      "title": "عروض الأسعار",
+      "emptyTitle": "لا توجد عروض أسعار بعد",
+      "emptyDesc": "ستظهر طلبات عروض الأسعار من العملاء هنا."
+    },
+    "bookings": {
+      "title": "الحجوزات",
+      "emptyTitle": "لا توجد حجوزات بعد",
+      "emptyDesc": "ستظهر الحجوزات المؤكدة هنا."
+    },
+    "settings": {
+      "title": "الإعدادات",
+      "setupWizard": "معالج الإعداد",
+      "setupDesc": "قم بتهيئة سوق الحجوزات الخاص بك في دقائق."
+    },
+    "notifications": {
+      "newQuoteRequest": "طلب عرض سعر جديد من {{customer_name}}",
+      "quoteSent": "تم استلام عرض سعر لـ {{service_name}}",
+      "quoteAccepted": "تم قبول عرض السعر من {{customer_name}}",
+      "paymentConfirmed": "تم تأكيد الدفع للحجز",
+      "bookingCancelled": "تم إلغاء الحجز"
+    },
+    "subscription": {
+      "inactive": "اشتراكك غير نشط. قم بالتجديد لاستئناف الحجوزات.",
+      "gracePeriod": "ينتهي اشتراكك خلال {{days}} يوم. جدد لتجنب الانقطاع."
+    }
   }
 }

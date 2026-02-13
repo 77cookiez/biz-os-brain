@@ -141,6 +141,811 @@ export type Database = {
           },
         ]
       }
+      booking_availability_rules: {
+        Row: {
+          created_at: string
+          id: string
+          rules: Json
+          updated_at: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rules?: Json
+          updated_at?: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rules?: Json
+          updated_at?: string
+          vendor_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_availability_rules_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "booking_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_availability_rules_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_blackout_dates: {
+        Row: {
+          blackout_date: string
+          created_at: string
+          id: string
+          reason: string | null
+          vendor_id: string
+          workspace_id: string
+        }
+        Insert: {
+          blackout_date: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          vendor_id: string
+          workspace_id: string
+        }
+        Update: {
+          blackout_date?: string
+          created_at?: string
+          id?: string
+          reason?: string | null
+          vendor_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_blackout_dates_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "booking_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_blackout_dates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_bookings: {
+        Row: {
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          completed_at: string | null
+          created_at: string
+          currency: string
+          customer_user_id: string
+          deposit_paid: number | null
+          event_date: string | null
+          id: string
+          quote_id: string
+          quote_request_id: string
+          status: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Insert: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_user_id: string
+          deposit_paid?: number | null
+          event_date?: string | null
+          id?: string
+          quote_id: string
+          quote_request_id: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at?: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Update: {
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          currency?: string
+          customer_user_id?: string
+          deposit_paid?: number | null
+          event_date?: string | null
+          id?: string
+          quote_id?: string
+          quote_request_id?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number
+          updated_at?: string
+          vendor_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_bookings_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "booking_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_bookings_quote_request_id_fkey"
+            columns: ["quote_request_id"]
+            isOneToOne: false
+            referencedRelation: "booking_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_bookings_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "booking_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_bookings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string
+          currency: string
+          id: string
+          metadata: Json | null
+          paid_at: string | null
+          payment_reference: string | null
+          payment_type: string
+          provider: string
+          refunded_at: string | null
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_type?: string
+          provider?: string
+          refunded_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_type?: string
+          provider?: string
+          refunded_at?: string | null
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_payments_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_quote_requests: {
+        Row: {
+          chat_thread_id: string | null
+          created_at: string
+          customer_user_id: string
+          event_date: string | null
+          event_time: string | null
+          guest_count: number | null
+          id: string
+          meaning_object_id: string
+          notes: string | null
+          service_id: string
+          source_lang: string | null
+          status: Database["public"]["Enums"]["booking_status"]
+          updated_at: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Insert: {
+          chat_thread_id?: string | null
+          created_at?: string
+          customer_user_id: string
+          event_date?: string | null
+          event_time?: string | null
+          guest_count?: number | null
+          id?: string
+          meaning_object_id: string
+          notes?: string | null
+          service_id: string
+          source_lang?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Update: {
+          chat_thread_id?: string | null
+          created_at?: string
+          customer_user_id?: string
+          event_date?: string | null
+          event_time?: string | null
+          guest_count?: number | null
+          id?: string
+          meaning_object_id?: string
+          notes?: string | null
+          service_id?: string
+          source_lang?: string | null
+          status?: Database["public"]["Enums"]["booking_status"]
+          updated_at?: string
+          vendor_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_quote_requests_chat_thread_id_fkey"
+            columns: ["chat_thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_quote_requests_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_quote_requests_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "booking_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_quote_requests_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "booking_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_quote_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_quotes: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          deposit_amount: number | null
+          expires_at: string | null
+          expiry_hours: number
+          id: string
+          meaning_object_id: string
+          notes: string | null
+          quote_request_id: string
+          source_lang: string | null
+          status: string
+          updated_at: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          deposit_amount?: number | null
+          expires_at?: string | null
+          expiry_hours?: number
+          id?: string
+          meaning_object_id: string
+          notes?: string | null
+          quote_request_id: string
+          source_lang?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          deposit_amount?: number | null
+          expires_at?: string | null
+          expiry_hours?: number
+          id?: string
+          meaning_object_id?: string
+          notes?: string | null
+          quote_request_id?: string
+          source_lang?: string | null
+          status?: string
+          updated_at?: string
+          vendor_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_quotes_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_quotes_quote_request_id_fkey"
+            columns: ["quote_request_id"]
+            isOneToOne: false
+            referencedRelation: "booking_quote_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_quotes_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "booking_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_quotes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_service_addons: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          meaning_object_id: string
+          name: string
+          price: number
+          service_id: string
+          source_lang: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          meaning_object_id: string
+          name: string
+          price?: number
+          service_id: string
+          source_lang?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          meaning_object_id?: string
+          name?: string
+          price?: number
+          service_id?: string
+          source_lang?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_service_addons_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_addons_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "booking_services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_service_addons_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_services: {
+        Row: {
+          created_at: string
+          currency: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean
+          max_guests: number | null
+          meaning_object_id: string
+          min_guests: number | null
+          price_amount: number | null
+          price_type: string
+          sort_order: number | null
+          source_lang: string | null
+          title: string
+          updated_at: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean
+          max_guests?: number | null
+          meaning_object_id: string
+          min_guests?: number | null
+          price_amount?: number | null
+          price_type?: string
+          sort_order?: number | null
+          source_lang?: string | null
+          title: string
+          updated_at?: string
+          vendor_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean
+          max_guests?: number | null
+          meaning_object_id?: string
+          min_guests?: number | null
+          price_amount?: number | null
+          price_type?: string
+          sort_order?: number | null
+          source_lang?: string | null
+          title?: string
+          updated_at?: string
+          vendor_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_services_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "booking_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_settings: {
+        Row: {
+          accent_color: string | null
+          ai_booking_assistant_enabled: boolean
+          cancellation_policy: string
+          commission_mode: string
+          commission_rate: number | null
+          contact_email: string | null
+          created_at: string
+          currency: string
+          deposit_enabled: boolean
+          deposit_type: string | null
+          deposit_value: number | null
+          distribution_mode: string
+          id: string
+          is_live: boolean
+          logo_url: string | null
+          payment_config: Json | null
+          payment_provider: string | null
+          primary_color: string | null
+          refund_policy: string | null
+          tenant_slug: string | null
+          theme_template: string
+          tone: string | null
+          updated_at: string
+          whatsapp_number: string | null
+          workspace_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          ai_booking_assistant_enabled?: boolean
+          cancellation_policy?: string
+          commission_mode?: string
+          commission_rate?: number | null
+          contact_email?: string | null
+          created_at?: string
+          currency?: string
+          deposit_enabled?: boolean
+          deposit_type?: string | null
+          deposit_value?: number | null
+          distribution_mode?: string
+          id?: string
+          is_live?: boolean
+          logo_url?: string | null
+          payment_config?: Json | null
+          payment_provider?: string | null
+          primary_color?: string | null
+          refund_policy?: string | null
+          tenant_slug?: string | null
+          theme_template?: string
+          tone?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+          workspace_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          ai_booking_assistant_enabled?: boolean
+          cancellation_policy?: string
+          commission_mode?: string
+          commission_rate?: number | null
+          contact_email?: string | null
+          created_at?: string
+          currency?: string
+          deposit_enabled?: boolean
+          deposit_type?: string | null
+          deposit_value?: number | null
+          distribution_mode?: string
+          id?: string
+          is_live?: boolean
+          logo_url?: string | null
+          payment_config?: Json | null
+          payment_provider?: string | null
+          primary_color?: string | null
+          refund_policy?: string | null
+          tenant_slug?: string | null
+          theme_template?: string
+          tone?: string | null
+          updated_at?: string
+          whatsapp_number?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          grace_period_days: number
+          id: string
+          plan: string
+          started_at: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          grace_period_days?: number
+          id?: string
+          plan?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          grace_period_days?: number
+          id?: string
+          plan?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_vendor_profiles: {
+        Row: {
+          bio: string | null
+          cover_url: string | null
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          meaning_object_id: string
+          source_lang: string | null
+          updated_at: string
+          vendor_id: string
+          whatsapp: string | null
+          workspace_id: string
+        }
+        Insert: {
+          bio?: string | null
+          cover_url?: string | null
+          created_at?: string
+          display_name: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          meaning_object_id: string
+          source_lang?: string | null
+          updated_at?: string
+          vendor_id: string
+          whatsapp?: string | null
+          workspace_id: string
+        }
+        Update: {
+          bio?: string | null
+          cover_url?: string | null
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          meaning_object_id?: string
+          source_lang?: string | null
+          updated_at?: string
+          vendor_id?: string
+          whatsapp?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_vendor_profiles_meaning_object_id_fkey"
+            columns: ["meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_vendor_profiles_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: true
+            referencedRelation: "booking_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_vendor_profiles_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_vendors: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          owner_user_id: string
+          status: Database["public"]["Enums"]["booking_vendor_status"]
+          suspended_at: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          owner_user_id: string
+          status?: Database["public"]["Enums"]["booking_vendor_status"]
+          suspended_at?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          owner_user_id?: string
+          status?: Database["public"]["Enums"]["booking_vendor_status"]
+          suspended_at?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_vendors_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brain_messages: {
         Row: {
           content: string
@@ -1748,6 +2553,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_booking_subscription_active: {
+        Args: { _workspace_id: string }
+        Returns: boolean
+      }
+      is_booking_vendor_owner: {
+        Args: { _user_id: string; _vendor_id: string }
+        Returns: boolean
+      }
       is_chat_thread_member: {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
@@ -1765,6 +2578,14 @@ export type Database = {
       app_pricing: "free" | "paid" | "subscription"
       app_role: "owner" | "admin" | "member"
       app_status: "active" | "available" | "coming_soon"
+      booking_status:
+        | "requested"
+        | "quoted"
+        | "accepted"
+        | "paid_confirmed"
+        | "completed"
+        | "cancelled"
+      booking_vendor_status: "pending" | "approved" | "suspended"
       business_type:
         | "trade"
         | "services"
@@ -1919,6 +2740,15 @@ export const Constants = {
       app_pricing: ["free", "paid", "subscription"],
       app_role: ["owner", "admin", "member"],
       app_status: ["active", "available", "coming_soon"],
+      booking_status: [
+        "requested",
+        "quoted",
+        "accepted",
+        "paid_confirmed",
+        "completed",
+        "cancelled",
+      ],
+      booking_vendor_status: ["pending", "approved", "suspended"],
       business_type: [
         "trade",
         "services",
