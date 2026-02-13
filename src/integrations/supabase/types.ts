@@ -287,7 +287,7 @@ export type Database = {
           {
             foreignKeyName: "booking_bookings_quote_id_fkey"
             columns: ["quote_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "booking_quotes"
             referencedColumns: ["id"]
           },

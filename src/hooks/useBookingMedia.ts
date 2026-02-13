@@ -3,11 +3,16 @@
  *
  * Handles upload of vendor logos, vendor covers, and service images
  * to the 'booking-assets' storage bucket with validation.
+ *
+ * Storage paths are STANDARDIZED and must match RLS policies exactly:
+ *   Vendor logo:   {workspaceId}/vendor/{vendorId}/logo/{file}
+ *   Vendor cover:  {workspaceId}/vendor/{vendorId}/cover/{file}
+ *   Service cover: {workspaceId}/service/{serviceId}/cover/{file}
+ *   Tenant logo:   {workspaceId}/tenant/logo/{file}
  */
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
 
 const BUCKET = 'booking-assets';
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -20,8 +25,34 @@ interface UploadResult {
   path: string;
 }
 
+/**
+ * Build the canonical storage path for a given category.
+ * These paths MUST match the RLS policies on storage.objects.
+ */
+function buildStoragePath(
+  workspaceId: string,
+  category: MediaCategory,
+  entityId: string | undefined,
+  fileName: string,
+): string {
+  switch (category) {
+    case 'vendor-logo':
+      if (!entityId) throw new Error('vendor-logo requires entityId (vendorId)');
+      return `${workspaceId}/vendor/${entityId}/logo/${fileName}`;
+    case 'vendor-cover':
+      if (!entityId) throw new Error('vendor-cover requires entityId (vendorId)');
+      return `${workspaceId}/vendor/${entityId}/cover/${fileName}`;
+    case 'service-cover':
+      if (!entityId) throw new Error('service-cover requires entityId (serviceId)');
+      return `${workspaceId}/service/${entityId}/cover/${fileName}`;
+    case 'tenant-logo':
+      return `${workspaceId}/tenant/logo/${fileName}`;
+    default:
+      throw new Error(`Unknown media category: ${category}`);
+  }
+}
+
 export function useBookingMedia() {
-  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -53,7 +84,7 @@ export function useBookingMedia() {
     try {
       const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const storagePath = `${workspaceId}/${category}${entityId ? `/${entityId}` : ''}/${fileName}`;
+      const storagePath = buildStoragePath(workspaceId, category, entityId, fileName);
 
       setProgress(30);
 
@@ -82,7 +113,6 @@ export function useBookingMedia() {
       return null;
     } finally {
       setUploading(false);
-      // Reset progress after a brief delay
       setTimeout(() => setProgress(0), 500);
     }
   }, [validate]);

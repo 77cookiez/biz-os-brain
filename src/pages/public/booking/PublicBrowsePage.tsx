@@ -168,16 +168,7 @@ export default function PublicBrowsePage() {
 
   return (
     <div className="space-y-10">
-      {/* DEV-only debug banner */}
-      {import.meta.env.DEV && (
-        <div className="bg-muted/50 border border-border rounded-lg p-2 text-xs font-mono text-muted-foreground flex gap-4">
-          <span>basePath: {resolvedBase}</span>
-          <span>tenantSlug: {tenantSlug}</span>
-          <span>workspaceId: {workspaceId?.slice(0, 8)}…</span>
-          <span>vendors: {vendors.length}</span>
-          <span>services: {services.length}</span>
-        </div>
-      )}
+      {/* DEV-only: tenant resolution debug (hidden in prod) */}
       {vendorsFirst ? (
         <>
           {VendorsSection}

@@ -1,7 +1,7 @@
 /**
  * V2 Vendor Portal Layout
  * Uses shared tenant resolver as single source of truth.
- * Surfaces errors clearly. Isolated from v1 routes.
+ * Vendor name rendered via ULLText for ULL compliance.
  */
 import { useState } from 'react';
 import { Outlet, NavLink, useParams, Navigate, Link } from 'react-router-dom';
@@ -10,9 +10,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { tenantQueryOptions } from '@/lib/booking/tenantResolver';
+import { ULLText } from '@/components/ull/ULLText';
 import {
   LayoutDashboard, MessageSquare, Calendar, Package, Loader2,
-  ExternalLink, Sparkles, Store, AlertTriangle, CheckCircle2, User,
+  ExternalLink, Store, AlertTriangle, CheckCircle2, User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DiagnosticsPanel } from '@/components/booking/DiagnosticsPanel';
@@ -30,17 +31,17 @@ export default function VendorPortalLayoutV2() {
   const { t } = useTranslation();
   const { user } = useAuth();
 
-  // Step 1: Resolve tenant via shared resolver
+  // Step 1: Resolve tenant
   const { data: tenant, isLoading: tenantLoading, error: tenantError } = useQuery(tenantQueryOptions(tenantSlug));
 
-  // Step 2: Resolve vendor record
+  // Step 2: Resolve vendor record with meaning IDs
   const { data: vendorData, isLoading: vendorLoading } = useQuery({
     queryKey: ['vendor-portal-v2', tenant?.workspace_id, user?.id],
     queryFn: async () => {
       if (!tenant || !user) return null;
       const { data: vendor } = await supabase
         .from('booking_vendors')
-        .select('id, status, booking_vendor_profiles(display_name)')
+        .select('id, status, booking_vendor_profiles(display_name, display_name_meaning_object_id)')
         .eq('workspace_id', tenant.workspace_id)
         .eq('owner_user_id', user.id)
         .maybeSingle();
@@ -54,6 +55,7 @@ export default function VendorPortalLayoutV2() {
       return {
         vendor: vendor ? { id: vendor.id, status: vendor.status } : null,
         vendorName: vendorProfile?.display_name || null,
+        vendorNameMeaningId: vendorProfile?.display_name_meaning_object_id || null,
       };
     },
     enabled: !!tenant?.workspace_id && !!user,
@@ -74,7 +76,6 @@ export default function VendorPortalLayoutV2() {
     );
   }
 
-  // Tenant resolution failed
   if (!tenant || tenantError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
@@ -98,7 +99,7 @@ export default function VendorPortalLayoutV2() {
 
   const tenantPrimary = tenant.primary_color || undefined;
 
-  // No vendor record → show registration form
+  // No vendor record → show registration
   if (!vendorData?.vendor) {
     return (
       <VendorRegistrationForm
@@ -142,7 +143,7 @@ export default function VendorPortalLayoutV2() {
     );
   }
 
-  // Approved vendor → show portal
+  // Approved vendor → portal
   const basePath = `/v2/${tenantSlug}`;
   const tabs = [
     { labelKey: 'booking.vendor.dashboard', icon: LayoutDashboard, path: basePath },
@@ -173,7 +174,12 @@ export default function VendorPortalLayoutV2() {
             <div className="min-w-0">
               <span className="text-lg font-semibold text-foreground block truncate">{t('booking.vendor.portalTitle')}</span>
               {vendorData.vendorName && (
-                <span className="text-xs text-muted-foreground truncate block">{vendorData.vendorName}</span>
+                <span className="text-xs text-muted-foreground truncate block">
+                  <ULLText
+                    meaningId={vendorData.vendorNameMeaningId}
+                    fallback={vendorData.vendorName}
+                  />
+                </span>
               )}
             </div>
           </div>
@@ -214,12 +220,12 @@ export default function VendorPortalLayoutV2() {
         <Outlet context={{ workspaceId: tenant.workspace_id, vendorId: vendorData.vendor.id, tenantSlug }} />
       </main>
 
-      <DiagnosticsPanel tenantSlug={tenantSlug || ''} workspaceId={tenant.workspace_id} />
+      {IS_DEV && <DiagnosticsPanel tenantSlug={tenantSlug || ''} workspaceId={tenant.workspace_id} />}
     </div>
   );
 }
 
-// ── Registration Form (inline, simple) ──
+// ── Registration Form ──
 function VendorRegistrationForm({
   tenantSlug,
   tenantPrimary,

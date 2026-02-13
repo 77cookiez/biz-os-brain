@@ -1,6 +1,6 @@
 /**
- * V2 Vendor Profile Page
- * Edit display_name, bio, email, whatsapp + vendor logo upload.
+ * V2 Vendor Profile Page — ULL Compliant
+ * Creates/updates meaning objects for display_name and bio.
  * All writes use auditAndEmit.
  */
 import { useState, useEffect } from 'react';
@@ -9,6 +9,9 @@ import { useOutletContext } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { createMeaningObject, updateMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 import { auditAndEmit } from '@/lib/booking/auditHelper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +39,7 @@ export default function VendorProfilePage() {
     tenantSlug: string;
   }>();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
   const queryClient = useQueryClient();
 
   const [form, setForm] = useState<ProfileForm>({
@@ -61,7 +65,6 @@ export default function VendorProfilePage() {
     enabled: !!vendorId,
   });
 
-  // Populate form when profile loads
   useEffect(() => {
     if (profile) {
       setForm({
@@ -74,18 +77,83 @@ export default function VendorProfilePage() {
     }
   }, [profile]);
 
-  // Save mutation
+  // Save mutation — ULL compliant
   const saveProfile = useMutation({
     mutationFn: async () => {
       if (!user || !profile) throw new Error('Not authenticated');
 
+      const trimmedName = form.display_name.trim();
+      const trimmedBio = form.bio.trim();
+
+      // 1. Handle display_name meaning object
+      let displayNameMeaningId = profile.display_name_meaning_object_id;
+      if (displayNameMeaningId) {
+        // Update existing meaning object
+        await updateMeaningObject({
+          meaningObjectId: displayNameMeaningId,
+          meaningJson: buildMeaningFromText({
+            type: 'MESSAGE',
+            title: trimmedName,
+            createdFrom: 'user',
+          }),
+        });
+      } else {
+        // Create new meaning object
+        displayNameMeaningId = await createMeaningObject({
+          workspaceId,
+          createdBy: user.id,
+          type: 'MESSAGE',
+          sourceLang: currentLanguage.code,
+          meaningJson: buildMeaningFromText({
+            type: 'MESSAGE',
+            title: trimmedName,
+            createdFrom: 'user',
+          }),
+        });
+        if (!displayNameMeaningId) throw new Error('Failed to create display name meaning');
+      }
+
+      // 2. Handle bio meaning object (optional)
+      let bioMeaningId = profile.bio_meaning_object_id;
+      if (trimmedBio) {
+        if (bioMeaningId) {
+          await updateMeaningObject({
+            meaningObjectId: bioMeaningId,
+            meaningJson: buildMeaningFromText({
+              type: 'MESSAGE',
+              title: trimmedBio,
+              createdFrom: 'user',
+            }),
+          });
+        } else {
+          bioMeaningId = await createMeaningObject({
+            workspaceId,
+            createdBy: user.id,
+            type: 'MESSAGE',
+            sourceLang: currentLanguage.code,
+            meaningJson: buildMeaningFromText({
+              type: 'MESSAGE',
+              title: trimmedBio,
+              createdFrom: 'user',
+            }),
+          });
+        }
+      }
+
+      // 3. Update profile with meaning IDs + fallback strings
       const updates: Record<string, unknown> = {
-        display_name: form.display_name.trim(),
-        bio: form.bio.trim() || null,
+        display_name: trimmedName,
+        display_name_meaning_object_id: displayNameMeaningId,
+        bio: trimmedBio || null,
+        bio_meaning_object_id: bioMeaningId || null,
         email: form.email.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         logo_url: form.logo_url || null,
+        source_lang: currentLanguage.code,
       };
+
+      // Validate meaning guard
+      guardMeaningInsert('booking_vendor_profiles', updates);
 
       const { error } = await supabase
         .from('booking_vendor_profiles')
@@ -93,6 +161,7 @@ export default function VendorProfilePage() {
         .eq('vendor_id', vendorId);
       if (error) throw error;
 
+      // 4. Audit + OIL
       await auditAndEmit({
         workspace_id: workspaceId,
         actor_user_id: user.id,
@@ -100,6 +169,7 @@ export default function VendorProfilePage() {
         event_type: 'booking.vendor_profile_updated',
         entity_type: 'booking_vendor_profile',
         entity_id: vendorId,
+        meaning_object_id: displayNameMeaningId,
         metadata: { fields_changed: Object.keys(updates) },
       });
     },
@@ -119,25 +189,6 @@ export default function VendorProfilePage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-foreground">{t('booking.vendor.profile')}</h1>
 
-      {/* DEV-only debug */}
-      {import.meta.env.DEV && (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              console.log('[DEV] VendorProfilePage context:', { workspaceId, vendorId, tenantSlug });
-              console.log('[DEV] Profile:', profile);
-            }}
-          >
-            🐛 Log Profile Context
-          </Button>
-          <span className="text-xs text-muted-foreground font-mono">
-            v:{vendorId?.slice(0, 8)}
-          </span>
-        </div>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -147,7 +198,7 @@ export default function VendorProfilePage() {
           <CardDescription>{t('booking.vendor.profileDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          {/* Logo Upload */}
+          {/* Logo Upload — standardized path */}
           <div>
             <Label className="mb-2 block">{t('booking.vendor.logoLabel')}</Label>
             <div className="max-w-[160px]">
