@@ -905,7 +905,12 @@
       "requireAppleDev": "Apple Developer Account ($99/year)",
       "requireGoogleDev": "Google Play Developer Account ($25)",
       "requireMac": "Mac with Xcode (for iOS)",
-      "requireNode": "Node.js installed locally"
+      "requireNode": "Node.js installed locally",
+      "appleAppStore": "Apple App Store",
+      "googlePlayStore": "Google Play Store",
+      "downloadIosPack": "Download iOS Pack",
+      "downloadAndroidPack": "Download Android Pack",
+      "requireAndroidStudio": "Android Studio (Windows, Mac, or Linux)"
     },
     "wizard": {
       "title": "Setup Your Booking Marketplace",

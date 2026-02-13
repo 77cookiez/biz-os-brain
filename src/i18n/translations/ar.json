@@ -889,7 +889,12 @@
       "requireAppleDev": "حساب مطور Apple ($99/سنة)",
       "requireGoogleDev": "حساب مطور Google Play ($25)",
       "requireMac": "جهاز Mac مع Xcode (لنظام iOS)",
-      "requireNode": "Node.js مثبت محلياً"
+      "requireNode": "Node.js مثبت محلياً",
+      "appleAppStore": "متجر Apple App Store",
+      "googlePlayStore": "متجر Google Play",
+      "downloadIosPack": "تحميل حزمة iOS",
+      "downloadAndroidPack": "تحميل حزمة Android",
+      "requireAndroidStudio": "Android Studio (ويندوز أو ماك أو لينكس)"
     },
     "wizard": {
       "title": "إعداد سوق الحجوزات",

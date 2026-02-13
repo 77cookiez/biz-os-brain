@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Settings, Rocket, Globe, Copy, ExternalLink, Check, Smartphone, Download, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Settings, Rocket, Globe, Copy, ExternalLink, Check, Smartphone, Download, Loader2, CheckCircle2, Apple } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import BookingSetupWizard from './BookingSetupWizard';
@@ -29,7 +29,8 @@ export default function BookingSettingsPage() {
   const { currentWorkspace } = useWorkspace();
   const [showWizard, setShowWizard] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingIos, setDownloadingIos] = useState(false);
+  const [downloadingAndroid, setDownloadingAndroid] = useState(false);
 
   const publicUrl = settings?.tenant_slug
     ? `${getPublicBaseUrl()}/b/${settings.tenant_slug}`
@@ -47,9 +48,10 @@ export default function BookingSettingsPage() {
     upsertSettings.mutate({ logo_url: url } as any);
   };
 
-  const handleDownloadAppPack = async () => {
+  const handleDownloadAppPack = async (platform: 'ios' | 'android') => {
     if (!settings?.tenant_slug) return;
-    setDownloading(true);
+    const setter = platform === 'ios' ? setDownloadingIos : setDownloadingAndroid;
+    setter(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -62,7 +64,7 @@ export default function BookingSettingsPage() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ workspace_id: currentWorkspace?.id }),
+          body: JSON.stringify({ workspace_id: currentWorkspace?.id, platform }),
         }
       );
       if (!res.ok) throw new Error('Failed to generate');
@@ -70,14 +72,14 @@ export default function BookingSettingsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `bookivo-app-pack-${settings.tenant_slug}.zip`;
+      a.download = `bookivo-${platform}-pack-${settings.tenant_slug}.zip`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success(t('booking.settings.packDownloaded'));
     } catch {
       toast.error(t('booking.settings.packDownloadFailed'));
     } finally {
-      setDownloading(false);
+      setter(false);
     }
   };
 
@@ -199,38 +201,66 @@ export default function BookingSettingsPage() {
                   <Button variant="outline" size="sm" onClick={() => setShowWizard(true)}>
                     {t('booking.settings.editApp', 'Edit App')}
                   </Button>
-                  <Button size="sm" onClick={handleDownloadAppPack} disabled={downloading}>
-                    {downloading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 me-1 animate-spin" />
-                        {t('booking.settings.downloadingPack', 'Generating...')}
-                      </>
-                    ) : (
-                      <>
-                        <Download className="h-4 w-4 me-1" />
-                        {t('booking.settings.downloadAppPack', 'Download App Pack')}
-                      </>
-                    )}
-                  </Button>
                 </div>
-                {/* Requirements checklist */}
-                <div className="mt-3 space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground">{t('booking.settings.requirements', 'Requirements')}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                    {t('booking.settings.requireAppleDev')}
+
+                {/* Platform-specific download buttons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                  {/* iOS */}
+                  <div className="rounded-lg border border-border p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Apple className="h-5 w-5 text-foreground" />
+                      <span className="font-medium text-foreground text-sm">{t('booking.settings.appleAppStore', 'Apple App Store')}</span>
+                    </div>
+                    <Button size="sm" className="w-full" onClick={() => handleDownloadAppPack('ios')} disabled={downloadingIos}>
+                      {downloadingIos ? (
+                        <><Loader2 className="h-4 w-4 me-1 animate-spin" />{t('booking.settings.downloadingPack')}</>
+                      ) : (
+                        <><Download className="h-4 w-4 me-1" />{t('booking.settings.downloadIosPack', 'Download iOS Pack')}</>
+                      )}
+                    </Button>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        {t('booking.settings.requireAppleDev')}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        {t('booking.settings.requireMac')}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        {t('booking.settings.requireNode')}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                    {t('booking.settings.requireGoogleDev')}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                    {t('booking.settings.requireMac')}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
-                    {t('booking.settings.requireNode')}
+
+                  {/* Android */}
+                  <div className="rounded-lg border border-border p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="h-5 w-5 text-foreground" />
+                      <span className="font-medium text-foreground text-sm">{t('booking.settings.googlePlayStore', 'Google Play Store')}</span>
+                    </div>
+                    <Button size="sm" className="w-full" onClick={() => handleDownloadAppPack('android')} disabled={downloadingAndroid}>
+                      {downloadingAndroid ? (
+                        <><Loader2 className="h-4 w-4 me-1 animate-spin" />{t('booking.settings.downloadingPack')}</>
+                      ) : (
+                        <><Download className="h-4 w-4 me-1" />{t('booking.settings.downloadAndroidPack', 'Download Android Pack')}</>
+                      )}
+                    </Button>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        {t('booking.settings.requireGoogleDev')}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        {t('booking.settings.requireAndroidStudio', 'Android Studio (Windows, Mac, or Linux)')}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                        {t('booking.settings.requireNode')}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </>
