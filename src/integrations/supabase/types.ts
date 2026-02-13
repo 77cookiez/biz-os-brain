@@ -2558,6 +2558,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      booking_notify: {
+        Args: {
+          _data_json: Json
+          _title: string
+          _type: string
+          _user_id: string
+          _workspace_id: string
+        }
+        Returns: undefined
+      }
       cleanup_old_org_events: { Args: never; Returns: undefined }
       cleanup_stale_memory: { Args: never; Returns: undefined }
       get_thread_workspace: { Args: { _thread_id: string }; Returns: string }
