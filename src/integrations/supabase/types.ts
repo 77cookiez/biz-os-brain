@@ -710,11 +710,16 @@ export type Database = {
         Row: {
           accent_color: string | null
           ai_booking_assistant_enabled: boolean
+          app_build_number: number | null
           app_bundle_id: string | null
           app_description: string | null
           app_icon_url: string | null
+          app_keywords: string | null
           app_name: string | null
+          app_privacy_url: string | null
           app_splash_url: string | null
+          app_support_email: string | null
+          app_version: string | null
           cancellation_policy: string
           commission_mode: string
           commission_rate: number | null
@@ -731,6 +736,7 @@ export type Database = {
           payment_config: Json | null
           payment_provider: string | null
           primary_color: string | null
+          publishing_progress: Json | null
           refund_policy: string | null
           tenant_slug: string | null
           theme_template: string
@@ -742,11 +748,16 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           ai_booking_assistant_enabled?: boolean
+          app_build_number?: number | null
           app_bundle_id?: string | null
           app_description?: string | null
           app_icon_url?: string | null
+          app_keywords?: string | null
           app_name?: string | null
+          app_privacy_url?: string | null
           app_splash_url?: string | null
+          app_support_email?: string | null
+          app_version?: string | null
           cancellation_policy?: string
           commission_mode?: string
           commission_rate?: number | null
@@ -763,6 +774,7 @@ export type Database = {
           payment_config?: Json | null
           payment_provider?: string | null
           primary_color?: string | null
+          publishing_progress?: Json | null
           refund_policy?: string | null
           tenant_slug?: string | null
           theme_template?: string
@@ -774,11 +786,16 @@ export type Database = {
         Update: {
           accent_color?: string | null
           ai_booking_assistant_enabled?: boolean
+          app_build_number?: number | null
           app_bundle_id?: string | null
           app_description?: string | null
           app_icon_url?: string | null
+          app_keywords?: string | null
           app_name?: string | null
+          app_privacy_url?: string | null
           app_splash_url?: string | null
+          app_support_email?: string | null
+          app_version?: string | null
           cancellation_policy?: string
           commission_mode?: string
           commission_rate?: number | null
@@ -795,6 +812,7 @@ export type Database = {
           payment_config?: Json | null
           payment_provider?: string | null
           primary_color?: string | null
+          publishing_progress?: Json | null
           refund_policy?: string | null
           tenant_slug?: string | null
           theme_template?: string

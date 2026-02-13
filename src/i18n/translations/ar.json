@@ -894,7 +894,34 @@
       "googlePlayStore": "متجر Google Play",
       "downloadIosPack": "تحميل حزمة iOS",
       "downloadAndroidPack": "تحميل حزمة Android",
-      "requireAndroidStudio": "Android Studio (ويندوز أو ماك أو لينكس)"
+      "requireAndroidStudio": "Android Studio (ويندوز أو ماك أو لينكس)",
+      "live": "مباشر",
+      "draft": "مسودة",
+      "mode1Title": "المتجر المستضاف + PWA",
+      "recommended": "موصى به",
+      "pwaDesc": "موصى به لمعظم المستخدمين — متجرك متاح فورياً كتطبيق ويب قابل للتثبيت. يمكن للعملاء إضافته إلى شاشتهم الرئيسية مباشرة من المتصفح. لا يتطلب رفعاً على متاجر التطبيقات.",
+      "pwaInstallHint": "يمكن للعملاء تثبيت متجرك كتطبيق مباشرة من المتصفح. لا يتطلب رفعاً على متاجر التطبيقات.",
+      "mode2Title": "نطاق مخصص",
+      "comingSoon": "قريباً",
+      "customDomainDesc": "اربط نطاقك الخاص (مثل booking.yourbusiness.com) لتجربة مخصصة بالكامل.",
+      "mode3Title": "نشر التطبيق الأصلي",
+      "advanced": "متقدم",
+      "mode3Desc": "انشر تطبيقك المخصص على متجر Apple App Store و Google Play Store.",
+      "securityDisclaimer": "بوكيفو لا يحفظ مفاتيح التوقيع أو كلمات المرور أو بيانات اعتماد المتاجر. يتم النشر من قبلك مباشرة في App Store Connect أو Google Play Console.",
+      "mode4Title": "نشر بالنيابة عنك",
+      "premium": "مميز",
+      "mode4Desc": "دع فريقنا يتولى بناء وتوقيع وتقديم تطبيقك إلى المتاجر. ركز على عملك بينما نتولى التفاصيل التقنية.",
+      "contactUs": "تواصل معنا",
+      "whatYouNeed": "ما تحتاجه",
+      "publishingProgress": "تقدم النشر",
+      "step": {
+        "configure": "إعداد",
+        "generate": "تنزيل الحزمة",
+        "build": "بناء",
+        "upload": "رفع",
+        "submit": "إرسال",
+        "approved": "معتمد"
+      }
     },
     "wizard": {
       "title": "إعداد سوق الحجوزات",
@@ -919,7 +946,15 @@
         "bundleId": "معرف الحزمة",
         "bundleIdHint": "يتم إنشاؤه تلقائياً من رابط URL الخاص بك",
         "preview": "معاينة الشاشة الرئيسية",
-        "appleTip": "تتطلب Apple عدم وجود شفافية في الأيقونات. يتم إضافة الزوايا الدائرية تلقائياً بواسطة النظام."
+        "appleTip": "تتطلب Apple عدم وجود شفافية في الأيقونات. يتم إضافة الزوايا الدائرية تلقائياً بواسطة النظام.",
+        "keywordsLabel": "الكلمات المفتاحية",
+        "keywordsPlaceholder": "أعراس، مناسبات، حجوزات (مفصولة بفواصل)",
+        "keywordsHint": "كلمات مفتاحية مفصولة بفواصل لتحسين ظهور التطبيق في المتجر",
+        "supportEmailLabel": "بريد الدعم الإلكتروني",
+        "privacyUrlLabel": "رابط سياسة الخصوصية",
+        "privacyUrlHint": "مطلوب من Apple و Google لتقديم التطبيق في المتجر",
+        "versionLabel": "الإصدار",
+        "buildLabel": "رقم البناء"
       },
       "theme": { "title": "اختر القالب", "subtitle": "اختر القالب الأنسب لعملك", "marketplace": "سوق إلكتروني", "marketplaceDesc": "سوق متعدد البائعين مع تصفح وبحث", "rentals": "تأجير", "rentalsDesc": "نظام حجز تأجير المعدات أو الأماكن", "eventServices": "خدمات المناسبات", "eventServicesDesc": "خدمات الأعراس والمناسبات", "generic": "عام", "genericDesc": "قالب مرن ونظيف لأي نشاط تجاري" },
       "brand": {
@@ -943,7 +978,13 @@
           "elegantGold": "ذهبي أنيق",
           "freshGreen": "أخضر منعش",
           "luxuryDark": "داكن فاخر",
-          "royalPurple": "أرجواني ملكي"
+          "royalPurple": "أرجواني ملكي",
+          "oceanTeal": "أزرق مائي",
+          "sunsetOrange": "برتقالي غروب",
+          "rosePink": "وردي",
+          "slatePro": "رمادي احترافي",
+          "emeraldFinance": "زمردي مالي",
+          "midnightPremium": "منتصف الليل الفاخر"
         }
       },
       "money": { "title": "إعداد الدفع", "subtitle": "حدد العملة والعمولات والعربون", "currency": "العملة", "commissionMode": "نموذج الإيرادات", "subscription": "اشتراك (شهري ثابت)", "commission": "عمولة (% لكل حجز)", "commissionRate": "نسبة العمولة (%)", "depositEnabled": "طلب عربون", "depositType": "نوع العربون", "percentage": "نسبة مئوية", "fixed": "مبلغ ثابت", "depositValue": "قيمة العربون", "paymentProvider": "مزود الدفع", "connectLater": "الاتصال لاحقاً", "manual": "يدوي / رابط دفع" },
