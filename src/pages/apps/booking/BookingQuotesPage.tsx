@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EmptyState } from '@/components/EmptyState';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
@@ -54,7 +52,8 @@ export default function BookingQuotesPage() {
                 <CardHeader className="pb-2">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <CardTitle className="text-base">
-                      <ULLText meaningId={qr.meaning_object_id} fallback={qr.service_title || '—'} />
+                      {/* Service title via service meaning, NOT quote request meaning */}
+                      <ULLText meaningId={qr.service_title_meaning_id} fallback={qr.service_title_fallback || '—'} />
                     </CardTitle>
                     <BookingStatusBadge status={qr.status} />
                   </div>
@@ -63,7 +62,12 @@ export default function BookingQuotesPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                     <div>
                       <span className="text-muted-foreground">{t('booking.services.vendor')}</span>
-                      <p className="text-foreground">{qr.vendor_name}</p>
+                      <p className="text-foreground">
+                        <ULLText
+                          meaningId={qr.vendor_display_name_meaning_id}
+                          fallback={qr.vendor_display_name_fallback || '—'}
+                        />
+                      </p>
                     </div>
                     {qr.event_date && (
                       <div>
@@ -84,6 +88,7 @@ export default function BookingQuotesPage() {
                       </div>
                     )}
                   </div>
+                  {/* Request notes via quote request meaning (correct usage) */}
                   {qr.notes && (
                     <p className="text-sm text-muted-foreground">
                       <ULLText meaningId={qr.meaning_object_id} fallback={qr.notes} />

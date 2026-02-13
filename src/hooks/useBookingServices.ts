@@ -24,11 +24,14 @@ export interface BookingService {
   duration_minutes: number | null;
   is_active: boolean;
   sort_order: number | null;
-  meaning_object_id: string;
+  title_meaning_object_id: string;
+  description_meaning_object_id: string | null;
   source_lang: string | null;
   created_at: string;
   updated_at: string;
-  vendor_name?: string;
+  // joined vendor profile meaning
+  vendor_display_name_fallback?: string;
+  vendor_display_name_meaning_id?: string | null;
 }
 
 export interface BookingServiceAddon {
@@ -56,7 +59,7 @@ export function useBookingServices(vendorId?: string) {
       if (!workspaceId) return [];
       let q = supabase
         .from('booking_services')
-        .select('*, vendor:booking_vendors(id, booking_vendor_profiles(display_name))')
+        .select('*, vendor:booking_vendors(id, booking_vendor_profiles(display_name, display_name_meaning_object_id))')
         .eq('workspace_id', workspaceId)
         .order('sort_order', { ascending: true });
       if (vendorId) q = q.eq('vendor_id', vendorId);
@@ -64,7 +67,8 @@ export function useBookingServices(vendorId?: string) {
       if (error) throw error;
       return (data || []).map((s: any) => ({
         ...s,
-        vendor_name: s.vendor?.booking_vendor_profiles?.[0]?.display_name || '—',
+        vendor_display_name_fallback: s.vendor?.booking_vendor_profiles?.[0]?.display_name || '—',
+        vendor_display_name_meaning_id: s.vendor?.booking_vendor_profiles?.[0]?.display_name_meaning_object_id || null,
       })) as BookingService[];
     },
     enabled: !!workspaceId,
@@ -85,19 +89,35 @@ export function useBookingServices(vendorId?: string) {
       if (!workspaceId || !user) throw new Error('Not authenticated');
       if (!canWrite) throw new Error('Subscription inactive');
 
-      const meaningId = await createMeaningObject({
+      // Create meaning object for title
+      const titleMeaningId = await createMeaningObject({
         workspaceId,
         createdBy: user.id,
-        type: 'TASK', // reuse type for services
+        type: 'TASK',
         sourceLang: currentLanguage.code,
         meaningJson: buildMeaningFromText({
           type: 'TASK',
           title: input.title,
-          description: input.description,
           createdFrom: 'user',
         }),
       });
-      if (!meaningId) throw new Error('Failed to create meaning object');
+      if (!titleMeaningId) throw new Error('Failed to create title meaning object');
+
+      // Create meaning object for description if provided
+      let descMeaningId: string | null = null;
+      if (input.description) {
+        descMeaningId = await createMeaningObject({
+          workspaceId,
+          createdBy: user.id,
+          type: 'TASK',
+          sourceLang: currentLanguage.code,
+          meaningJson: buildMeaningFromText({
+            type: 'TASK',
+            title: input.description,
+            createdFrom: 'user',
+          }),
+        });
+      }
 
       const payload = {
         workspace_id: workspaceId,
@@ -110,13 +130,14 @@ export function useBookingServices(vendorId?: string) {
         min_guests: input.min_guests || null,
         max_guests: input.max_guests || null,
         duration_minutes: input.duration_minutes || null,
-        meaning_object_id: meaningId,
+        title_meaning_object_id: titleMeaningId,
+        description_meaning_object_id: descMeaningId,
         source_lang: currentLanguage.code,
       };
       guardMeaningInsert('booking_services', payload);
       const { error } = await supabase.from('booking_services').insert(payload as any);
       if (error) throw error;
-      return meaningId;
+      return titleMeaningId;
     },
     onSuccess: (meaningId) => {
       queryClient.invalidateQueries({ queryKey: ['booking-services'] });

@@ -27,7 +27,7 @@ const MEANING_PROTECTED_CONFIG: Record<string, string[]> = {
 
   // Booking tables — per-field mapping
   booking_vendor_profiles: ['display_name_meaning_object_id', 'bio_meaning_object_id?'],
-  booking_services: ['meaning_object_id'],
+  booking_services: ['title_meaning_object_id', 'description_meaning_object_id?'],
   booking_service_addons: ['meaning_object_id'],
   booking_quote_requests: ['meaning_object_id'],
   booking_quotes: ['meaning_object_id'],

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmptyState } from '@/components/EmptyState';
+import { ULLText } from '@/components/ull/ULLText';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { useBookingAvailability, type WeeklyRules } from '@/hooks/useBookingAvailability';
 import { useBookingVendors } from '@/hooks/useBookingVendors';
@@ -73,7 +74,12 @@ export default function BookingCalendarPage() {
             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent>
               {approvedVendors.map(v => (
-                <SelectItem key={v.id} value={v.id}>{v.profile?.display_name || v.id}</SelectItem>
+                <SelectItem key={v.id} value={v.id}>
+                  <ULLText
+                    meaningId={v.profile?.display_name_meaning_object_id}
+                    fallback={v.profile?.display_name || v.id}
+                  />
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
