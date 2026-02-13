@@ -73,7 +73,7 @@ export default function PublicRequestQuotePage() {
   });
 
   if (!user) {
-    return <Navigate to={`/auth?redirect=/b/${tenantSlug}/request`} replace />;
+    return <Navigate to={`/b/${tenantSlug}/auth?redirect=/b/${tenantSlug}/request`} replace />;
   }
 
   const handleSubmit = async () => {

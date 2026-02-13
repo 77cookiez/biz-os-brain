@@ -1,14 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ULLText } from '@/components/ull/ULLText';
 import { Store, Package } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatCurrency';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ServiceCardPublic } from '@/components/booking/ServiceCardPublic';
+import { VendorCardPublic } from '@/components/booking/VendorCardPublic';
 
 export default function PublicBrowsePage() {
   const { t } = useTranslation();
@@ -16,6 +14,8 @@ export default function PublicBrowsePage() {
   const { currentLanguage } = useLanguage();
   const workspaceId = settings?.workspace_id;
   const currency = settings?.currency || 'USD';
+  const theme = settings?.theme_template || 'generic';
+  const primaryColor = settings?.primary_color || undefined;
 
   const { data: vendors = [], isLoading: vLoading } = useQuery({
     queryKey: ['public-vendors', workspaceId],
@@ -47,6 +47,7 @@ export default function PublicBrowsePage() {
       if (error) throw error;
       return (data || []).map((s: any) => ({
         ...s,
+        vendor_id: s.vendor?.id || s.vendor_id,
         vendor_display_name: s.vendor?.booking_vendor_profiles?.[0]?.display_name || '—',
         vendor_display_name_meaning_id: s.vendor?.booking_vendor_profiles?.[0]?.display_name_meaning_object_id || null,
       }));
@@ -56,96 +57,125 @@ export default function PublicBrowsePage() {
 
   const isLoading = vLoading || sLoading;
 
-  return (
-    <div className="space-y-8">
-      {/* Vendors */}
-      <section>
-        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Store className="h-5 w-5" />
-          {t('booking.public.vendors')}
-        </h2>
-        {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-32" />)}
-          </div>
-        ) : vendors.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{t('booking.public.noVendors')}</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {vendors.map((v: any) => (
-              <Link key={v.id} to={`/b/${tenantSlug}/v/${v.id}`}>
-                <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center gap-3">
-                      {v.profile?.logo_url && (
-                        <img src={v.profile.logo_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-                      )}
-                      <CardTitle className="text-base">
-                        <ULLText
-                          meaningId={v.profile?.display_name_meaning_object_id}
-                          fallback={v.profile?.display_name || '—'}
-                        />
-                      </CardTitle>
-                    </div>
-                  </CardHeader>
-                  {v.profile?.bio && (
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        <ULLText
-                          meaningId={v.profile?.bio_meaning_object_id}
-                          fallback={v.profile.bio}
-                        />
-                      </p>
-                    </CardContent>
-                  )}
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
+  // Compute service count per vendor
+  const vendorServiceCount: Record<string, number> = {};
+  services.forEach((s: any) => {
+    const vid = s.vendor_id;
+    if (vid) vendorServiceCount[vid] = (vendorServiceCount[vid] || 0) + 1;
+  });
 
-      {/* Services */}
-      <section>
-        <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Package className="h-5 w-5" />
-          {t('booking.public.services')}
-        </h2>
-        {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map(i => <Skeleton key={i} className="h-28" />)}
-          </div>
-        ) : services.length === 0 ? (
+  // Featured logic: first 2 services, first 1 vendor
+  const featuredServiceIds = new Set(services.slice(0, 2).map((s: any) => s.id));
+  const featuredVendorIds = new Set(vendors.slice(0, 1).map((v: any) => v.id));
+
+  // Sort: featured first
+  const sortedServices = [...services].sort((a: any, b: any) => {
+    const af = featuredServiceIds.has(a.id) ? 0 : 1;
+    const bf = featuredServiceIds.has(b.id) ? 0 : 1;
+    return af - bf;
+  });
+
+  const sortedVendors = [...vendors].sort((a: any, b: any) => {
+    const af = featuredVendorIds.has(a.id) ? 0 : 1;
+    const bf = featuredVendorIds.has(b.id) ? 0 : 1;
+    return af - bf;
+  });
+
+  // Theme-based ordering: eventServices → vendors first
+  const vendorsFirst = theme === 'eventServices';
+
+  // Grid class per theme
+  const serviceGridClass = theme === 'generic'
+    ? 'grid gap-4 grid-cols-1'
+    : theme === 'rentals'
+      ? 'grid gap-4 grid-cols-1 sm:grid-cols-2'
+      : 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+
+  const vendorGridClass = theme === 'eventServices'
+    ? 'grid gap-4 grid-cols-1 sm:grid-cols-2'
+    : 'grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+
+  const VendorsSection = (
+    <section>
+      <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+        <Store className="h-5 w-5" />
+        {t('booking.public.vendors')}
+      </h2>
+      {isLoading ? (
+        <div className={vendorGridClass}>
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-32" />)}
+        </div>
+      ) : vendors.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+          <Store className="h-10 w-10 text-muted-foreground" />
+          <p className="text-muted-foreground text-sm">{t('booking.public.noVendors')}</p>
+        </div>
+      ) : (
+        <div className={vendorGridClass}>
+          {sortedVendors.map((v: any) => (
+            <VendorCardPublic
+              key={v.id}
+              vendor={v}
+              tenantSlug={tenantSlug}
+              serviceCount={vendorServiceCount[v.id] || 0}
+              primaryColor={primaryColor}
+              featured={featuredVendorIds.has(v.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  const ServicesSection = (
+    <section>
+      <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+        <Package className="h-5 w-5" />
+        {t('booking.public.services')}
+      </h2>
+      {isLoading ? (
+        <div className={serviceGridClass}>
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48" />)}
+        </div>
+      ) : services.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+          <Package className="h-10 w-10 text-muted-foreground" />
           <p className="text-muted-foreground text-sm">{t('booking.public.noServices')}</p>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((s: any) => (
-              <Card key={s.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">
-                    <ULLText meaningId={s.title_meaning_object_id} fallback={s.title} />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-1">
-                  {s.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      <ULLText meaningId={s.description_meaning_object_id} fallback={s.description} />
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      <ULLText meaningId={s.vendor_display_name_meaning_id} fallback={s.vendor_display_name} />
-                    </span>
-                    {s.price_type !== 'custom_quote' && s.price_amount && (
-                      <Badge variant="secondary">{formatCurrency(s.price_amount, s.currency || currency, currentLanguage.code)}</Badge>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
+        </div>
+      ) : (
+        <div className={serviceGridClass}>
+          {sortedServices.map((s: any) => (
+            <ServiceCardPublic
+              key={s.id}
+              service={s}
+              vendorName={s.vendor_display_name}
+              vendorNameMeaningId={s.vendor_display_name_meaning_id}
+              tenantSlug={tenantSlug}
+              vendorId={s.vendor_id}
+              currency={currency}
+              languageCode={currentLanguage.code}
+              primaryColor={primaryColor}
+              featured={featuredServiceIds.has(s.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  return (
+    <div className="space-y-10">
+      {vendorsFirst ? (
+        <>
+          {VendorsSection}
+          {ServicesSection}
+        </>
+      ) : (
+        <>
+          {ServicesSection}
+          {VendorsSection}
+        </>
+      )}
     </div>
   );
 }
