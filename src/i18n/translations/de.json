@@ -692,8 +692,19 @@
     "taskCreateFailed": "Aufgabe konnte nicht erstellt werden"
   },
   "booking": {
+    "brand": {
+      "productName": "Bookivo",
+      "tagline": "Das intelligente Buchungs-OS für Dienstleistungsunternehmen",
+      "positioning": "Bookivo ist ein KI-gestütztes Buchungsbetriebssystem für moderne Dienstleistungsunternehmen weltweit.",
+      "shortDescription": "Intelligente Buchungsverwaltung für Dienstleistungsunternehmen",
+      "globalReady": "Globale Architektur",
+      "multiLanguage": "Mehrsprachig by Design",
+      "aiPowered": "KI-gesteuerte Workflows",
+      "whiteLabel": "White-Label-Marktplatz",
+      "marketplaceReady": "Multi-Tenant-Infrastruktur"
+    },
     "tabs": { "dashboard": "Dashboard", "vendors": "Anbieter", "services": "Dienstleistungen", "calendar": "Kalender", "quotes": "Angebote", "bookings": "Buchungen", "settings": "Einstellungen" },
-    "dashboard": { "title": "Booking OS", "vendors": "Anbieter", "services": "Dienstleistungen", "quotes": "Angebote", "bookings": "Buchungen", "overview": "Übersicht", "totalRevenue": "Gesamteinnahmen", "pendingQuotes": "Offene Angebote", "activeBookings": "Aktive Buchungen", "pendingVendorsHint": "{{count}} Anbieter warten auf Genehmigung. Gehen Sie zum Anbieter-Tab." },
+    "dashboard": { "title": "Bookivo", "vendors": "Anbieter", "services": "Dienstleistungen", "quotes": "Angebote", "bookings": "Buchungen", "overview": "Übersicht", "totalRevenue": "Gesamteinnahmen", "pendingQuotes": "Offene Angebote", "activeBookings": "Aktive Buchungen", "pendingVendorsHint": "{{count}} Anbieter warten auf Genehmigung. Gehen Sie zum Anbieter-Tab." },
     "vendors": { "title": "Anbieter", "emptyTitle": "Noch keine Anbieter", "emptyDesc": "Laden Sie Anbieter ein.", "approve": "Genehmigen", "suspend": "Sperren", "reactivate": "Reaktivieren", "approved": "Genehmigt", "pending": "Ausstehend", "suspended": "Gesperrt", "vendorApproved": "Anbieter genehmigt", "vendorSuspended": "Anbieter gesperrt", "vendorReactivated": "Anbieter reaktiviert", "actionFailed": "Fehler beim Aktualisieren", "owner": "Inhaber", "status": "Status", "actions": "Aktionen", "joinedAt": "Beigetreten" },
     "services": { "title": "Dienstleistungen", "emptyTitle": "Keine Dienstleistungen", "emptyDesc": "Anbieter können ihre Pakete hinzufügen.", "addService": "Dienst hinzufügen", "serviceTitle": "Dienstleistungstitel", "serviceDescription": "Beschreibung", "priceType": "Preistyp", "priceFixed": "Festpreis", "priceHourly": "Stündlich", "priceCustom": "Individuelles Angebot", "priceAmount": "Preis", "minGuests": "Min Gäste", "maxGuests": "Max Gäste", "durationMinutes": "Dauer (Min)", "createService": "Erstellen", "serviceCreated": "Dienst erstellt", "serviceCreateFailed": "Fehler beim Erstellen", "serviceUpdated": "Dienst aktualisiert", "serviceUpdateFailed": "Fehler beim Aktualisieren", "active": "Aktiv", "inactive": "Inaktiv", "vendor": "Anbieter", "price": "Preis", "editService": "Bearbeiten", "deleteService": "Löschen" },
     "calendar": { "title": "Kalender", "emptyTitle": "Keine Verfügbarkeit", "emptyDesc": "Anbieter können ihre Verfügbarkeit konfigurieren.", "weeklyAvailability": "Wöchentliche Verfügbarkeit", "blackoutDates": "Sperrdaten", "addBlackout": "Sperrdatum hinzufügen", "blackoutAdded": "Sperrdatum hinzugefügt", "blackoutRemoved": "Sperrdatum entfernt", "blackoutFailed": "Fehler beim Aktualisieren", "reason": "Grund (optional)", "noBlackouts": "Keine Sperrdaten", "availabilityUpdated": "Verfügbarkeit aktualisiert", "availabilityFailed": "Fehler", "monday": "Montag", "tuesday": "Dienstag", "wednesday": "Mittwoch", "thursday": "Donnerstag", "friday": "Freitag", "saturday": "Samstag", "sunday": "Sonntag", "closed": "Geschlossen", "startTime": "Beginn", "endTime": "Ende" },

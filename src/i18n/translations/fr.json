@@ -692,8 +692,19 @@
     "taskCreateFailed": "Échec de la création de la tâche"
   },
   "booking": {
+    "brand": {
+      "productName": "Bookivo",
+      "tagline": "Le système de réservation intelligent pour les entreprises de services",
+      "positioning": "Bookivo est un système de réservation propulsé par l'IA pour les entreprises de services modernes dans le monde entier.",
+      "shortDescription": "Gestion intelligente des réservations pour les entreprises de services",
+      "globalReady": "Architecture mondiale",
+      "multiLanguage": "Multilingue par conception",
+      "aiPowered": "Flux pilotes par l'IA",
+      "whiteLabel": "Marque blanche disponible",
+      "marketplaceReady": "Infrastructure multi-tenant"
+    },
     "tabs": { "dashboard": "Tableau de bord", "vendors": "Prestataires", "services": "Services", "calendar": "Calendrier", "quotes": "Devis", "bookings": "Réservations", "settings": "Paramètres" },
-    "dashboard": { "title": "Booking OS", "vendors": "Prestataires", "services": "Services", "quotes": "Devis", "bookings": "Réservations", "overview": "Vue d'ensemble", "totalRevenue": "Revenus totaux", "pendingQuotes": "Devis en attente", "activeBookings": "Réservations actives", "pendingVendorsHint": "{{count}} prestataire(s) en attente d'approbation. Allez dans l'onglet Prestataires." },
+    "dashboard": { "title": "Bookivo", "vendors": "Prestataires", "services": "Services", "quotes": "Devis", "bookings": "Réservations", "overview": "Vue d'ensemble", "totalRevenue": "Revenus totaux", "pendingQuotes": "Devis en attente", "activeBookings": "Réservations actives", "pendingVendorsHint": "{{count}} prestataire(s) en attente d'approbation. Allez dans l'onglet Prestataires." },
     "vendors": { "title": "Prestataires", "emptyTitle": "Aucun prestataire", "emptyDesc": "Invitez des prestataires pour commencer.", "approve": "Approuver", "suspend": "Suspendre", "reactivate": "Réactiver", "approved": "Approuvé", "pending": "En attente", "suspended": "Suspendu", "vendorApproved": "Prestataire approuvé", "vendorSuspended": "Prestataire suspendu", "vendorReactivated": "Prestataire réactivé", "actionFailed": "Échec de la mise à jour", "owner": "Propriétaire", "status": "Statut", "actions": "Actions", "joinedAt": "Inscrit le" },
     "services": { "title": "Services", "emptyTitle": "Aucun service", "emptyDesc": "Les prestataires peuvent ajouter leurs services.", "addService": "Ajouter un service", "serviceTitle": "Titre du service", "serviceDescription": "Description", "priceType": "Type de prix", "priceFixed": "Prix fixe", "priceHourly": "À l'heure", "priceCustom": "Devis personnalisé", "priceAmount": "Prix", "minGuests": "Min invités", "maxGuests": "Max invités", "durationMinutes": "Durée (min)", "createService": "Créer le service", "serviceCreated": "Service créé", "serviceCreateFailed": "Échec de la création", "serviceUpdated": "Service mis à jour", "serviceUpdateFailed": "Échec de la mise à jour", "active": "Actif", "inactive": "Inactif", "vendor": "Prestataire", "price": "Prix", "editService": "Modifier", "deleteService": "Supprimer" },
     "calendar": { "title": "Calendrier", "emptyTitle": "Aucune disponibilité", "emptyDesc": "Les prestataires peuvent configurer leur disponibilité.", "weeklyAvailability": "Disponibilité hebdomadaire", "blackoutDates": "Dates bloquées", "addBlackout": "Ajouter une date bloquée", "blackoutAdded": "Date bloquée ajoutée", "blackoutRemoved": "Date bloquée supprimée", "blackoutFailed": "Échec de la mise à jour", "reason": "Raison (optionnel)", "noBlackouts": "Aucune date bloquée", "availabilityUpdated": "Disponibilité mise à jour", "availabilityFailed": "Échec de la mise à jour", "monday": "Lundi", "tuesday": "Mardi", "wednesday": "Mercredi", "thursday": "Jeudi", "friday": "Vendredi", "saturday": "Samedi", "sunday": "Dimanche", "closed": "Fermé", "startTime": "Début", "endTime": "Fin" },

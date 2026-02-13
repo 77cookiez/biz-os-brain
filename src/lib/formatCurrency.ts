@@ -1,24 +1,15 @@
 /**
- * GCC-aware currency formatter using Intl.NumberFormat.
- * Supports AED, SAR, QAR, KWD, BHD, OMR and any ISO 4217 code.
+ * Global currency formatter using Intl.NumberFormat.
+ * Supports all ISO 4217 codes.
  */
-
-const LOCALE_MAP: Record<string, string> = {
-  ar: 'ar-AE',
-  en: 'en-AE',
-  fr: 'fr-FR',
-  de: 'de-DE',
-  es: 'es-ES',
-};
 
 export function formatCurrency(
   amount: number,
-  currency: string = 'AED',
+  currency: string = 'USD',
   locale: string = 'en',
 ): string {
-  const resolvedLocale = LOCALE_MAP[locale] || locale;
   try {
-    return new Intl.NumberFormat(resolvedLocale, {
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,

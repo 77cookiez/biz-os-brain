@@ -18,7 +18,7 @@ export default function PublicVendorDetailPage() {
   const { settings } = useOutletContext<{ settings: any; tenantSlug: string }>();
   const { currentLanguage } = useLanguage();
   const workspaceId = settings?.workspace_id;
-  const currency = settings?.currency || 'AED';
+  const currency = settings?.currency || 'USD';
 
   const { data: vendor, isLoading: vLoading } = useQuery({
     queryKey: ['public-vendor', vendorId],

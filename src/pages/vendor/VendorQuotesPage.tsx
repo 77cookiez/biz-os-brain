@@ -76,7 +76,7 @@ export default function VendorQuotesPage() {
         quote_request_id: selectedRequest.id,
         vendor_id: vendorId,
         amount: Number(quoteForm.amount),
-        currency: 'AED',
+        currency: 'USD',
         deposit_amount: quoteForm.deposit ? Number(quoteForm.deposit) : null,
         notes: quoteForm.notes || null,
         meaning_object_id: meaningId,

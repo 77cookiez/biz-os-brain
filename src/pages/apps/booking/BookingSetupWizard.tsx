@@ -20,7 +20,7 @@ import {
   CheckCircle2, XCircle, Loader2,
 } from 'lucide-react';
 
-const GCC_CURRENCIES = ['AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'] as const;
+const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'] as const;
 const THEMES = ['marketplace', 'rentals', 'eventServices', 'generic'] as const;
 const TONES = ['professional', 'friendly', 'luxury', 'casual'] as const;
 const CANCELLATION_POLICIES = ['flexible', 'standard', 'strict'] as const;
@@ -58,7 +58,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     accent_color: settings?.accent_color ?? '#f59e0b',
     tone: settings?.tone ?? 'professional',
     logo_url: settings?.logo_url ?? null,
-    currency: settings?.currency ?? 'AED',
+    currency: settings?.currency ?? 'USD',
     commission_mode: settings?.commission_mode ?? 'subscription',
     commission_rate: settings?.commission_rate ?? 0,
     deposit_enabled: settings?.deposit_enabled ?? true,
@@ -271,7 +271,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
               <Select value={data.currency} onValueChange={(v) => update('currency', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {GCC_CURRENCIES.map(c => (
+                  {SUPPORTED_CURRENCIES.map(c => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>

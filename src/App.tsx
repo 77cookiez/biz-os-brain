@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/i18n";
 import { OSLayout } from "@/components/OSLayout";
 import AuthPage from "@/pages/AuthPage";
+import BookivoPage from "@/pages/BookivoPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import TodayPage from "@/pages/brain/TodayPage";
 import BrainPage from "@/pages/brain/BrainPage";
@@ -152,6 +153,7 @@ function OnboardingRoute({ children }: { children: React.ReactNode }) {
 
 const AppRoutes = () => (
   <Routes>
+    <Route path="/bookivo" element={<BookivoPage />} />
     <Route
       path="/auth"
       element={

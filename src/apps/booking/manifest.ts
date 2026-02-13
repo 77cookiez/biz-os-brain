@@ -2,8 +2,8 @@ export const BOOKING_APP_ID = 'booking';
 
 export const bookingManifest = {
   id: BOOKING_APP_ID,
-  name: 'Booking OS',
-  description: 'AI-powered booking marketplace engine. Manage vendors, services, quotes, and bookings with built-in contextual chat and GCC-first payments.',
+  name: 'Bookivo',
+  description: 'AI-powered booking infrastructure for modern service businesses worldwide. Manage vendors, services, quotes, bookings, payments, and chat in one unified system.',
   icon: 'calendar-check',
   pricing: 'subscription' as const,
   capabilities: [
