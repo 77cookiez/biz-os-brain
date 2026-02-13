@@ -1,219 +1,124 @@
 
 
-# Bookivo: Self-Service Native App Packaging
+# Bookivo: App Pack Fix + Wizard Enhancement + Landing Page Upgrade
 
-## Current State
+## Problem Summary
 
-Today, when a tenant completes the wizard, they get:
-- A web page at `/b/{slug}` with their branding (logo, colors)
-- PWA capability (installable from browser)
-- No native app (Apple/Google Play)
+Three major issues identified:
 
-The wizard does NOT ask for:
-- App name (e.g., "Ali's Wedding Services")
-- App icon
-- Splash screen
-- App Store description
-- Bundle ID / package name
-
-There are NO "native files" generated today. The Capacitor config in the project is for the main OS app, not for individual tenants.
+1. **App Pack download is broken** -- The edge function crashes on startup because of an incorrect JSZip import, and uses a non-existent `getClaims()` auth method
+2. **The Bookivo marketing/landing page is basic** -- Needs a world-class design with proper sections
+3. **The Wizard is incomplete** -- Needs better UX, color presets, theme previews, and optional AI assistance
 
 ---
 
-## What Needs to Be Built
+## Phase 1: Fix the App Pack Edge Function (Critical Bug)
 
-A complete **App Builder** flow inside the wizard that:
-1. Collects app identity (name, icon, splash, description)
-2. Validates App Store requirements
-3. Generates a **Handover Pack** (downloadable ZIP) containing everything needed to publish
+**File:** `supabase/functions/generate-app-pack/index.ts`
 
----
+Two bugs causing the "Failed to fetch" error:
 
-## The Full User Journey
+**Bug 1 -- Wrong JSZip import:**
+```
+// Current (broken):
+import { JSZip } from "https://esm.sh/jszip@3.10.1";
 
-```text
-Tenant signs up
-  --> Installs Bookivo from Marketplace
-  --> Runs Setup Wizard (5 existing steps)
-  --> NEW Step 5: "Your App" (before Go Live)
-  --> Enters: App Name, App Icon, Splash Screen, Short Description
-  --> Goes Live (Step 6)
-  --> Settings Page shows "Download App Pack" button
-  --> Downloads ZIP with all files + instructions
-  --> Follows guide to publish to App Store / Play Store
+// Fix:
+import JSZip from "https://esm.sh/jszip@3.10.1";
+```
+
+**Bug 2 -- `getClaims()` does not exist in Supabase auth:**
+```
+// Current (broken):
+await supabase.auth.getClaims(token);
+
+// Fix:
+await supabase.auth.getUser(token);
+// Then check: data.user instead of data.claims
 ```
 
 ---
 
-## Wizard Changes (Step 5: Your App)
+## Phase 2: Wizard Enhancement (Best Practice UX)
 
-### New fields to collect:
+**File:** `src/pages/apps/booking/BookingSetupWizard.tsx`
 
-| Field | Required | Validation |
-|-------|----------|------------|
-| `app_name` | Yes | 3-30 characters, the display name on phone |
-| `app_icon` | Yes | 1024x1024 PNG, no transparency (Apple requirement) |
-| `splash_image` | No | 2732x2732 PNG for launch screen |
-| `app_description` | Yes | 10-170 characters (App Store limit) |
-| `bundle_id` | Auto-generated | `com.bookivo.{slug}` format |
+### Step 0 (Theme) -- Add Visual Theme Previews
+- Add a small visual preview card for each theme showing a mockup of how it looks (colors, layout style)
+- Show a mini-screenshot or icon grid representing each theme
 
-### What the user sees:
+### Step 1 (Brand) -- Add Color Presets + Live Preview
+- Add **preset color palettes** (e.g., "Modern Blue", "Warm Coral", "Elegant Gold", "Fresh Green", "Luxury Dark")
+- Each preset sets both primary and accent colors with one click
+- Add a **live brand preview card** showing how the logo + colors look together (mini header mockup)
+- Keep the manual color picker for custom colors
 
-- "What is your app called?" -- text input
-- "Upload your app icon" -- image upload with live preview showing how it looks on a phone home screen (rounded corners preview)
-- "App Store description" -- textarea with character counter
-- Optional: Splash/launch screen upload
-- Auto-generated Bundle ID shown as read-only: `com.bookivo.{tenant_slug}`
+### Step 4 (Your App) -- Better Guidance
+- Add a visual guide showing where the app name and icon appear on a phone
+- Show both iOS and Android home screen mockup styles
+- Add a tip about Apple's icon requirements (no transparency, rounded corners are automatic)
 
----
-
-## Database Changes
-
-New columns on `booking_settings`:
-
-| Column | Type | Default |
-|--------|------|---------|
-| `app_name` | text | null |
-| `app_icon_url` | text | null |
-| `app_splash_url` | text | null |
-| `app_description` | text | null |
-| `app_bundle_id` | text | auto: `com.bookivo.{slug}` |
-
-Assets stored in existing `booking-assets` bucket under `{workspace_id}/app-icon.png` and `{workspace_id}/splash.png`.
+### Step 5 (Go Live) -- Summary Before Launch
+- Add a **pre-launch checklist** summarizing all configured settings
+- Show visual confirmation of: theme chosen, colors, currency, policies, app identity
+- Highlight any missing/incomplete items
 
 ---
 
-## Handover Pack (ZIP Download)
+## Phase 3: Bookivo Landing Page Upgrade
 
-When the tenant clicks "Download App Pack" from Settings, the system generates a ZIP containing:
+**File:** `src/pages/BookivoPage.tsx`
 
-```text
-bookivo-app-pack/
-  README.md                    -- Step-by-step publishing guide
-  REQUIREMENTS.md              -- What you need before starting
-  config/
-    capacitor.config.json      -- Pre-filled with tenant branding
-    app.json                   -- App metadata
-  assets/
-    icon-1024.png              -- Original app icon
-    icon-192.png               -- Auto-resized
-    icon-512.png               -- Auto-resized
-    splash-2732.png            -- Splash screen
-  branding/
-    colors.json                -- Primary/accent colors
-    logo.png                   -- Business logo
-  guides/
-    APPLE_STORE_GUIDE.md       -- Step-by-step for iOS
-    GOOGLE_PLAY_GUIDE.md       -- Step-by-step for Android
-    DEVELOPER_ACCOUNT_SETUP.md -- How to create dev accounts
-```
+Redesign to a world-class SaaS landing page:
 
-### The `capacitor.config.json` inside the pack:
+### Structure:
+1. **Hero Section** -- Large headline, animated gradient background, CTA buttons, and a product mockup/screenshot
+2. **Social Proof Strip** -- "Trusted by X businesses worldwide" (placeholder for future)
+3. **How It Works** -- 3-step visual flow: "Set Up -> Customize -> Launch"
+4. **Features Grid** -- 8 features with icons (already exists, improve design)
+5. **App Builder Showcase** -- Section showing the wizard/app-pack flow with phone mockup
+6. **Multi-Currency + Multi-Language** -- Visual showing supported currencies and languages
+7. **Pricing Preview** -- Simple tier cards (Free Trial / Pro / Enterprise)
+8. **CTA Section** -- Final call-to-action with "Start Free Trial"
+9. **Footer** -- Links, copyright, language switcher
 
-```json
-{
-  "appId": "com.bookivo.{tenant_slug}",
-  "appName": "{app_name}",
-  "webDir": "dist",
-  "server": {
-    "url": "https://{domain}/b/{tenant_slug}",
-    "cleartext": true
-  }
-}
-```
-
-This means the native app is essentially a **WebView wrapper** around their existing `/b/{slug}` public site, with their own icon and branding.
+### Design Improvements:
+- Use gradient backgrounds and glassmorphism cards
+- Add subtle animations (fade-in on scroll can be done via CSS)
+- Better typography hierarchy
+- Responsive for mobile
 
 ---
 
-## Three Distribution Tiers (Already in Wizard UI)
+## Phase 4: i18n Updates
 
-| Tier | What It Is | How It Works |
-|------|-----------|--------------|
-| **PWA** (default, free) | Installable from browser | Already works today |
-| **Container App** (Pro plan) | Native app shell pointing to `/b/{slug}` | Handover Pack with Capacitor config |
-| **Enterprise App** (Enterprise plan) | Fully dedicated build with custom domain | Future: managed build service |
+Add new translation keys for:
+- Color preset names
+- Pre-launch checklist labels
+- Landing page new sections
+- Wizard improvement labels
 
----
-
-## Settings Page Improvements
-
-After going live, the Settings page will show a new "Your App" card:
-
-- Current app name + icon preview
-- Edit button to change name/icon
-- "Download App Pack" button (generates ZIP via edge function)
-- Requirements checklist:
-  - Apple Developer Account ($99/year)
-  - Google Play Developer Account ($25 one-time)
-  - Mac with Xcode (for iOS)
-  - Node.js installed locally
-- Link to full publishing guide
+In all 5 languages (en, ar, fr, de, es).
 
 ---
 
-## Edge Function: `generate-app-pack`
+## Files Summary
 
-A backend function that:
-1. Reads tenant settings (name, slug, colors, icon, logo)
-2. Downloads assets from storage
-3. Generates resized icons (192px, 512px from 1024px source)
-4. Creates `capacitor.config.json` with tenant values
-5. Bundles README + guides + assets into a ZIP
-6. Returns the ZIP as a download
+| File | Change |
+|------|--------|
+| `supabase/functions/generate-app-pack/index.ts` | Fix JSZip import + fix auth method |
+| `src/pages/apps/booking/BookingSetupWizard.tsx` | Add color presets, live preview, pre-launch checklist |
+| `src/pages/BookivoPage.tsx` | Full redesign with world-class SaaS layout |
+| `src/i18n/translations/en.json` | New keys for presets, landing, checklist |
+| `src/i18n/translations/ar.json` | Arabic translations |
+| `src/i18n/translations/fr.json` | French translations |
+| `src/i18n/translations/de.json` | German translations |
+| `src/i18n/translations/es.json` | Spanish translations |
 
----
-
-## Implementation Plan
-
-### Phase 1: Database + Wizard UI
-
-1. **Migration**: Add `app_name`, `app_icon_url`, `app_splash_url`, `app_description`, `app_bundle_id` columns to `booking_settings`
-2. **Wizard Step 5** ("Your App"): New step between Policies and Go Live
-   - App name input with validation
-   - App icon upload (reuse LogoUpload pattern, validate 1024x1024)
-   - App description textarea with character counter
-   - Auto-generated bundle ID display
-   - Phone home screen preview showing icon + name
-3. **i18n keys**: Add translations for all new wizard fields in all 5 languages
-4. **Update totalSteps** from 5 to 6, shift Go Live to step 5
-
-### Phase 2: Settings Page + Download
-
-5. **Settings Page**: Add "Your App" card with icon preview, name, and edit capability
-6. **Edge Function** (`generate-app-pack`): Generate and return ZIP with all configs and guides
-7. **Markdown Guides**: Create publishing guides content (embedded in edge function)
-
-### Phase 3: Validation Checklist
-
-8. **Requirements Card**: Show what the user needs before they can publish
-9. **Status indicators**: Show which requirements are met (icon uploaded, name set, etc.)
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `supabase/functions/generate-app-pack/index.ts` | ZIP generation edge function |
-| Migration SQL | Add app_* columns to booking_settings |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/pages/apps/booking/BookingSetupWizard.tsx` | Add Step 5 (Your App), shift Go Live to Step 6, add app_name/icon/description fields |
-| `src/pages/apps/booking/BookingSettingsPage.tsx` | Add "Your App" card with download button |
-| `src/i18n/translations/*.json` (5 files) | Add wizard.app.* translation keys |
-
----
-
-## What This Does NOT Do
-
-- Does NOT auto-publish to App Store (requires developer accounts)
-- Does NOT build the native binary (user runs Capacitor locally)
-- Does NOT change existing routes, DB tables, or module IDs
-- Does NOT require any external services
-
-The output is a **ready-to-build pack** that a non-technical user can hand to any developer, or follow the step-by-step guide themselves if they have basic terminal knowledge.
+## What Will NOT Change
+- Database schema (no migrations needed)
+- Routes remain the same
+- Module ID stays `booking`
+- Public booking pages (`/b/:slug`) unchanged
+- OIL/ULL logic untouched
 
