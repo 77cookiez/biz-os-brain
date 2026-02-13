@@ -17,6 +17,7 @@ interface VendorCardPublicProps {
     } | null;
   };
   tenantSlug: string;
+  basePath?: string;
   serviceCount?: number;
   primaryColor?: string;
   featured?: boolean;
@@ -40,15 +41,17 @@ function VendorInitials({ name, color }: { name: string; color?: string }) {
 export function VendorCardPublic({
   vendor,
   tenantSlug,
+  basePath,
   serviceCount = 0,
   primaryColor,
   featured,
 }: VendorCardPublicProps) {
   const { t } = useTranslation();
   const displayName = vendor.profile?.display_name || '—';
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
 
   return (
-    <Link to={`/b/${tenantSlug}/v/${vendor.id}`}>
+    <Link to={`${resolvedBase}/v/${vendor.id}`}>
       <Card className={`group relative overflow-hidden transition-all hover:shadow-md cursor-pointer ${featured ? 'ring-2 ring-primary/30' : ''}`}
         style={featured && primaryColor ? { borderColor: `${primaryColor}40` } : {}}
       >

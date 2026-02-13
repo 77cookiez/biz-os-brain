@@ -19,7 +19,8 @@ import { toast } from 'sonner';
 export default function PublicRequestQuotePage() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { settings, tenantSlug } = useOutletContext<{ settings: any; tenantSlug: string }>();
+  const { settings, tenantSlug, basePath } = useOutletContext<{ settings: any; tenantSlug: string; basePath?: string }>();
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
   const [searchParams] = useSearchParams();
   const workspaceId = settings?.workspace_id;
 
@@ -73,7 +74,7 @@ export default function PublicRequestQuotePage() {
   });
 
   if (!user) {
-    return <Navigate to={`/b/${tenantSlug}/auth?redirect=/b/${tenantSlug}/request`} replace />;
+    return <Navigate to={`${resolvedBase}/auth?redirect=${resolvedBase}/request`} replace />;
   }
 
   const handleSubmit = async () => {
@@ -111,7 +112,7 @@ export default function PublicRequestQuotePage() {
         </div>
         <h2 className="text-xl font-semibold text-foreground">{t('booking.public.requestSent')}</h2>
         <p className="text-muted-foreground text-sm text-center max-w-sm">{t('booking.public.requestSentDesc')}</p>
-        <Link to={`/b/${tenantSlug}/my`}>
+        <Link to={`${resolvedBase}/my`}>
           <Button variant="outline">{t('booking.public.viewMyBookings')}</Button>
         </Link>
       </div>
@@ -120,7 +121,7 @@ export default function PublicRequestQuotePage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
-      <Link to={`/b/${tenantSlug}`} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link to={resolvedBase} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" />
         {t('common.back')}
       </Link>

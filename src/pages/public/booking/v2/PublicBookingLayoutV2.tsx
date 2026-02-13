@@ -210,6 +210,7 @@ export default function PublicBookingLayoutV2() {
           theme={settings.theme_template}
           workspaceName={workspaceName}
           tenantSlug={tenantSlug!}
+          basePath={basePath}
           primaryColor={tenantPrimary}
           logoUrl={settings.logo_url}
           tone={settings.tone}
@@ -223,6 +224,7 @@ export default function PublicBookingLayoutV2() {
       {!isAuthPage && (
         <PublicFooter
           tenantSlug={tenantSlug!}
+          basePath={basePath}
           workspaceName={workspaceName}
           contactEmail={settings.contact_email}
           whatsappNumber={settings.whatsapp_number}

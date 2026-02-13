@@ -4,6 +4,7 @@ import { Mail, MessageCircle, Shield, ExternalLink, Store, Heart, FileText } fro
 
 interface PublicFooterProps {
   tenantSlug: string;
+  basePath?: string;
   workspaceName: string;
   contactEmail?: string | null;
   whatsappNumber?: string | null;
@@ -13,6 +14,7 @@ interface PublicFooterProps {
 
 export function PublicFooter({
   tenantSlug,
+  basePath,
   workspaceName,
   contactEmail,
   whatsappNumber,
@@ -22,6 +24,8 @@ export function PublicFooter({
   const { t } = useTranslation();
   const year = new Date().getFullYear();
   const cleanWhatsapp = whatsappNumber?.replace(/\D/g, '');
+  const resolvedBase = basePath || `/b/${tenantSlug}`;
+  const vendorBase = basePath?.startsWith('/b2/') ? `/v2/${tenantSlug}` : `/v/${tenantSlug}`;
 
   return (
     <footer className="border-t border-border bg-card mt-12 relative">
@@ -63,19 +67,19 @@ export function PublicFooter({
             </h4>
             <div className="space-y-2">
               <Link
-                to={`/b/${tenantSlug}`}
+                to={resolvedBase}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('booking.public.browse')}
               </Link>
               <Link
-                to={`/b/${tenantSlug}/request`}
+                to={`${resolvedBase}/request`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('booking.public.bookNow')}
               </Link>
               <Link
-                to={`/b/${tenantSlug}/my`}
+                to={`${resolvedBase}/my`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('booking.public.myBookings')}
@@ -135,14 +139,14 @@ export function PublicFooter({
                 </a>
               )}
               <Link
-                to={`/v/${tenantSlug}`}
+                to={vendorBase}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Store className="h-3.5 w-3.5 shrink-0" />
                 {t('booking.public.footer.becomeVendor')}
               </Link>
               <Link
-                to={`/v/${tenantSlug}`}
+                to={vendorBase}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
