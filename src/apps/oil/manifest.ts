@@ -89,9 +89,9 @@ export const OIL_MANIFEST = {
     guidanceDrafts: 'Generated on-demand via oil-compute edge function',
   },
 
-  /** Leadership Augmentation — Core Value */
-  leadershipAugmentation: {
-    purpose: 'Augment leadership capability in environments where leaders lack formal training, decision-making is overwhelmed, or blind spots emerge over time.',
+  /** Aurelius — Executive Intelligence — Core Value */
+  aurelius: {
+    purpose: 'Augment executive intelligence in environments where leaders lack formal training, decision-making is overwhelmed, or blind spots emerge over time.',
     capabilities: [
       'Synthesizes signals humans cannot track daily',
       'Surfaces early indicators before issues escalate',
