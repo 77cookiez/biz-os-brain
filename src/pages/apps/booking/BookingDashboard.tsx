@@ -1,22 +1,30 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Store, Package, MessageSquare, BookOpen, DollarSign, Clock } from 'lucide-react';
+import { Store, Package, MessageSquare, BookOpen, Clock } from 'lucide-react';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { useBookingVendors } from '@/hooks/useBookingVendors';
+import { useBookingServices } from '@/hooks/useBookingServices';
+import { useBookingQuotes } from '@/hooks/useBookingQuotes';
+import { useBookingBookings } from '@/hooks/useBookingBookings';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function BookingDashboard() {
   const { t } = useTranslation();
-  const { vendors, isLoading } = useBookingVendors();
+  const { vendors, isLoading: vLoading } = useBookingVendors();
+  const { services, isLoading: sLoading } = useBookingServices();
+  const { quoteRequests, isLoading: qLoading } = useBookingQuotes();
+  const { bookings, isLoading: bLoading } = useBookingBookings();
 
   const approvedCount = vendors.filter(v => v.status === 'approved').length;
   const pendingCount = vendors.filter(v => v.status === 'pending').length;
+  const pendingQuotes = quoteRequests.filter(qr => qr.status === 'requested').length;
+  const activeBookings = bookings.filter(b => b.status === 'paid_confirmed').length;
 
   const stats = [
-    { labelKey: 'booking.dashboard.vendors', icon: Store, value: isLoading ? null : `${approvedCount}` },
-    { labelKey: 'booking.dashboard.services', icon: Package, value: '—' },
-    { labelKey: 'booking.dashboard.pendingQuotes', icon: Clock, value: '—' },
-    { labelKey: 'booking.dashboard.activeBookings', icon: BookOpen, value: '—' },
+    { labelKey: 'booking.dashboard.vendors', icon: Store, value: vLoading ? null : `${approvedCount}` },
+    { labelKey: 'booking.dashboard.services', icon: Package, value: sLoading ? null : `${services.length}` },
+    { labelKey: 'booking.dashboard.pendingQuotes', icon: Clock, value: qLoading ? null : `${pendingQuotes}` },
+    { labelKey: 'booking.dashboard.activeBookings', icon: BookOpen, value: bLoading ? null : `${activeBookings}` },
   ];
 
   return (
