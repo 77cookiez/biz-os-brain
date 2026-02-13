@@ -69,7 +69,7 @@ export default function WeeklyCheckinPage() {
         .eq('workspace_id', currentWorkspace.id).eq('status', 'blocked'),
       supabase.from('tasks').select('id, title, status, due_date')
         .eq('workspace_id', currentWorkspace.id).neq('status', 'done'),
-      supabase.from('goals').select('id, title, status, kpi_current, kpi_target, kpi_name')
+      supabase.from('goals').select('id, title, status, kpi_current, kpi_target, kpi_name, meaning_object_id, source_lang')
         .eq('workspace_id', currentWorkspace.id).eq('status', 'active'),
     ]);
 
@@ -86,6 +86,8 @@ export default function WeeklyCheckinPage() {
     setGoalReviews(goals.map(g => ({
       goalId: g.id,
       title: g.title,
+      meaningObjectId: g.meaning_object_id,
+      sourceLang: g.source_lang || 'en',
       status: 'pending' as const,
       kpiCurrent: g.kpi_current,
       kpiTarget: g.kpi_target,
