@@ -237,6 +237,9 @@ export type Database = {
           deposit_paid: number | null
           event_date: string | null
           id: string
+          paid_amount: number | null
+          payment_intent_id: string | null
+          payment_provider: string | null
           quote_id: string
           quote_request_id: string
           status: Database["public"]["Enums"]["booking_status"]
@@ -256,6 +259,9 @@ export type Database = {
           deposit_paid?: number | null
           event_date?: string | null
           id?: string
+          paid_amount?: number | null
+          payment_intent_id?: string | null
+          payment_provider?: string | null
           quote_id: string
           quote_request_id: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -275,6 +281,9 @@ export type Database = {
           deposit_paid?: number | null
           event_date?: string | null
           id?: string
+          paid_amount?: number | null
+          payment_intent_id?: string | null
+          payment_provider?: string | null
           quote_id?: string
           quote_request_id?: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -481,6 +490,8 @@ export type Database = {
           id: string
           meaning_object_id: string
           notes: string | null
+          payment_required_type: string | null
+          payment_status: string
           quote_request_id: string
           source_lang: string | null
           status: string
@@ -498,6 +509,8 @@ export type Database = {
           id?: string
           meaning_object_id: string
           notes?: string | null
+          payment_required_type?: string | null
+          payment_status?: string
           quote_request_id: string
           source_lang?: string | null
           status?: string
@@ -515,6 +528,8 @@ export type Database = {
           id?: string
           meaning_object_id?: string
           notes?: string | null
+          payment_required_type?: string | null
+          payment_status?: string
           quote_request_id?: string
           source_lang?: string | null
           status?: string
@@ -741,6 +756,8 @@ export type Database = {
           primary_color: string | null
           publishing_progress: Json | null
           refund_policy: string | null
+          stripe_account_id: string | null
+          stripe_onboarding_completed: boolean
           tenant_slug: string | null
           theme_template: string
           tone: string | null
@@ -779,6 +796,8 @@ export type Database = {
           primary_color?: string | null
           publishing_progress?: Json | null
           refund_policy?: string | null
+          stripe_account_id?: string | null
+          stripe_onboarding_completed?: boolean
           tenant_slug?: string | null
           theme_template?: string
           tone?: string | null
@@ -817,6 +836,8 @@ export type Database = {
           primary_color?: string | null
           publishing_progress?: Json | null
           refund_policy?: string | null
+          stripe_account_id?: string | null
+          stripe_onboarding_completed?: boolean
           tenant_slug?: string | null
           theme_template?: string
           tone?: string | null
@@ -2660,6 +2681,10 @@ export type Database = {
         | "paid_confirmed"
         | "completed"
         | "cancelled"
+        | "pending_payment"
+        | "deposit_paid"
+        | "confirmed"
+        | "refunded"
       booking_vendor_status: "pending" | "approved" | "suspended"
       business_type:
         | "trade"
@@ -2822,6 +2847,10 @@ export const Constants = {
         "paid_confirmed",
         "completed",
         "cancelled",
+        "pending_payment",
+        "deposit_paid",
+        "confirmed",
+        "refunded",
       ],
       booking_vendor_status: ["pending", "approved", "suspended"],
       business_type: [
