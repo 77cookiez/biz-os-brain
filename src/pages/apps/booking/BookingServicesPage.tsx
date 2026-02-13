@@ -80,7 +80,12 @@ export default function BookingServicesPage() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {approvedVendors.map(v => (
-                        <SelectItem key={v.id} value={v.id}>{v.profile?.display_name || v.id}</SelectItem>
+                        <SelectItem key={v.id} value={v.id}>
+                          <ULLText
+                            meaningId={v.profile?.display_name_meaning_object_id}
+                            fallback={v.profile?.display_name || v.id}
+                          />
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -152,7 +157,7 @@ export default function BookingServicesPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-base">
-                    <ULLText meaningId={service.meaning_object_id} fallback={service.title} />
+                    <ULLText meaningId={service.title_meaning_object_id} fallback={service.title} />
                   </CardTitle>
                   <Badge variant={service.is_active ? 'default' : 'secondary'}>
                     {service.is_active ? t('booking.services.active') : t('booking.services.inactive')}
@@ -162,12 +167,17 @@ export default function BookingServicesPage() {
               <CardContent className="space-y-2">
                 {service.description && (
                   <p className="text-sm text-muted-foreground">
-                    <ULLText meaningId={service.meaning_object_id} fallback={service.description} />
+                    <ULLText meaningId={service.description_meaning_object_id} fallback={service.description} />
                   </p>
                 )}
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">{t('booking.services.vendor')}</span>
-                  <span className="text-foreground">{service.vendor_name}</span>
+                  <span className="text-foreground">
+                    <ULLText
+                      meaningId={service.vendor_display_name_meaning_id}
+                      fallback={service.vendor_display_name_fallback || '—'}
+                    />
+                  </span>
                 </div>
                 {service.price_type !== 'custom_quote' && service.price_amount && (
                   <div className="flex items-center justify-between text-sm">

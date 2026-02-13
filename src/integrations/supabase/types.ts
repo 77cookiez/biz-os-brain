@@ -619,17 +619,18 @@ export type Database = {
           created_at: string
           currency: string
           description: string | null
+          description_meaning_object_id: string | null
           duration_minutes: number | null
           id: string
           is_active: boolean
           max_guests: number | null
-          meaning_object_id: string
           min_guests: number | null
           price_amount: number | null
           price_type: string
           sort_order: number | null
           source_lang: string | null
           title: string
+          title_meaning_object_id: string
           updated_at: string
           vendor_id: string
           workspace_id: string
@@ -638,17 +639,18 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          description_meaning_object_id?: string | null
           duration_minutes?: number | null
           id?: string
           is_active?: boolean
           max_guests?: number | null
-          meaning_object_id: string
           min_guests?: number | null
           price_amount?: number | null
           price_type?: string
           sort_order?: number | null
           source_lang?: string | null
           title: string
+          title_meaning_object_id: string
           updated_at?: string
           vendor_id: string
           workspace_id: string
@@ -657,25 +659,33 @@ export type Database = {
           created_at?: string
           currency?: string
           description?: string | null
+          description_meaning_object_id?: string | null
           duration_minutes?: number | null
           id?: string
           is_active?: boolean
           max_guests?: number | null
-          meaning_object_id?: string
           min_guests?: number | null
           price_amount?: number | null
           price_type?: string
           sort_order?: number | null
           source_lang?: string | null
           title?: string
+          title_meaning_object_id?: string
           updated_at?: string
           vendor_id?: string
           workspace_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "booking_services_meaning_object_id_fkey"
-            columns: ["meaning_object_id"]
+            foreignKeyName: "booking_services_desc_mo_fk"
+            columns: ["description_meaning_object_id"]
+            isOneToOne: false
+            referencedRelation: "meaning_objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_services_title_mo_fk"
+            columns: ["title_meaning_object_id"]
             isOneToOne: false
             referencedRelation: "meaning_objects"
             referencedColumns: ["id"]

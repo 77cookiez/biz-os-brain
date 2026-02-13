@@ -21,13 +21,16 @@ export interface BookingQuoteRequest {
   event_time: string | null;
   guest_count: number | null;
   notes: string | null;
-  meaning_object_id: string;
+  meaning_object_id: string; // for request notes
   chat_thread_id: string | null;
   created_at: string;
   updated_at: string;
-  // joined
-  service_title?: string;
-  vendor_name?: string;
+  // joined service meaning fields
+  service_title_fallback?: string;
+  service_title_meaning_id?: string | null;
+  // joined vendor profile meaning fields
+  vendor_display_name_fallback?: string;
+  vendor_display_name_meaning_id?: string | null;
 }
 
 export interface BookingQuote {
@@ -77,14 +80,16 @@ export function useBookingQuotes() {
       if (!workspaceId) return [];
       const { data, error } = await supabase
         .from('booking_quote_requests')
-        .select('*, service:booking_services(title), vendor:booking_vendors(booking_vendor_profiles(display_name))')
+        .select('*, service:booking_services(title, title_meaning_object_id), vendor:booking_vendors(booking_vendor_profiles(display_name, display_name_meaning_object_id))')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []).map((qr: any) => ({
         ...qr,
-        service_title: qr.service?.title || '—',
-        vendor_name: qr.vendor?.booking_vendor_profiles?.[0]?.display_name || '—',
+        service_title_fallback: qr.service?.title || '—',
+        service_title_meaning_id: qr.service?.title_meaning_object_id || null,
+        vendor_display_name_fallback: qr.vendor?.booking_vendor_profiles?.[0]?.display_name || '—',
+        vendor_display_name_meaning_id: qr.vendor?.booking_vendor_profiles?.[0]?.display_name_meaning_object_id || null,
       })) as BookingQuoteRequest[];
     },
     enabled: !!workspaceId,
@@ -180,7 +185,6 @@ export function useBookingQuotes() {
     }) => {
       if (!workspaceId || !user) throw new Error('Not authenticated');
 
-      // Validate status transition
       const qr = quoteRequests.find(r => r.id === input.quote_request_id);
       if (qr && !canTransition(qr.status, 'quoted')) {
         throw new Error(`Cannot transition from ${qr.status} to quoted`);
@@ -219,7 +223,6 @@ export function useBookingQuotes() {
       const { error } = await supabase.from('booking_quotes').insert(payload as any);
       if (error) throw error;
 
-      // Update request status
       await supabase
         .from('booking_quote_requests')
         .update({ status: 'quoted' as any })
