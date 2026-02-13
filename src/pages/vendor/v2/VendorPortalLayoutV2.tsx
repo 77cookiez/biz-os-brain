@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { tenantQueryOptions } from '@/lib/booking/tenantResolver';
 import {
   LayoutDashboard, MessageSquare, Calendar, Package, Loader2,
-  ExternalLink, Sparkles, Store, AlertTriangle, CheckCircle2,
+  ExternalLink, Sparkles, Store, AlertTriangle, CheckCircle2, User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DiagnosticsPanel } from '@/components/booking/DiagnosticsPanel';
@@ -149,6 +149,7 @@ export default function VendorPortalLayoutV2() {
     { labelKey: 'booking.services.title', icon: Package, path: `${basePath}/services` },
     { labelKey: 'booking.vendor.quotes', icon: MessageSquare, path: `${basePath}/quotes` },
     { labelKey: 'booking.vendor.calendar', icon: Calendar, path: `${basePath}/calendar` },
+    { labelKey: 'booking.vendor.profile', icon: User, path: `${basePath}/profile` },
   ];
 
   return (
