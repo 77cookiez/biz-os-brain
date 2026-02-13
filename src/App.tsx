@@ -42,7 +42,22 @@ import WorkboardBrainstormPage from "@/pages/workboard/WorkboardBrainstormPage";
 import ChatPage from "@/pages/chat/ChatPage";
 import { Loader2 } from "lucide-react";
 
-const queryClient = new QueryClient();
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import PrivacySettingsPage from "@/pages/settings/PrivacySettingsPage";
+import { toast as sonnerToast } from "sonner";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+    },
+    mutations: {
+      onError: (error: Error) => {
+        sonnerToast.error(error.message || 'An error occurred');
+      },
+    },
+  },
+});
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -154,6 +169,7 @@ const AppRoutes = () => (
       <Route path="/settings/appearance" element={<AppearanceSettingsPage />} />
       <Route path="/settings/apps" element={<AppsSettingsPage />} />
       <Route path="/settings/intelligence" element={<IntelligenceSettingsPage />} />
+      <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
       <Route path="/settings/workspace/language" element={<WorkspaceLanguageSettingsPage />} />
       <Route path="/docs/system/ull" element={<ULLDeveloperContractPage />} />
       <Route path="/apps/workboard" element={<WorkboardLayout />}>
@@ -187,6 +203,7 @@ const App = () => (
                   <BrainCommandProvider>
                     <ErrorBoundary>
                       <AppRoutes />
+                      <OnboardingTour />
                     </ErrorBoundary>
                   </BrainCommandProvider>
                 </LanguageProvider>

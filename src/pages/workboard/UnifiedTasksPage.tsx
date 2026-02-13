@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
+import { TaskListSkeleton } from '@/components/ui/list-skeleton';
 
 type ViewMode = 'today' | 'week' | 'all';
 type AssignmentFilter = 'all' | 'mine' | 'team';
@@ -150,7 +151,7 @@ export default function UnifiedTasksPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center py-12 text-muted-foreground">{t('workboard.loading')}</div>;
+  if (loading) return <TaskListSkeleton count={6} />;
 
   // ========== TODAY VIEW ==========
   const renderTodayView = () => {
