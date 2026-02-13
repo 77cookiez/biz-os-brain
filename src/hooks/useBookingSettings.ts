@@ -28,6 +28,11 @@ export interface BookingSettings {
   distribution_mode: string;
   whatsapp_number: string | null;
   contact_email: string | null;
+  app_name: string | null;
+  app_icon_url: string | null;
+  app_splash_url: string | null;
+  app_description: string | null;
+  app_bundle_id: string | null;
   created_at: string;
   updated_at: string;
 }

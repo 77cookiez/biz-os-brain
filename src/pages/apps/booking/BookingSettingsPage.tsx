@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Settings, Rocket, Globe, Copy, ExternalLink, Check } from 'lucide-react';
+import { Settings, Rocket, Globe, Copy, ExternalLink, Check, Smartphone, Download, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import BookingSetupWizard from './BookingSetupWizard';
 
 function getPublicBaseUrl(): string {
@@ -28,6 +29,7 @@ export default function BookingSettingsPage() {
   const { currentWorkspace } = useWorkspace();
   const [showWizard, setShowWizard] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const publicUrl = settings?.tenant_slug
     ? `${getPublicBaseUrl()}/b/${settings.tenant_slug}`
@@ -43,6 +45,40 @@ export default function BookingSettingsPage() {
 
   const handleLogoChange = (url: string | null) => {
     upsertSettings.mutate({ logo_url: url } as any);
+  };
+
+  const handleDownloadAppPack = async () => {
+    if (!settings?.tenant_slug) return;
+    setDownloading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-app-pack`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ workspace_id: currentWorkspace?.id }),
+        }
+      );
+      if (!res.ok) throw new Error('Failed to generate');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bookivo-app-pack-${settings.tenant_slug}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('booking.settings.packDownloaded'));
+    } catch {
+      toast.error(t('booking.settings.packDownloadFailed'));
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (isLoading) {
@@ -123,6 +159,89 @@ export default function BookingSettingsPage() {
               workspaceId={currentWorkspace.id}
               onUploadComplete={handleLogoChange}
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Your App Card - show when live and has app data */}
+      {settings?.is_live && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Smartphone className="h-4 w-4 text-primary" />
+              {t('booking.settings.yourApp', 'Your App')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {(settings as any)?.app_name ? (
+              <>
+                <div className="flex items-center gap-4">
+                  {(settings as any)?.app_icon_url && (
+                    <img
+                      src={(settings as any).app_icon_url}
+                      alt="App Icon"
+                      className="h-16 w-16 rounded-[22%] object-cover ring-1 ring-border shadow-md"
+                    />
+                  )}
+                  <div>
+                    <p className="font-medium text-foreground">{(settings as any).app_name}</p>
+                    {(settings as any)?.app_description && (
+                      <p className="text-sm text-muted-foreground mt-0.5">{(settings as any).app_description}</p>
+                    )}
+                    {settings.tenant_slug && (
+                      <p className="text-xs font-mono text-muted-foreground mt-1" dir="ltr">
+                        com.bookivo.{settings.tenant_slug}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setShowWizard(true)}>
+                    {t('booking.settings.editApp', 'Edit App')}
+                  </Button>
+                  <Button size="sm" onClick={handleDownloadAppPack} disabled={downloading}>
+                    {downloading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 me-1 animate-spin" />
+                        {t('booking.settings.downloadingPack', 'Generating...')}
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 me-1" />
+                        {t('booking.settings.downloadAppPack', 'Download App Pack')}
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {/* Requirements checklist */}
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">{t('booking.settings.requirements', 'Requirements')}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    {t('booking.settings.requireAppleDev')}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    {t('booking.settings.requireGoogleDev')}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    {t('booking.settings.requireMac')}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />
+                    {t('booking.settings.requireNode')}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                <p>{t('booking.settings.yourAppDesc')}</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowWizard(true)}>
+                  {t('booking.settings.editApp', 'Set up your app')}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

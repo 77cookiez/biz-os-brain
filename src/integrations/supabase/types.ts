@@ -710,6 +710,11 @@ export type Database = {
         Row: {
           accent_color: string | null
           ai_booking_assistant_enabled: boolean
+          app_bundle_id: string | null
+          app_description: string | null
+          app_icon_url: string | null
+          app_name: string | null
+          app_splash_url: string | null
           cancellation_policy: string
           commission_mode: string
           commission_rate: number | null
@@ -737,6 +742,11 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           ai_booking_assistant_enabled?: boolean
+          app_bundle_id?: string | null
+          app_description?: string | null
+          app_icon_url?: string | null
+          app_name?: string | null
+          app_splash_url?: string | null
           cancellation_policy?: string
           commission_mode?: string
           commission_rate?: number | null
@@ -764,6 +774,11 @@ export type Database = {
         Update: {
           accent_color?: string | null
           ai_booking_assistant_enabled?: boolean
+          app_bundle_id?: string | null
+          app_description?: string | null
+          app_icon_url?: string | null
+          app_name?: string | null
+          app_splash_url?: string | null
           cancellation_policy?: string
           commission_mode?: string
           commission_rate?: number | null

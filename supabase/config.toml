@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.enterprise-risk-compute]
 verify_jwt = false
+
+[functions.generate-app-pack]
+verify_jwt = false
