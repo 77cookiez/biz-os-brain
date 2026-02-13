@@ -2603,10 +2603,15 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_workspace_admin: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      workspace_id_from_path: { Args: { path: string }; Returns: string }
     }
     Enums: {
       app_pricing: "free" | "paid" | "subscription"

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, X, Loader2, Upload } from 'lucide-react';
+import { Camera, X, Loader2, Upload, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +18,7 @@ const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: LogoUploadProps) {
   const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +44,9 @@ export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: Lo
       const fileExt = file.name.split('.').pop();
       const filePath = `${workspaceId}/logo-${Date.now()}.${fileExt}`;
 
+      // Remove old logos first
+      await removeOldLogos();
+
       const { error: uploadError } = await supabase.storage
         .from('booking-assets')
         .upload(filePath, file, { upsert: true });
@@ -65,13 +69,39 @@ export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: Lo
     }
   };
 
-  const removeLogo = () => {
-    setPreviewUrl(null);
-    onUploadComplete(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+  const removeOldLogos = async () => {
+    try {
+      const { data: files } = await supabase.storage
+        .from('booking-assets')
+        .list(workspaceId, { search: 'logo-' });
+
+      if (files && files.length > 0) {
+        const filesToRemove = files.map(f => `${workspaceId}/${f.name}`);
+        await supabase.storage.from('booking-assets').remove(filesToRemove);
+      }
+    } catch {
+      // Non-fatal — old files stay, new one still uploads
+    }
+  };
+
+  const removeLogo = async () => {
+    setRemoving(true);
+    try {
+      await removeOldLogos();
+      setPreviewUrl(null);
+      onUploadComplete(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      toast.success(t('booking.wizard.brand.logoRemoved', 'Logo removed'));
+    } catch (error) {
+      console.error('Error removing logo:', error);
+      toast.error(t('booking.wizard.brand.logoRemoveFailed', 'Failed to remove logo'));
+    } finally {
+      setRemoving(false);
+    }
   };
 
   const displayUrl = previewUrl || currentLogoUrl;
+  const busy = uploading || removing;
 
   return (
     <div className="space-y-2">
@@ -85,7 +115,7 @@ export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: Lo
                 alt="Logo"
                 className="h-16 w-16 rounded-lg object-contain ring-1 ring-border bg-muted"
               />
-              {!uploading && (
+              {!busy && (
                 <button
                   type="button"
                   onClick={removeLogo}
@@ -100,7 +130,7 @@ export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: Lo
               <Camera className="h-6 w-6 text-muted-foreground" />
             </div>
           )}
-          {uploading && (
+          {busy && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-lg">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
@@ -119,7 +149,7 @@ export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: Lo
             variant="outline"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
+            disabled={busy}
           >
             {uploading ? (
               <>
