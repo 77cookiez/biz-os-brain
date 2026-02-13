@@ -13,13 +13,14 @@ import {
   getRiskBarColor,
   computeRiskLevel,
 } from '@/hooks/useEnterpriseRisk';
+import RiskHeatmap from '@/components/enterprise/RiskHeatmap';
 
 const RISK_TYPES = ['execution', 'alignment', 'engagement', 'governance'];
 
 export default function RiskDashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { companyScores, overallScore, compute, isComputing, isLoading } = useCompanyRisk();
+  const { companyScores, companySnapshots, overallScore, compute, isComputing, isLoading } = useCompanyRisk();
   const overallLevel = computeRiskLevel(overallScore);
 
   if (isLoading) {
@@ -87,6 +88,8 @@ export default function RiskDashboardPage() {
           );
         })}
       </div>
+
+      <RiskHeatmap snapshots={companySnapshots} />
 
       {companyScores.length === 0 && (
         <Card className="border-border bg-card">
