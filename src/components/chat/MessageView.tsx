@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { MoreVertical, Trash2, CheckCheck, ListPlus, CircleCheck, Loader2, FileIcon, Download } from 'lucide-react';
 import { useChatTaskLinks } from '@/hooks/useChatTaskLinks';
+import { useChatReactions } from '@/hooks/useChatReactions';
+import { MessageReactions, ReactionPicker } from '@/components/chat/MessageReactions';
 import { useNavigate } from 'react-router-dom';
 import type { ChatMessage, ChatAttachment } from '@/hooks/useChatMessages';
 
@@ -22,6 +24,7 @@ interface MessageViewProps {
   onCreateTaskFromMessage?: (message: ChatMessage) => void;
   isAdmin?: boolean;
   showWelcome?: boolean;
+  threadId?: string | null;
 }
 
 function extractFallback(meaningJson?: Record<string, unknown>): string {
@@ -111,7 +114,7 @@ function AttachmentDisplay({ attachments, isOwn }: { attachments: ChatAttachment
   );
 }
 
-export function MessageView({ messages, loading, loadingMore, hasMore, onLoadMore, typingUsers = [], onDeleteMessage, onCreateTaskFromMessage, isAdmin, showWelcome }: MessageViewProps) {
+export function MessageView({ messages, loading, loadingMore, hasMore, onLoadMore, typingUsers = [], onDeleteMessage, onCreateTaskFromMessage, isAdmin, showWelcome, threadId }: MessageViewProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -124,6 +127,9 @@ export function MessageView({ messages, loading, loadingMore, hasMore, onLoadMor
   // Chat → Task awareness: detect which messages have linked tasks
   const messageIds = useMemo(() => messages.map(m => m.id), [messages]);
   const { links: taskLinks } = useChatTaskLinks(messageIds);
+
+  // Reactions
+  const { reactions, toggleReaction } = useChatReactions(threadId ?? null, messageIds);
 
   // Auto-scroll to bottom only for new messages (not when loading older)
   useEffect(() => {
@@ -274,6 +280,12 @@ export function MessageView({ messages, loading, loadingMore, hasMore, onLoadMor
                   </span>
                 </div>
 
+                {/* Reaction picker — hover to reveal */}
+                <ReactionPicker
+                  onSelect={(emoji) => toggleReaction(msg.id, emoji)}
+                  isOwn={isOwn}
+                />
+
                 {/* Action menu — hover to reveal */}
                 {(hasActions || canCreateTask) && (
                   <DropdownMenu>
@@ -310,6 +322,15 @@ export function MessageView({ messages, loading, loadingMore, hasMore, onLoadMor
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                )}
+
+                {/* Reactions display */}
+                {reactions[msg.id] && reactions[msg.id].length > 0 && (
+                  <MessageReactions
+                    reactions={reactions[msg.id]}
+                    onToggle={(emoji) => toggleReaction(msg.id, emoji)}
+                    isOwn={isOwn}
+                  />
                 )}
 
                 {/* Awareness tag: "Task created" */}

@@ -173,6 +173,7 @@ export default function ChatPage() {
               onCreateTaskFromMessage={createTaskFromMessage}
               isAdmin={isAdmin}
               showWelcome={showWelcome}
+              threadId={selectedThreadId}
             />
             <MessageComposer onSend={handleSend} onTyping={broadcastTyping} />
           </>
