@@ -72,7 +72,7 @@ export function PublicFooter({
                 to={`/b/${tenantSlug}/request`}
                 className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                {t('booking.public.requestQuote')}
+                {t('booking.public.bookNow')}
               </Link>
               <Link
                 to={`/b/${tenantSlug}/my`}

@@ -127,7 +127,7 @@ export default function PublicRequestQuotePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('booking.public.requestQuote')}</CardTitle>
+          <CardTitle>{t('booking.public.bookNow')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
