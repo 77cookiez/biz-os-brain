@@ -3,11 +3,14 @@ import { Calendar, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useBrainChat } from '@/hooks/useBrainChat';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useOILIndicators } from '@/hooks/useOILIndicators';
+import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 import StepWeekGlance from '@/components/checkin/StepWeekGlance';
 import StepGoalReview, { type GoalReview } from '@/components/checkin/StepGoalReview';
 import StepCompleted from '@/components/checkin/StepCompleted';
@@ -39,6 +42,7 @@ export default function WeeklyCheckinPage() {
 
   const { currentWorkspace } = useWorkspace();
   const { user } = useAuth();
+  const { currentLanguage } = useLanguage();
   const { sendMessage, messages, isLoading } = useBrainChat();
   const { coreIndicators } = useOILIndicators();
   const { t } = useTranslation();
@@ -303,13 +307,28 @@ Keep it brief and actionable. Focus on decisions made, not data collected.`;
 
     const tasksToCreate = actionItems.filter(a => a.type === 'task' && !a.applied);
     for (const item of tasksToCreate) {
-      await supabase.from('tasks').insert({
+      const meaningId = await createMeaningObject({
+        workspaceId: currentWorkspace.id,
+        createdBy: user.id,
+        type: 'TASK',
+        sourceLang: currentLanguage.code,
+        meaningJson: buildMeaningFromText({
+          type: 'TASK',
+          title: item.title,
+          createdFrom: 'brain',
+        }),
+      });
+      const insertPayload = {
         title: item.title,
         workspace_id: currentWorkspace.id,
         created_by: user.id,
-        status: 'planned',
+        status: 'planned' as const,
         week_bucket: weekStart.toISOString().split('T')[0],
-      });
+        source_lang: currentLanguage.code,
+        meaning_object_id: meaningId,
+      };
+      guardMeaningInsert('tasks', insertPayload);
+      await supabase.from('tasks').insert(insertPayload);
     }
     setActionItems(prev => prev.map(a => ({ ...a, applied: true })));
 

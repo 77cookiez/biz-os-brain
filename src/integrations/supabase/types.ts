@@ -97,12 +97,56 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brain_messages: {
         Row: {
           content: string
           created_at: string
           id: string
-          meaning_object_id: string | null
+          meaning_object_id: string
           metadata: Json | null
           role: string
           source_lang: string | null
@@ -113,7 +157,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
-          meaning_object_id?: string | null
+          meaning_object_id: string
           metadata?: Json | null
           role: string
           source_lang?: string | null
@@ -124,7 +168,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
-          meaning_object_id?: string | null
+          meaning_object_id?: string
           metadata?: Json | null
           role?: string
           source_lang?: string | null
@@ -524,7 +568,7 @@ export type Database = {
           kpi_current: number | null
           kpi_name: string | null
           kpi_target: number | null
-          meaning_object_id: string | null
+          meaning_object_id: string
           source_lang: string | null
           status: string
           title: string
@@ -540,7 +584,7 @@ export type Database = {
           kpi_current?: number | null
           kpi_name?: string | null
           kpi_target?: number | null
-          meaning_object_id?: string | null
+          meaning_object_id: string
           source_lang?: string | null
           status?: string
           title: string
@@ -556,7 +600,7 @@ export type Database = {
           kpi_current?: number | null
           kpi_name?: string | null
           kpi_target?: number | null
-          meaning_object_id?: string | null
+          meaning_object_id?: string
           source_lang?: string | null
           status?: string
           title?: string
@@ -586,7 +630,7 @@ export type Database = {
           created_by: string
           description: string | null
           id: string
-          meaning_object_id: string | null
+          meaning_object_id: string
           source: string
           source_lang: string | null
           status: string
@@ -599,7 +643,7 @@ export type Database = {
           created_by: string
           description?: string | null
           id?: string
-          meaning_object_id?: string | null
+          meaning_object_id: string
           source?: string
           source_lang?: string | null
           status?: string
@@ -612,7 +656,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           id?: string
-          meaning_object_id?: string | null
+          meaning_object_id?: string
           source?: string
           source_lang?: string | null
           status?: string
@@ -887,7 +931,7 @@ export type Database = {
           description: string | null
           goal_id: string | null
           id: string
-          meaning_object_id: string | null
+          meaning_object_id: string
           plan_type: Database["public"]["Enums"]["plan_type"]
           source_lang: string | null
           title: string
@@ -902,7 +946,7 @@ export type Database = {
           description?: string | null
           goal_id?: string | null
           id?: string
-          meaning_object_id?: string | null
+          meaning_object_id: string
           plan_type?: Database["public"]["Enums"]["plan_type"]
           source_lang?: string | null
           title: string
@@ -917,7 +961,7 @@ export type Database = {
           description?: string | null
           goal_id?: string | null
           id?: string
-          meaning_object_id?: string | null
+          meaning_object_id?: string
           plan_type?: Database["public"]["Enums"]["plan_type"]
           source_lang?: string | null
           title?: string
@@ -997,7 +1041,7 @@ export type Database = {
           goal_id: string | null
           id: string
           is_priority: boolean | null
-          meaning_object_id: string | null
+          meaning_object_id: string
           plan_id: string | null
           priority: number | null
           source_lang: string | null
@@ -1021,7 +1065,7 @@ export type Database = {
           goal_id?: string | null
           id?: string
           is_priority?: boolean | null
-          meaning_object_id?: string | null
+          meaning_object_id: string
           plan_id?: string | null
           priority?: number | null
           source_lang?: string | null
@@ -1045,7 +1089,7 @@ export type Database = {
           goal_id?: string | null
           id?: string
           is_priority?: boolean | null
-          meaning_object_id?: string | null
+          meaning_object_id?: string
           plan_id?: string | null
           priority?: number | null
           source_lang?: string | null
@@ -1356,6 +1400,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_org_events: { Args: never; Returns: undefined }
+      cleanup_stale_memory: { Args: never; Returns: undefined }
       get_workspace_company: {
         Args: { _workspace_id: string }
         Returns: string

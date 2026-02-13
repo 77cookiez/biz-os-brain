@@ -8,6 +8,7 @@ import { WorkspaceProvider, useWorkspace } from "@/contexts/WorkspaceContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { BrainCommandProvider } from "@/contexts/BrainCommandContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "@/i18n";
 import { OSLayout } from "@/components/OSLayout";
 import AuthPage from "@/pages/AuthPage";
@@ -173,25 +174,29 @@ const AppRoutes = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ThemeProvider>
-          <AuthProvider>
-            <WorkspaceProvider>
-              <LanguageProvider>
-                <BrainCommandProvider>
-                  <AppRoutes />
-                </BrainCommandProvider>
-              </LanguageProvider>
-            </WorkspaceProvider>
-          </AuthProvider>
-        </ThemeProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ThemeProvider>
+            <AuthProvider>
+              <WorkspaceProvider>
+                <LanguageProvider>
+                  <BrainCommandProvider>
+                    <ErrorBoundary>
+                      <AppRoutes />
+                    </ErrorBoundary>
+                  </BrainCommandProvider>
+                </LanguageProvider>
+              </WorkspaceProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
