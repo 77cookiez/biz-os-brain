@@ -18,7 +18,7 @@ export default function VendorPortalLayout() {
       if (!tenantSlug || !user) return null;
       const { data: settings } = await supabase
         .from('booking_settings')
-        .select('workspace_id')
+        .select('workspace_id, primary_color, accent_color, logo_url')
         .eq('tenant_slug', tenantSlug)
         .eq('is_live', true)
         .maybeSingle();
@@ -31,7 +31,7 @@ export default function VendorPortalLayout() {
         .eq('owner_user_id', user.id)
         .maybeSingle();
 
-      return { workspaceId: settings.workspace_id, vendor };
+      return { workspaceId: settings.workspace_id, vendor, primaryColor: settings.primary_color, accentColor: settings.accent_color };
     },
     enabled: !!tenantSlug && !!user,
   });
@@ -56,6 +56,7 @@ export default function VendorPortalLayout() {
   }
 
   const basePath = `/v/${tenantSlug}`;
+  const tenantPrimary = data?.primaryColor || undefined;
   const tabs = [
     { labelKey: 'booking.vendor.dashboard', icon: LayoutDashboard, path: basePath },
     { labelKey: 'booking.vendor.quotes', icon: MessageSquare, path: `${basePath}/quotes` },
@@ -64,8 +65,8 @@ export default function VendorPortalLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card px-4 py-3">
+    <div className="min-h-screen bg-background" style={tenantPrimary ? { '--tenant-primary': tenantPrimary } as React.CSSProperties : {}}>
+      <header className="border-b border-border bg-card px-4 py-3" style={tenantPrimary ? { borderBottomColor: `${tenantPrimary}30` } : {}}>
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <span className="text-lg font-semibold text-foreground">{t('booking.vendor.portalTitle')}</span>
         </div>
@@ -83,6 +84,7 @@ export default function VendorPortalLayout() {
                   isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'
                 )
               }
+              style={({ isActive }) => isActive && tenantPrimary ? { color: tenantPrimary, borderBottomColor: tenantPrimary } : {}}
             >
               <tab.icon className="h-4 w-4" />
               <span className="hidden sm:inline">{t(tab.labelKey)}</span>

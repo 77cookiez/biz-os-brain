@@ -21,8 +21,23 @@ export function NotificationBell() {
     if (!notification.read_at) {
       markAsRead(notification.id);
     }
-    // Deep link based on type
     const data = notification.data_json as Record<string, string>;
+
+    // Booking deep-links
+    if (notification.type === 'booking.new_quote_request') {
+      navigate(data?.link || '/apps/booking/quotes');
+      return;
+    }
+    if (notification.type === 'booking.quote_sent') {
+      navigate(data?.link || '/apps/booking/quotes');
+      return;
+    }
+    if (notification.type === 'booking.quote_accepted') {
+      navigate(data?.link || '/apps/booking/quotes');
+      return;
+    }
+
+    // Generic deep-link
     if (data?.link) {
       navigate(data.link);
     } else if (notification.type === 'weekly_digest') {
