@@ -1,136 +1,103 @@
 
 
-# Phase 4 Hardening: Dynamic Branding, SEO, Public RLS & Gap Fixes
+# Make Booking Setup Wizard Production-Ready
 
-## Summary
+## Current State Analysis
 
-After a thorough audit of the entire Booking OS (public pages, vendor portal, chat, notifications, hooks, and database policies), I found **7 critical gaps** that need to be addressed to make this production-ready.
+After reviewing the codebase, I found these gaps preventing the wizard from being truly functional:
 
----
-
-## Identified Gaps
-
-| # | Gap | Severity |
-|---|-----|----------|
-| 1 | **No anonymous RLS policies** -- public pages `/b/:tenantSlug` will fail for unauthenticated visitors | Critical |
-| 2 | **No dynamic tenant branding** -- public pages use OS default theme, not tenant's `primary_color`/`accent_color`/`logo_url` | High |
-| 3 | **No SEO meta tags** -- no `document.title` or OG tags for public pages; all show "Lovable App" | High |
-| 4 | **No GCC currency formatter** -- prices show raw `AED 500` instead of properly formatted currency | Medium |
-| 5 | **WhatsApp link missing in vendor detail** -- data is fetched but never rendered on `PublicVendorDetailPage` | Medium |
-| 6 | **Notification deep-links missing for booking types** -- clicking booking notifications does nothing | Medium |
-| 7 | **No mobile bottom navigation** on public pages -- header nav hides labels on mobile, no bottom bar | Medium |
+| # | Issue | Impact |
+|---|-------|--------|
+| 1 | **No logo upload** in the Brand step -- `logo_url` column exists but there is no UI to upload a logo | High -- branding is incomplete |
+| 2 | **No slug uniqueness check** -- DB has `UNIQUE` constraint but the UI does not warn until save fails | High -- confusing error |
+| 3 | **Slug input is correct** -- already filters `[^a-z0-9-]` (letters, numbers, hyphens only) | OK |
+| 4 | **No storage bucket** for booking logos/assets | Blocker for logo upload |
+| 5 | **No live preview URL** shown after launch -- user does not know where to find their public site | Medium |
+| 6 | **Settings page lacks quick-edit** -- after going live, no way to change logo or see public URL directly | Medium |
 
 ---
 
 ## Implementation Plan
 
-### 1. Database Migration: Anonymous RLS Policies
+### 1. Create Storage Bucket: `booking-assets`
 
-Create `SELECT` policies for `anon` and `authenticated` roles on 6 tables, scoped to live tenants only:
+Create a new public storage bucket `booking-assets` for tenant logos and branding images. Add a storage policy allowing authenticated workspace admins to upload/delete files scoped to their workspace folder (`{workspace_id}/*`).
 
-- `booking_settings` -- WHERE `is_live = true` (by `tenant_slug`)
-- `booking_vendors` -- WHERE `status = 'approved'` and workspace has live booking_settings
-- `booking_vendor_profiles` -- linked via vendor
-- `booking_services` -- WHERE `is_active = true`
-- `meaning_objects` -- for ULLText rendering on public pages
-- `content_translations` -- for ULL cache on public pages
-- `workspaces` -- SELECT `id, name` only (for tenant header display)
+### 2. Add Logo Upload to Wizard (Step 1: Brand)
 
-All policies will restrict to read-only access and only expose data belonging to live marketplaces.
+Add a logo upload section to the Brand step in `BookingSetupWizard.tsx`:
+- File input with image preview (max 2MB, jpg/png/webp)
+- Uploads to `booking-assets/{workspace_id}/logo.{ext}`
+- Stores the public URL in `logo_url` field
+- Shows current logo if one exists
+- Includes a "Remove" button
 
-### 2. GCC Currency Formatter Utility
+### 3. Real-Time Slug Availability Check
 
-Create `src/lib/formatCurrency.ts`:
-- Uses `Intl.NumberFormat` with locale-aware formatting
-- Supports all GCC currencies (AED, SAR, QAR, KWD, BHD, OMR)
-- Handles Arabic locale (ar-AE) for RTL number formatting
-- Used across all public pages and vendor portal wherever prices are displayed
+Add a debounced uniqueness check on the slug input (Step 4):
+- Query `booking_settings` for existing `tenant_slug` (excluding current workspace)
+- Show a green checkmark if available, red X if taken
+- Block "Launch" button if slug is taken
+- Use `useQuery` with debounced slug value
 
-### 3. Dynamic Tenant Branding (PublicBookingLayout)
+### 4. Show Full Public URL After Launch
 
-Update `PublicBookingLayout.tsx` to:
-- Apply `primary_color` and `accent_color` from `booking_settings` as CSS custom properties (`--tenant-primary`, `--tenant-accent`) on the layout wrapper
-- Use inline `style` attribute to inject tenant colors into header, buttons, and active nav states
-- Show `logo_url` in header (already partially done, needs polish)
-- Apply tenant colors to child pages via CSS variables cascading down
+Update `BookingSettingsPage.tsx`:
+- After `is_live = true`, show the complete public URL as a clickable link: `https://{published-domain}/b/{tenant_slug}`
+- Add a "Copy Link" button next to the URL
+- Add an "Open Public Site" button that opens in a new tab
 
-### 4. SEO: Dynamic Document Title & Meta Tags
+### 5. Database Migration
 
-Create a `useDocumentMeta` hook:
-- Sets `document.title` dynamically based on current page/tenant
-- Updates OG meta tags for social sharing
-- Applied in `PublicBookingLayout` (tenant name), `PublicVendorDetailPage` (vendor name), and `PublicBrowsePage`
-
-### 5. WhatsApp Link on Vendor Detail Page
-
-Update `PublicVendorDetailPage.tsx`:
-- Add WhatsApp button when `vendor.profile?.whatsapp` exists
-- Links to `https://wa.me/{number}` with a pre-filled message
-- Styled as a green CTA button, mobile-friendly
-- Add contact email link if available
-
-### 6. Notification Deep-Links for Booking Events
-
-Update `NotificationBell.tsx` to handle booking notification types:
-- `booking.new_quote_request` -- navigates to `/apps/booking/quotes`
-- `booking.quote_sent` -- navigates to `/b/{tenantSlug}/my` (for customers) or falls back to quote requests
-- `booking.quote_accepted` -- navigates to `/apps/booking/quotes`
-- Uses `data_json.quote_request_id` and `data_json.vendor_id` for deep linking
-
-### 7. Mobile Bottom Navigation for Public Pages
-
-Add a fixed bottom nav bar to `PublicBookingLayout`:
-- Shows on screens below `sm` breakpoint
-- Contains: Browse (Search icon), Request Quote (Plus icon), My Bookings (User icon)
-- Uses tenant `primary_color` for active state
-- Hides the top nav labels on mobile (already done), bottom nav compensates
+Add a storage bucket and policy via migration:
+- Create `booking-assets` public bucket
+- Add storage policies for authenticated upload/delete scoped to workspace
 
 ---
 
 ## Technical Details
 
-### File Changes
+### Files to Create
 
-| File | Action |
-|------|--------|
-| `supabase/migrations/new_migration.sql` | Create -- anon RLS policies for 6 tables |
-| `src/lib/formatCurrency.ts` | Create -- GCC currency formatting utility |
-| `src/hooks/useDocumentMeta.ts` | Create -- dynamic SEO meta tag hook |
-| `src/pages/public/booking/PublicBookingLayout.tsx` | Edit -- dynamic branding CSS vars + bottom nav + SEO |
-| `src/pages/public/booking/PublicBrowsePage.tsx` | Edit -- use formatCurrency |
-| `src/pages/public/booking/PublicVendorDetailPage.tsx` | Edit -- WhatsApp/email links + formatCurrency + SEO |
-| `src/pages/public/booking/PublicRequestQuotePage.tsx` | Edit -- formatCurrency for service prices |
-| `src/pages/public/booking/PublicMyBookingsPage.tsx` | Edit -- formatCurrency |
-| `src/pages/vendor/VendorDashboardPage.tsx` | Edit -- formatCurrency |
-| `src/pages/vendor/VendorQuotesPage.tsx` | Edit -- formatCurrency |
-| `src/pages/vendor/VendorPortalLayout.tsx` | Edit -- dynamic branding for vendor portal |
-| `src/components/notifications/NotificationBell.tsx` | Edit -- booking notification deep-links |
+| File | Purpose |
+|------|---------|
+| `src/components/booking/LogoUpload.tsx` | Reusable logo upload component with preview, upload, and remove |
+| Migration SQL | Storage bucket + policies |
 
-### RLS Policy Pattern (example)
+### Files to Edit
+
+| File | Changes |
+|------|---------|
+| `src/pages/apps/booking/BookingSetupWizard.tsx` | Add LogoUpload to Step 1; add slug availability check to Step 4 |
+| `src/pages/apps/booking/BookingSettingsPage.tsx` | Show full public URL with copy/open buttons when live |
+| `src/hooks/useBookingSettings.ts` | No changes needed -- already handles logo_url in upsert |
+
+### Logo Upload Flow
 
 ```text
-CREATE POLICY "anon_browse_booking_settings"
-ON public.booking_settings
-FOR SELECT
-TO anon, authenticated
-USING (is_live = true AND tenant_slug IS NOT NULL);
+User selects file
+  --> Validate (type: jpg/png/webp, size: < 2MB)
+  --> Upload to booking-assets/{workspaceId}/logo-{timestamp}.{ext}
+  --> Get public URL
+  --> Update local wizard state (logo_url = publicURL)
+  --> On wizard save, logo_url is persisted to booking_settings
 ```
 
-### Currency Formatter Pattern
+### Slug Availability Check Pattern
 
 ```text
-formatCurrency(500, 'AED', 'ar')  -->  "500.00 د.إ"
-formatCurrency(500, 'AED', 'en')  -->  "AED 500.00"
+User types slug
+  --> Debounce 500ms
+  --> Query: SELECT id FROM booking_settings WHERE tenant_slug = :slug AND workspace_id != :currentWsId
+  --> If row exists: show "Taken" indicator, disable Launch
+  --> If no row: show "Available" indicator
 ```
 
-### Branding CSS Variables Pattern
+### Settings Page Enhancement
 
-```text
-<div style={{
-  '--tenant-primary': settings.primary_color,
-  '--tenant-accent': settings.accent_color,
-}}>
-  <!-- children inherit these colors -->
-</div>
-```
+After going live, the settings page will show:
+- Public URL as a styled card with copy-to-clipboard
+- "Open Public Site" button (opens `/b/{slug}` in new tab)
+- Current logo preview with option to change
+- Quick status indicator (Live / Draft)
 
