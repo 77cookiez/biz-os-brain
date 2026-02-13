@@ -4,6 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { createMeaningObject } from '@/lib/meaningObject';
+import { guardMeaningInsert } from '@/lib/meaningGuard';
 import type { MeaningJsonV1 } from '@/lib/meaningObject';
 
 export interface ChatMessage {
@@ -140,15 +141,19 @@ export function useChatMessages(threadId: string | null) {
 
     if (!meaningId) return false;
 
+    const insertPayload = {
+      workspace_id: currentWorkspace.id,
+      thread_id: threadId,
+      sender_user_id: user.id,
+      meaning_object_id: meaningId,
+      source_lang: sourceLang,
+    };
+
+    guardMeaningInsert('chat_messages', insertPayload, { block: true });
+
     const { error } = await supabase
       .from('chat_messages')
-      .insert({
-        workspace_id: currentWorkspace.id,
-        thread_id: threadId,
-        sender_user_id: user.id,
-        meaning_object_id: meaningId,
-        source_lang: sourceLang,
-      });
+      .insert(insertPayload);
 
     if (error) {
       console.error('[Chat] Failed to send message:', error.message);
