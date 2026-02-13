@@ -289,9 +289,9 @@ export default function PublicBookingLayout() {
         </nav>
       )}
 
-      {/* Sticky mobile CTA (hide on auth/request pages) */}
-      {isMobile && !isAuthPage && !location.pathname.includes('/request') && (
-        <div className="fixed bottom-14 inset-x-0 z-40 px-4 py-2 bg-card/90 backdrop-blur-sm border-t border-border">
+      {/* Sticky mobile CTA (only on browse + vendor detail pages) */}
+      {isMobile && !isAuthPage && !location.pathname.includes('/request') && !location.pathname.includes('/my') && !location.pathname.includes('/auth') && (
+        <div className="fixed bottom-16 inset-x-0 z-40 px-4 py-2 bg-card/90 backdrop-blur-sm border-t border-border">
           <Link to={`/b/${tenantSlug}/request`} className="block">
             <Button
               className="w-full rounded-full font-semibold gap-2"
