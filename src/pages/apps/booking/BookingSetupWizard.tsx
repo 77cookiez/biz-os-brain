@@ -14,10 +14,11 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LogoUpload } from '@/components/booking/LogoUpload';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  LayoutGrid, Palette, Banknote, ShieldCheck, Rocket,
+  LayoutGrid, Palette, Banknote, ShieldCheck, Rocket, Smartphone as SmartphoneIcon,
   ArrowLeft, ArrowRight, Check, Globe, Smartphone, Building2,
-  CheckCircle2, XCircle, Loader2,
+  CheckCircle2, XCircle, Loader2, Upload, Camera,
 } from 'lucide-react';
 
 const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'] as const;
@@ -41,16 +42,21 @@ interface WizardData {
   whatsapp_number: string;
   contact_email: string;
   tenant_slug: string;
+  app_name: string;
+  app_icon_url: string | null;
+  app_splash_url: string | null;
+  app_description: string;
 }
 
-const STEP_ICONS = [LayoutGrid, Palette, Banknote, ShieldCheck, Rocket];
+const STEP_ICONS = [LayoutGrid, Palette, Banknote, ShieldCheck, SmartphoneIcon, Rocket];
 
 export default function BookingSetupWizard({ onComplete }: { onComplete?: () => void }) {
   const { t } = useTranslation();
   const { settings, upsertSettings } = useBookingSettings();
   const { currentWorkspace } = useWorkspace();
   const [step, setStep] = useState(0);
-  const totalSteps = 5;
+  const totalSteps = 6;
+  const [appIconUploading, setAppIconUploading] = useState(false);
 
   const [data, setData] = useState<WizardData>({
     theme_template: settings?.theme_template ?? 'marketplace',
@@ -68,6 +74,10 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     whatsapp_number: settings?.whatsapp_number ?? '',
     contact_email: settings?.contact_email ?? '',
     tenant_slug: settings?.tenant_slug ?? '',
+    app_name: (settings as any)?.app_name ?? '',
+    app_icon_url: (settings as any)?.app_icon_url ?? null,
+    app_splash_url: (settings as any)?.app_splash_url ?? null,
+    app_description: (settings as any)?.app_description ?? '',
   });
 
   // Debounced slug for availability check
@@ -103,8 +113,13 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     setData(prev => ({ ...prev, [key]: value }));
 
   const handleSave = async (goLive = false) => {
+    const saveData: Record<string, unknown> = {
+      ...data,
+      is_live: goLive,
+      app_bundle_id: data.tenant_slug ? `com.bookivo.${data.tenant_slug}` : null,
+    };
     upsertSettings.mutate(
-      { ...data, is_live: goLive } as any,
+      saveData as any,
       {
         onSuccess: async () => {
           if (goLive) {
@@ -131,8 +146,39 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     );
   };
 
+  const handleAppIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentWorkspace) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error(t('booking.wizard.app.iconInvalidType', 'Only PNG, JPG, or WebP images are allowed'));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error(t('booking.wizard.app.iconTooLarge', 'Icon must be under 5MB'));
+      return;
+    }
+    setAppIconUploading(true);
+    try {
+      const filePath = `${currentWorkspace.id}/app-icon-${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from('booking-assets')
+        .upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from('booking-assets')
+        .getPublicUrl(filePath);
+      update('app_icon_url', `${publicUrl}?t=${Date.now()}`);
+      toast.success(t('booking.wizard.app.iconUploaded', 'App icon uploaded'));
+    } catch {
+      toast.error(t('booking.wizard.app.iconUploadFailed', 'Failed to upload app icon'));
+    } finally {
+      setAppIconUploading(false);
+    }
+  };
+
   const canProceed = () => {
-    if (step === 4) return !!data.tenant_slug && data.tenant_slug.length >= 3 && !slugUnavailable;
+    if (step === 4) return data.app_name.length >= 3 && data.app_description.length >= 10;
+    if (step === 5) return !!data.tenant_slug && data.tenant_slug.length >= 3 && !slugUnavailable;
     return true;
   };
 
@@ -399,8 +445,130 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
         </Card>
       )}
 
-      {/* Step 4: Go Live */}
+      {/* Step 4: Your App */}
       {step === 4 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <SmartphoneIcon className="h-5 w-5" />
+              {t('booking.wizard.app.title', 'Your App')}
+            </CardTitle>
+            <CardDescription>{t('booking.wizard.app.subtitle', 'Set up your app identity for app stores')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* App Name */}
+            <div className="space-y-2">
+              <Label>{t('booking.wizard.app.nameLabel', 'App Name')}</Label>
+              <Input
+                value={data.app_name}
+                onChange={(e) => update('app_name', e.target.value.slice(0, 30))}
+                placeholder={t('booking.wizard.app.namePlaceholder', "e.g., Ali's Wedding Services")}
+                maxLength={30}
+              />
+              <p className="text-xs text-muted-foreground">
+                {data.app_name.length}/30 — {t('booking.wizard.app.nameHint', 'This appears on the phone home screen')}
+              </p>
+            </div>
+
+            {/* App Icon */}
+            <div className="space-y-2">
+              <Label>{t('booking.wizard.app.iconLabel', 'App Icon')}</Label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  {data.app_icon_url ? (
+                    <img
+                      src={data.app_icon_url}
+                      alt="App Icon"
+                      className="h-20 w-20 rounded-[22%] object-cover ring-1 ring-border shadow-md"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-[22%] bg-muted flex items-center justify-center ring-1 ring-border">
+                      <Camera className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  )}
+                  {appIconUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-[22%]">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleAppIconUpload}
+                    className="hidden"
+                    id="app-icon-input"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => document.getElementById('app-icon-input')?.click()}
+                    disabled={appIconUploading}
+                  >
+                    <Upload className="h-4 w-4 me-1" />
+                    {data.app_icon_url
+                      ? t('booking.wizard.app.changeIcon', 'Change')
+                      : t('booking.wizard.app.uploadIcon', 'Upload Icon')}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    {t('booking.wizard.app.iconHint', '1024×1024 PNG recommended. No transparency.')}
+                  </p>
+                </div>
+              </div>
+              {/* Phone preview */}
+              {data.app_icon_url && data.app_name && (
+                <div className="mt-3 flex flex-col items-center gap-1 p-4 bg-muted/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-2">{t('booking.wizard.app.preview', 'Home Screen Preview')}</p>
+                  <img
+                    src={data.app_icon_url}
+                    alt="Preview"
+                    className="h-14 w-14 rounded-[22%] shadow-md"
+                  />
+                  <span className="text-xs font-medium text-foreground mt-1 truncate max-w-[80px]">
+                    {data.app_name}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* App Description */}
+            <div className="space-y-2">
+              <Label>{t('booking.wizard.app.descriptionLabel', 'App Store Description')}</Label>
+              <Textarea
+                value={data.app_description}
+                onChange={(e) => update('app_description', e.target.value.slice(0, 170))}
+                placeholder={t('booking.wizard.app.descriptionPlaceholder', 'A short description of your app for the App Store')}
+                maxLength={170}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                {data.app_description.length}/170
+              </p>
+            </div>
+
+            {/* Auto-generated Bundle ID */}
+            {data.tenant_slug && (
+              <div className="space-y-2">
+                <Label>{t('booking.wizard.app.bundleId', 'Bundle ID')}</Label>
+                <Input
+                  value={`com.bookivo.${data.tenant_slug}`}
+                  readOnly
+                  className="font-mono text-sm bg-muted"
+                  dir="ltr"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t('booking.wizard.app.bundleIdHint', 'Auto-generated from your URL slug')}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Step 5: Go Live */}
+      {step === 5 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
