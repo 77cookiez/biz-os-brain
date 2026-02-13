@@ -1,6 +1,7 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { supabase } from '@/integrations/supabase/client';
+import { getCachedTranslation, setCachedTranslation, loadAllCachedTranslations, clearTranslationCache as clearIDBCache } from '@/lib/ullCache';
 
 const ULL_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ull-translate`;
 
@@ -28,6 +29,9 @@ function meaningCacheKey(meaningId: string, targetLang: string) {
 // Pending meaning translation requests — keyed by meaningId:targetLang
 const pendingMeaningRequests = new Set<string>();
 
+// Flag to track if we've hydrated from IndexedDB
+let hydratedFromIDB = false;
+
 export function useULL() {
   const { currentLanguage, contentLocale } = useLanguage();
   const targetLang = contentLocale || currentLanguage.code;
@@ -36,6 +40,24 @@ export function useULL() {
   const batchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const meaningQueue = useRef<string[]>([]);
   const meaningTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Hydrate from IndexedDB on first mount
+  useEffect(() => {
+    if (hydratedFromIDB) return;
+    hydratedFromIDB = true;
+    loadAllCachedTranslations().then(entries => {
+      if (entries.size > 0) {
+        for (const [key, text] of entries) {
+          if (key.startsWith('meaning:')) {
+            meaningCache.set(key, text);
+          } else {
+            translationCache.set(key, text);
+          }
+        }
+        forceUpdate(n => n + 1);
+      }
+    }).catch(() => { /* silent */ });
+  }, []);
 
   const flushBatch = useCallback(async () => {
     const items = [...batchQueue.current];
@@ -75,6 +97,8 @@ export function useULL() {
       for (const [compositeKey, translatedText] of Object.entries(translations)) {
         const fullKey = `${compositeKey}:${tl}`;
         translationCache.set(fullKey, translatedText);
+        // Persist to IndexedDB (fire-and-forget)
+        setCachedTranslation(fullKey, translatedText).catch(() => {});
       }
 
       forceUpdate(n => n + 1);
@@ -117,7 +141,10 @@ export function useULL() {
       const translations = data.translations as Record<string, string>;
 
       for (const [mId, translatedText] of Object.entries(translations)) {
-        meaningCache.set(meaningCacheKey(mId, tl), translatedText);
+        const cKey = meaningCacheKey(mId, tl);
+        meaningCache.set(cKey, translatedText);
+        // Persist to IndexedDB (fire-and-forget)
+        setCachedTranslation(cKey, translatedText).catch(() => {});
         pendingMeaningRequests.delete(`${mId}:${tl}`);
       }
       // Clear any ids that weren't in the response
@@ -193,4 +220,6 @@ export function clearULLCache() {
   translationCache.clear();
   meaningCache.clear();
   pendingMeaningRequests.clear();
+  hydratedFromIDB = false;
+  clearIDBCache().catch(() => {});
 }

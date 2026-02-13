@@ -21,7 +21,7 @@ type ProtectedTable = typeof MEANING_PROTECTED_TABLES[number];
 export function guardMeaningInsert(
   table: string,
   payload: Record<string, unknown> | Record<string, unknown>[],
-  options: { block?: boolean } = {}
+  options: { block?: boolean } = { block: true }
 ): boolean {
   if (!MEANING_PROTECTED_TABLES.includes(table as ProtectedTable)) {
     return true;

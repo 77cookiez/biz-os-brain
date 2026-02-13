@@ -28,15 +28,15 @@ serve(async (req) => {
     const anonClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const {
-      data: { user: caller },
-    } = await anonClient.auth.getUser();
-    if (!caller) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const callerId = claimsData.claims.sub as string;
 
     const { member_id, workspace_id, team_role, custom_role_name, action } =
       await req.json();
@@ -67,7 +67,7 @@ serve(async (req) => {
     const { data: callerRole } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", callerId)
       .eq("company_id", workspace.company_id)
       .single();
 
@@ -86,7 +86,7 @@ serve(async (req) => {
         .eq("id", member_id)
         .single();
 
-      if (member?.user_id === caller.id) {
+      if (member?.user_id === callerId) {
         return new Response(
           JSON.stringify({ error: "Cannot remove yourself" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
