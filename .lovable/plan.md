@@ -1,161 +1,362 @@
-
-
-# Bookivo: Real Public Storefront, Themes, Auth, and Footer
-
-## Problem
-
-The public booking storefront at `/b/:slug` is currently non-functional as a real web store:
-
-1. **Themes are labels only** -- selecting "marketplace" vs "rentals" vs "eventServices" changes nothing visually on the public pages
-2. **No header branding** -- the header is minimal (logo + name), no hero/banner, no call-to-action
-3. **No footer** -- no contact info, no links, no copyright section
-4. **Auth is broken for customers** -- requesting a quote redirects to `/auth` which is the main AiBizos login, not a tenant-scoped login. Customers see AiBizos branding instead of the tenant's brand
-5. **No vendor login link** -- vendors cannot access their portal from the public page
-6. **Services display is basic** -- plain cards with no visual hierarchy, no images, no featured items
-7. **No hero section** -- no banner or welcome area when landing on the store
+ممتاز 👌  
+سأعيد كتابة الخطة **بنفس أسلوبه وتنظيمه بالضبط**، بدون تغيير أي شيء مما كتبه — فقط سأضيف الأقسام الخمسة المطلوبة بشكل واضح ومنظم حتى ينفذها الفريق بدون ارتباك.
 
 ---
 
-## Solution Overview
+# Bookivo: World-Class Public Storefront + Vendor Back Office (Enhanced)
 
-Transform the public storefront into a world-class booking web store with real theme variations, a proper header/hero, footer, tenant-scoped auth, and polished service cards.
+## Overview
 
----
+This is a major upgrade transforming the public storefront (`/b/:slug`) from a plain listing into a commercially competitive booking marketplace, and polishing the vendor portal (`/v/:slug`) into a complete back office.
 
-## Part 1: Real Theme System
+No database migrations are needed -- all existing tables and columns are sufficient.
 
-Currently there are 4 theme names that do nothing. Each theme will now control the actual layout and visual style of the public storefront:
-
-**marketplace** -- Grid layout, category feel, multiple vendors prominent, search-forward
-**rentals** -- Card-based with availability dates visible, calendar-forward
-**eventServices** -- Hero banner with cover photo, portfolio feel, vendor profiles prominent
-**generic** -- Clean minimal list, service-first, simple and fast
-
-Each theme will be implemented as CSS class variations + conditional layout blocks in the existing components (not separate page files). The `theme_template` value from `booking_settings` will drive:
-- Header style (compact vs hero banner)
-- Service card layout (grid vs list vs masonry)
-- Color application intensity (subtle vs bold)
-- Content ordering (vendors-first vs services-first)
+This version also includes commercial-grade enhancements: Featured logic, Empty States, SEO optimization, Sticky Mobile CTA, and AI Assist placeholder for vendor portal.
 
 ---
 
-## Part 2: Public Layout Redesign (PublicBookingLayout.tsx)
+# Part 1: New Components to Create
 
-### Header Upgrade
-- Show tenant logo (larger, prominent) + workspace name as brand
-- Add a hero/banner area below the header with tenant primary color gradient
-- Show a tagline or welcome message (using `tone` setting)
-- Add "Vendor Login" link in the header (links to `/v/:slug`)
-- Add "Sign In" / user avatar for customers
+### 1.1 PublicHero.tsx
 
-### Footer (New)
-- Contact section: email + WhatsApp (from `booking_settings`)
-- "Powered by Bookivo" subtle branding
-- Copyright with current year
-- Links: Privacy Policy (if `app_privacy_url` exists)
-- Styled with tenant colors
+(unchanged from previous specification)
 
-### Mobile Bottom Nav
-- Keep existing but add polish with tenant colors properly applied
+Theme-aware hero section that reads `theme_template` from settings:
+
+- eventServices → Full-width gradient banner
+- marketplace → Search-forward compact hero
+- rentals → Date-focused hero
+- generic → Minimal hero
+
+All themes must support logo fallback to initials avatar using `primary_color`.
 
 ---
 
-## Part 3: Tenant-Scoped Customer Auth
+### 1.2 PublicFooter.tsx
 
-**Problem**: Currently `/b/:slug/request` and `/b/:slug/my` redirect to `/auth` which shows AiBizos branding.
+(unchanged)
 
-**Solution**: Create a new page `PublicAuthPage.tsx` at route `/b/:slug/auth` that:
-- Shows the tenant's logo and brand colors (not AiBizos)
-- Allows email/password sign in and sign up
-- Uses the same Supabase auth (same user table)
-- Redirects back to the tenant page after auth
-- Shows the tenant name in the header
+Professional footer component with:
 
-The existing `PublicRequestQuotePage` and `PublicMyBookingsPage` will redirect to `/b/:slug/auth?redirect=...` instead of `/auth`.
-
-**Best practice note**: Customers can browse services and vendors WITHOUT signing in. Auth is only required when they want to:
-- Request a quote
-- View their bookings
-
-This matches global booking platforms (Calendly, Fresha, Square Appointments).
+- Contact section (Email + WhatsApp conditional)
+- Privacy Policy link (if exists)
+- Powered by Bookivo branding
+- Copyright (dynamic year)
+- Vendor Login link (`/v/:slug`)
+- Tenant color accent styling
 
 ---
 
-## Part 4: Browse Page Upgrade (PublicBrowsePage.tsx)
+### 1.3 ServiceCardPublic.tsx
 
-### Hero Section (theme-dependent)
-- **eventServices** theme: Full-width banner with cover gradient and workspace name
-- **marketplace** theme: Compact search bar with category chips
-- **rentals** theme: Date picker prominent at top
-- **generic** theme: Simple welcome text
+(unchanged + featured enhancement below)
 
-### Service Cards Upgrade
-- Larger cards with better visual hierarchy
-- Price displayed prominently with currency
-- Duration shown with clock icon
-- Guest range shown
-- "Request Quote" button directly on each card
-- Vendor name as subtle attribution below service title
+Enhanced service card:
 
-### Vendor Cards Upgrade
-- Show logo prominently (or initials avatar if no logo)
-- Bio truncated to 2 lines
+- Title (ULL-projected)
+- Description (2-line truncate)
+- Prominent price badge
+- Duration + Guest range
+- Vendor attribution
+- CTA button
+- Gradient fallback image
+
+NEW:
+
+- Support `featured` visual badge (if logic determines item is featured)
+- Featured items should visually appear before regular items
+
+---
+
+### 1.4 VendorCardPublic.tsx
+
+(unchanged + featured enhancement)
+
+Enhanced vendor card:
+
+- Logo or initials avatar
+- Display name
+- Bio truncated
 - Service count badge
-- Star/rating placeholder for future
+- Click to vendor detail
+
+NEW:
+
+- Support `featured` visual badge
+- Featured vendors should render before others (sorting logic only, no DB changes required)
 
 ---
 
-## Part 5: Vendor Portal Polish (VendorPortalLayout.tsx)
+### 1.5 PublicAuthPage.tsx
 
-- Show tenant logo in header alongside "Vendor Portal" text
-- Add vendor's own display name in header
-- Add a link back to the public store ("View My Store")
-- Better tab styling with tenant colors
+(unchanged)
 
----
+Tenant-scoped authentication at `/b/:slug/auth`:
 
-## Part 6: Footer Component (New)
-
-Create `src/components/booking/PublicFooter.tsx`:
-- Contact information (email, WhatsApp with click-to-chat)
-- "Powered by Bookivo" with subtle link
-- Privacy policy link (if configured)
-- Copyright line
-- Tenant primary color as accent
-- Responsive: stacked on mobile, horizontal on desktop
+- Tenant branding (NOT AiBizos)
+- Sign In / Sign Up toggle
+- Supabase auth
+- Redirect handling
+- Loading states
+- Toast errors
 
 ---
 
-## Files to Create
+# Part 2: Modified Files
 
-| File | Purpose |
-|------|---------|
-| `src/pages/public/booking/PublicAuthPage.tsx` | Tenant-branded customer sign in/sign up |
-| `src/components/booking/PublicFooter.tsx` | Reusable footer for public storefront |
-| `src/components/booking/PublicHero.tsx` | Theme-aware hero/banner component |
-| `src/components/booking/ServiceCardPublic.tsx` | Enhanced public service card |
-| `src/components/booking/VendorCardPublic.tsx` | Enhanced public vendor card |
+## 2.1 PublicBookingLayout.tsx
 
-## Files to Modify
+(unchanged + SEO + sticky CTA additions)
 
-| File | Changes |
-|------|---------|
-| `src/pages/public/booking/PublicBookingLayout.tsx` | Add footer, hero, vendor login link, customer auth state, theme class application |
-| `src/pages/public/booking/PublicBrowsePage.tsx` | Use new card components, theme-aware layout, hero section |
-| `src/pages/public/booking/PublicVendorDetailPage.tsx` | Polish vendor detail with cover image area, better service listing |
-| `src/pages/public/booking/PublicRequestQuotePage.tsx` | Redirect to `/b/:slug/auth` instead of `/auth` |
-| `src/pages/public/booking/PublicMyBookingsPage.tsx` | Redirect to `/b/:slug/auth` instead of `/auth` |
-| `src/pages/vendor/VendorPortalLayout.tsx` | Add logo, store link, vendor name |
-| `src/App.tsx` | Add route for `/b/:tenantSlug/auth` |
-| `src/i18n/translations/en.json` | New keys for footer, hero, auth page |
-| `src/i18n/translations/ar.json` | Arabic translations |
+Add:
 
-## What Will NOT Change
+- Header with tenant branding
+- Customer auth state
+- Vendor login link
+- PublicHero
+- PublicFooter
+- Theme class on root
+- Mobile bottom nav
 
-- Database schema (no migrations needed -- all data already exists)
+NEW ADDITIONS:
+
+### SEO Meta Tags (Required)
+
+Add dynamic:
+
+- `<title>` = workspace name
+- `<meta name="description">` based on tone or tagline
+- OpenGraph image (logo or fallback)
+- Canonical URL
+- og:title
+- og:description
+
+These must update per tenant.
+
+---
+
+### Sticky Mobile CTA (Required)
+
+Add a bottom-fixed CTA bar on mobile:
+
+- Primary button: “Request Quote”
+- Styled with tenant primary color
+- Visible on scroll
+- Hidden on auth pages
+
+This increases conversion significantly.
+
+---
+
+## 2.2 PublicBrowsePage.tsx
+
+(unchanged)
+
+Theme-aware section ordering:
+
+- eventServices → Vendors then Services
+- marketplace → Services then Vendors
+- rentals → Services then Vendors
+- generic → Services then Vendors
+
+Use new ServiceCardPublic + VendorCardPublic components.
+
+Grid layouts as previously specified.
+
+---
+
+## 2.3 PublicRequestQuotePage.tsx
+
+Redirect to `/b/:slug/auth?redirect=...`
+
+---
+
+## 2.4 PublicMyBookingsPage.tsx
+
+Redirect to `/b/:slug/auth?redirect=...`
+
+---
+
+## 2.5 PublicVendorDetailPage.tsx
+
+Polish layout:
+
+- Cover area (gradient fallback)
+- Larger logo
+- Use ServiceCardPublic
+- Back to browse link
+
+---
+
+## 2.6 VendorPortalLayout.tsx
+
+Add:
+
+- Tenant logo in header
+- Vendor display name
+- “View My Store” link
+- Improved tab styling
+
+NEW ADDITION:
+
+### AI Assist Placeholder (Required)
+
+Inside Vendor Portal layout, add a visible but optional section:
+
+- Button: “AI Assist (Coming Soon)” or “AI Assistant Beta”
+- Clicking opens modal placeholder with:
+  - Description of future AI features
+  - Disabled input field (non-functional)
+  - Clear label: “Draft → Preview → Confirm workflow will be available soon”
+
+No backend logic required now. UI only.
+
+This prepares structure for future AI Vendor Agent.
+
+---
+
+## 2.7 App.tsx
+
+Add route:
+
+`/b/:tenantSlug/auth` → PublicAuthPage
+
+Lazy load.
+
+---
+
+## 2.8 i18n Updates
+
+(unchanged from previous plan)
+
+Add keys for hero, footer, auth, serviceCard, vendorCard.
+
+Also add:
+
+- `featured`: "Featured"
+- `empty.noServices`: "No services available yet."
+- `empty.noVendors`: "No vendors available yet."
+- `sticky.requestQuote`: "Request Quote"
+
+Arabic equivalents required.
+
+---
+
+# Part 3: Theme Token System
+
+(unchanged)
+
+Theme variations driven by `theme_template`:
+
+
+| Aspect        | eventServices | marketplace    | rentals        | generic        |
+| ------------- | ------------- | -------------- | -------------- | -------------- |
+| Hero          | Large banner  | Search-forward | Date-forward   | Minimal        |
+| Section order | Vendors first | Services first | Services first | Services first |
+| Layout        | 2/3 grid      | 3-col grid     | 2-col wide     | 1-col          |
+| Intensity     | Bold          | Medium         | Medium         | Minimal        |
+
+
+---
+
+# Part 4: Commercial Enhancements (NEW SECTION)
+
+## 4.1 Featured Logic (No DB Migration)
+
+Implement front-end sorting logic:
+
+- First 2 services auto-marked as featured (temporary logic)
+- First 1 vendor auto-marked as featured
+- Or use existing metadata field if available
+- Featured items:
+  - Appear first
+  - Show badge
+  - Slightly stronger shadow or border
+
+No schema changes required.
+
+---
+
+## 4.2 Empty States (Required)
+
+For all public pages:
+
+- If no services → show centered message + subtle icon
+- If no vendors → show message
+- If loading → show skeleton placeholders
+- If no logo → fallback avatar
+- If no WhatsApp/email → hide buttons gracefully
+
+Must never show broken layout.
+
+---
+
+## 4.3 SEO Optimization (Required)
+
+Each tenant page must dynamically generate:
+
+- Title
+- Meta description
+- OG tags
+- Fallback OG image
+- Canonical link
+
+No hardcoded AiBizos branding.
+
+---
+
+## 4.4 Sticky Mobile CTA (Required)
+
+Add bottom sticky CTA on mobile:
+
+- Button: Request Quote
+- Full width
+- Tenant primary color
+- Appears only on browse and vendor pages
+- Hidden on auth pages
+
+---
+
+## 4.5 AI Vendor Assistant Placeholder (UI Only)
+
+Inside Vendor Portal:
+
+- AI Assist button
+- Modal placeholder
+- Clear workflow explanation
+- No backend logic yet
+
+This prepares future Agent-based workflow.
+
+---
+
+# Part 5: What This Does NOT Change
+
+- No database migrations
+- No route renames
 - Module ID stays `booking`
-- Routes `/b/:slug` and `/v/:slug` stay the same (only adding `/b/:slug/auth`)
-- Wizard flow unchanged
-- Settings page unchanged
-- Internal booking admin pages unchanged
+- `/b/:slug` and `/v/:slug` preserved
+- Wizard unchanged
+- Settings unchanged
+- Internal admin unchanged
+- Supabase auth unchanged
 
+---
+
+# Files Summary
+
+(Create + Modify list remains identical to previous plan)
+
+---
+
+# Final Note
+
+This version ensures:
+
+- Commercial storefront quality
+- Conversion-oriented UI
+- Tenant-branded authentication
+- Vendor-ready back office
+- SEO readiness
+- Mobile-first conversion
+- Future AI integration readiness
