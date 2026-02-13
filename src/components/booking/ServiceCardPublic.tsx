@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ULLText } from '@/components/ull/ULLText';
-import { Clock, Users, Star } from 'lucide-react';
+import { Clock, Users, Star, CalendarPlus } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatCurrency';
 
 interface ServiceCardPublicProps {
@@ -45,7 +45,7 @@ export function ServiceCardPublic({
   const { t } = useTranslation();
 
   return (
-    <Card className={`group relative overflow-hidden transition-all hover:shadow-md ${featured ? 'ring-2 ring-primary/30' : ''}`}>
+    <Card className={`group relative overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5 duration-200 ${featured ? 'ring-2 ring-primary/30' : ''}`}>
       {/* Gradient top accent */}
       <div
         className="h-1.5 w-full"
@@ -106,10 +106,11 @@ export function ServiceCardPublic({
           <Link to={`/b/${tenantSlug}/request?vendor=${vendorId || ''}&service=${service.id}`}>
             <Button
               size="sm"
-              className="rounded-full text-xs px-4"
+              className="rounded-full text-xs px-4 gap-1.5"
               style={primaryColor ? { backgroundColor: primaryColor, color: '#fff' } : {}}
             >
-              {t('booking.public.requestQuote')}
+              <CalendarPlus className="h-3.5 w-3.5" />
+              {t('booking.public.bookNow')}
             </Button>
           </Link>
         </div>

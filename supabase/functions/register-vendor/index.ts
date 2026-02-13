@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
         workspace_id,
         created_by: user.id,
         source_lang: source_lang || "en",
-        type: "vendor_profile",
+        type: "generic",
         meaning_json: {
           subject: display_name,
           description: bio || "",

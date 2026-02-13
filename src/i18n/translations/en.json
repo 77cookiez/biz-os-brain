@@ -1205,10 +1205,11 @@
       "notFound": "Marketplace Not Found",
       "notFoundDesc": "This marketplace doesn't exist or isn't live yet.",
       "vendorNotFound": "Vendor not found",
-      "requestQuote": "Request Quote",
-      "submitRequest": "Submit Request",
-      "requestSent": "Quote Request Sent!",
-      "requestSentDesc": "The vendor will review your request and send you a quote. You can track it in My Bookings.",
+      "requestQuote": "Book Now",
+      "bookNow": "Book Now",
+      "submitRequest": "Confirm Booking",
+      "requestSent": "Booking Submitted!",
+      "requestSentDesc": "Your booking request has been sent. You'll hear back soon.",
       "viewMyBookings": "View My Bookings",
       "whatsappMessage": "Hi, I'd like to inquire about your services.",
       "email": "Email",
@@ -1245,7 +1246,7 @@
         "orSignIn": "Already have an account? Sign in"
       },
       "serviceCard": {
-        "getQuote": "Get Quote",
+        "getQuote": "Get Price",
         "duration": "{{mins}} min",
         "guests": "{{min}}-{{max}} guests"
       },

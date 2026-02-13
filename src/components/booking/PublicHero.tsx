@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Calendar, Sparkles } from 'lucide-react';
+import { Search, Calendar, CalendarPlus } from 'lucide-react';
 
 interface PublicHeroProps {
   theme: string;
@@ -76,8 +76,8 @@ export function PublicHero({ theme, workspaceName, tenantSlug, primaryColor, log
                   color: primaryColor || 'hsl(var(--primary))',
                 }}
               >
-                <Sparkles className="h-4 w-4" />
-                {t('booking.public.requestQuote')}
+                <CalendarPlus className="h-4 w-4" />
+                {t('booking.public.bookNow')}
               </Button>
             </Link>
           </div>

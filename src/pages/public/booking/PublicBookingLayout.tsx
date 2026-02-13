@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Store, Search, User, Plus, Loader2, LogIn, Sparkles, LogOut, MessageCircle } from 'lucide-react';
+import { Store, Search, User, CalendarPlus, Loader2, LogIn, LogOut, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDocumentMeta } from '@/hooks/useDocumentMeta';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -158,8 +158,8 @@ export default function PublicBookingLayout() {
                 className="gap-1.5 text-xs font-medium rounded-full"
                 style={tenantPrimary ? { backgroundColor: tenantPrimary, color: '#fff' } : {}}
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                {t('booking.public.requestQuote')}
+                <CalendarPlus className="h-3.5 w-3.5" />
+                {t('booking.public.bookNow')}
               </Button>
             </Link>
 
@@ -272,8 +272,8 @@ export default function PublicBookingLayout() {
             )}
             style={({ isActive }) => activeNavStyle(isActive)}
           >
-            <Plus className="h-5 w-5" />
-            {t('booking.public.requestQuote')}
+            <CalendarPlus className="h-5 w-5" />
+            {t('booking.public.bookNow')}
           </NavLink>
           <NavLink
             to={`/b/${tenantSlug}/my`}
@@ -297,8 +297,8 @@ export default function PublicBookingLayout() {
               className="w-full rounded-full font-semibold gap-2"
               style={tenantPrimary ? { backgroundColor: tenantPrimary, color: '#fff' } : {}}
             >
-              <Sparkles className="h-4 w-4" />
-              {t('booking.public.requestQuote')}
+              <CalendarPlus className="h-4 w-4" />
+              {t('booking.public.bookNow')}
             </Button>
           </Link>
         </div>
