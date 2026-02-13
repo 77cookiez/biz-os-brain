@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBookingSettings } from '@/hooks/useBookingSettings';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,9 +13,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { LogoUpload } from '@/components/booking/LogoUpload';
 import {
   LayoutGrid, Palette, Banknote, ShieldCheck, Rocket,
   ArrowLeft, ArrowRight, Check, Globe, Smartphone, Building2,
+  CheckCircle2, XCircle, Loader2,
 } from 'lucide-react';
 
 const GCC_CURRENCIES = ['AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'] as const;
@@ -27,6 +30,7 @@ interface WizardData {
   primary_color: string;
   accent_color: string;
   tone: string;
+  logo_url: string | null;
   currency: string;
   commission_mode: string;
   commission_rate: number;
@@ -53,6 +57,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     primary_color: settings?.primary_color ?? '#6366f1',
     accent_color: settings?.accent_color ?? '#f59e0b',
     tone: settings?.tone ?? 'professional',
+    logo_url: settings?.logo_url ?? null,
     currency: settings?.currency ?? 'AED',
     commission_mode: settings?.commission_mode ?? 'subscription',
     commission_rate: settings?.commission_rate ?? 0,
@@ -63,6 +68,29 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
     whatsapp_number: settings?.whatsapp_number ?? '',
     contact_email: settings?.contact_email ?? '',
     tenant_slug: settings?.tenant_slug ?? '',
+  });
+
+  // Debounced slug for availability check
+  const [debouncedSlug, setDebouncedSlug] = useState(data.tenant_slug);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSlug(data.tenant_slug), 500);
+    return () => clearTimeout(timer);
+  }, [data.tenant_slug]);
+
+  const { data: slugTaken, isLoading: slugChecking } = useQuery({
+    queryKey: ['slug-check', debouncedSlug],
+    queryFn: async () => {
+      if (!debouncedSlug || debouncedSlug.length < 3) return false;
+      const { data: existing } = await supabase
+        .from('booking_settings')
+        .select('id')
+        .eq('tenant_slug', debouncedSlug)
+        .neq('workspace_id', currentWorkspace?.id ?? '')
+        .maybeSingle();
+      return !!existing;
+    },
+    enabled: !!debouncedSlug && debouncedSlug.length >= 3,
   });
 
   const update = (key: keyof WizardData, value: any) =>
@@ -98,7 +126,7 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
   };
 
   const canProceed = () => {
-    if (step === 4) return !!data.tenant_slug;
+    if (step === 4) return !!data.tenant_slug && data.tenant_slug.length >= 3 && !slugTaken;
     return true;
   };
 
@@ -162,6 +190,14 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
             <CardDescription>{t('booking.wizard.brand.subtitle')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Logo Upload */}
+            {currentWorkspace && (
+              <LogoUpload
+                currentLogoUrl={data.logo_url}
+                workspaceId={currentWorkspace.id}
+                onUploadComplete={(url) => update('logo_url', url)}
+              />
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t('booking.wizard.brand.primaryColor')}</Label>
@@ -370,15 +406,39 @@ export default function BookingSetupWizard({ onComplete }: { onComplete?: () => 
           <CardContent className="space-y-5">
             <div className="space-y-2">
               <Label>{t('booking.wizard.goLive.tenantSlug')}</Label>
-              <Input
-                value={data.tenant_slug}
-                onChange={(e) => update('tenant_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="my-marketplace"
-                dir="ltr"
-              />
-              {data.tenant_slug && (
+              <div className="relative">
+                <Input
+                  value={data.tenant_slug}
+                  onChange={(e) => update('tenant_slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  placeholder="my-marketplace"
+                  dir="ltr"
+                  className="pe-10"
+                />
+                {data.tenant_slug && data.tenant_slug.length >= 3 && (
+                  <div className="absolute end-3 top-1/2 -translate-y-1/2">
+                    {slugChecking ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    ) : slugTaken ? (
+                      <XCircle className="h-4 w-4 text-destructive" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
+                  </div>
+                )}
+              </div>
+              {data.tenant_slug && data.tenant_slug.length >= 3 && slugTaken && (
+                <p className="text-xs text-destructive">
+                  {t('booking.wizard.goLive.slugTaken', 'This slug is already taken')}
+                </p>
+              )}
+              {data.tenant_slug && data.tenant_slug.length >= 3 && !slugTaken && !slugChecking && (
                 <p className="text-xs text-muted-foreground">
                   {t('booking.wizard.goLive.slugHint', { slug: data.tenant_slug })}
+                </p>
+              )}
+              {data.tenant_slug && data.tenant_slug.length < 3 && (
+                <p className="text-xs text-muted-foreground">
+                  {t('booking.wizard.goLive.slugMinLength', 'Slug must be at least 3 characters')}
                 </p>
               )}
             </div>
