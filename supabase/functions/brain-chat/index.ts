@@ -187,6 +187,11 @@ async function fetchInstalledApps(sb: any, workspaceId: string): Promise<string[
   }
 }
 
+/** Auto-detect whether Aurelius is installed as a module in this workspace */
+function hasAurelius(installedAppIds: string[]): boolean {
+  return installedAppIds.includes("aurelius");
+}
+
 // ─── Intent Classifier ───
 async function classifyIntent(
   message: string,
@@ -408,8 +413,9 @@ function buildSystemPrompt(params: {
   decisionSignals: DecisionSignal[];
   oilPromptSection: string;
   userRole: string;
+  aureliusActive: boolean;
 }): string {
-  const { langLabel, businessContext, installedAppIds, workContext, intent, action, actionRegistry, decisionSignals, oilPromptSection, userRole } = params;
+  const { langLabel, businessContext, installedAppIds, workContext, intent, action, actionRegistry, decisionSignals, oilPromptSection, userRole, aureliusActive } = params;
 
   // ═══ CORE IDENTITY (prose — needed for model comprehension) ═══
   let prompt = `You are the AI Business Brain for AiBizos — a unified AI Business Operating System.
@@ -479,6 +485,7 @@ Rules: Valid JSON only. English for structured fields. Natural language in user'
   // ═══ SYSTEM CONTEXT (compact) ═══
   prompt += `\n\n═══ SYSTEM CONTEXT ═══`;
   prompt += `\nRole: ${userRole} | Modules: ${installedAppIds.join(", ") || "brain"}`;
+  prompt += `\nAurelius: ${aureliusActive ? "installed_module" : "subsystem_or_not_installed"}`;
 
   // ═══ INTENT AWARENESS ═══
   prompt += `\nIntent: ${intent.intent} (${intent.confidence.toFixed(2)}) | Risk: ${intent.risk_level}`;
@@ -782,6 +789,7 @@ serve(async (req) => {
 
     // ─── PART A: Workspace Access Guard (MUST run before any service-role workspace reads) ───
     let verifiedRole = "member";
+    let wsVerified = false;
     if (workspaceId) {
       const access = await assertWorkspaceAccess(sb, user.id, workspaceId);
       if (!access.allowed) {
@@ -790,12 +798,18 @@ serve(async (req) => {
         });
       }
       verifiedRole = access.role;
+      wsVerified = true;
     }
+    // No workspaceId => minimal Brain mode. No OIL, no tasks, no workspace reads.
 
     // ─── Server-side installed apps (only after access verified) ───
-    const installedAppIds = workspaceId
+    const installedAppIds = (workspaceId && wsVerified)
       ? await fetchInstalledApps(sb, workspaceId)
       : ["brain"];
+
+    // Auto-detect Aurelius: module if installed, subsystem otherwise
+    const aureliusActive = hasAurelius(installedAppIds);
+    console.log("[brain-chat] installedAppIds:", installedAppIds.join(","), "| aurelius:", aureliusActive);
 
     // ─── Action Validation (dynamic + legacy) ───
     const actionRegistry = buildActionRegistry(installedAppIds);
@@ -831,8 +845,8 @@ serve(async (req) => {
     const overrideResult = resolveIntentOverride(intentOverride);
     const [classifiedIntent, oilSection, decisionSignals] = await Promise.all([
       overrideResult ? Promise.resolve(overrideResult) : classifyIntent(lastUserMsg, messages, LOVABLE_API_KEY),
-      workspaceId ? buildOILSection(sb, workspaceId) : Promise.resolve(""),
-      workspaceId ? fetchDecisionSignals(sb, workspaceId) : Promise.resolve([]),
+      (workspaceId && wsVerified) ? buildOILSection(sb, workspaceId) : Promise.resolve(""),
+      (workspaceId && wsVerified) ? fetchDecisionSignals(sb, workspaceId) : Promise.resolve([]),
     ]);
 
     const intentResult = overrideResult || classifiedIntent;
@@ -849,6 +863,7 @@ serve(async (req) => {
       decisionSignals,
       oilPromptSection: oilSection,
       userRole: verifiedRole,
+      aureliusActive,
     });
 
     // ─── Stream Response ───

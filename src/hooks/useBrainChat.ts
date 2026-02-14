@@ -264,17 +264,20 @@ export function useBrainChat() {
       // ─── PART B: Robust SSE parser using \n\n event boundaries ───
       // SSE spec: events separated by \n\n. Each event may have multiple data: lines.
       // This handles gateways that split JSON across chunks or send multi-line data.
+      // Normalize CRLF to LF for cross-gateway compatibility
+      const normalize = (s: string) => s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
       const processEvent = (eventBlock: string): boolean => {
         if (!eventBlock.trim()) return false;
         const dataLines: string[] = [];
-        for (const line of eventBlock.split('\n')) {
-          const trimmed = line.endsWith('\r') ? line.slice(0, -1) : line;
-          if (trimmed.startsWith(':') || trimmed.trim() === '') continue;
-          if (trimmed.startsWith('data: ')) dataLines.push(trimmed.slice(6));
+        for (const line of normalize(eventBlock).split('\n')) {
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (line.startsWith('data: ')) dataLines.push(line.slice(6));
         }
         if (dataLines.length === 0) return false;
-        const jsonStr = dataLines.join('').trim();
-        if (jsonStr === '[DONE]') return true; // signal done
+        // Join with newline for safety if JSON was split across data: lines
+        const jsonStr = dataLines.join('\n').trim();
+        if (jsonStr === '[DONE]') return true;
         try {
           const parsed = JSON.parse(jsonStr);
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
@@ -287,6 +290,7 @@ export function useBrainChat() {
         const { done, value } = await reader.read();
         if (done) break;
         textBuffer += decoder.decode(value, { stream: true });
+        textBuffer = normalize(textBuffer);
 
         let boundaryIndex: number;
         while ((boundaryIndex = textBuffer.indexOf('\n\n')) !== -1) {
@@ -298,7 +302,7 @@ export function useBrainChat() {
 
       // Final flush: process remaining data (may lack trailing \n\n)
       if (textBuffer.trim()) {
-        for (const eventBlock of textBuffer.split('\n\n')) {
+        for (const eventBlock of normalize(textBuffer).split('\n\n')) {
           processEvent(eventBlock);
         }
       }
