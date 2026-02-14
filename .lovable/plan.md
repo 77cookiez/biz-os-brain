@@ -1,291 +1,109 @@
-You are a senior staff full-stack engineer. Implement Phase 2 “Brain Liberation” exactly as specified below. NO UI changes. Backend/logic only. Keep investor-grade minimalism. Maintain Ask→Draft→Preview→Confirm→Execute (NO auto execution). Backwards compatible with current hardcoded action strings.
 
-SCOPE
+# Phase 2.1 -- Brain Hardening: 6 Critical Fixes
 
-- Major rewrite: supabase/functions/brain-chat/index.ts
+## Summary
 
-- Enhance: src/hooks/useBrainChat.ts
+Six targeted fixes to close security gaps, eliminate UI artifact leaks, and improve reliability in the Brain orchestrator. No UI component changes. No new database tables.
 
-- Expand: src/hooks/useSmartCapabilities.ts
+## Fix A: Server-Side Installed Apps (Security)
 
-No new DB tables. No new edge functions. Everything integrated inside brain-chat.
+**Problem**: The edge function trusts `installedApps` from the client request, allowing a user to inject app IDs (e.g., `leadership`, `booking`) and see actions/prompt sections for apps they haven't installed.
 
-GOALS
+**Solution**: In `brain-chat/index.ts`, when `workspaceId` is present, fetch installed apps from `workspace_apps` table using the service-role client. Ignore the client-sent `installedApps` entirely.
 
-1) Add Intent Classification layer that runs BEFORE the main brain response.
+**File**: `supabase/functions/brain-chat/index.ts`
+- Add `fetchInstalledApps(sb, workspaceId)` function that queries `workspace_apps` where `is_active = true`
+- In the main handler (line ~923), replace `const installedAppIds = installedApps || ["brain"]` with the server-fetched list
+- Always include `"brain"` as a core module
+- Fallback to `["brain"]` if no workspaceId or fetch fails
 
-2) Expand systemContext payload: installed modules + capabilities, user role, available actions, merged decision signals, recent thread summaries.
+## Fix B: Intent Override from Capability Buttons
 
-3) Replace hardcoded actions validation with dynamic action registry built from installed apps capabilities (but keep legacy 13 actions supported).
+**Problem**: When user clicks a capability button like "Architect" (intent: `architect`), only `action: "strategic_analysis"` is sent. The classifier may return a different intent based on the prompt text, defeating the purpose of intent-based buttons.
 
-4) Add Simulation protocol when intent=simulate.
+**Solution**: 
+1. In `src/hooks/useBrainChat.ts`: Update `sendMessage` signature to accept `intentOverride?: string`. Send it in the request payload.
+2. In `src/hooks/useSmartCapabilities.ts`: No changes needed -- the `intent` field already exists on capabilities.
+3. The caller (BrainPage or ChatPanel) will pass `capability.intent` as `intentOverride` when a capability button is clicked.
+4. In `brain-chat/index.ts`: Accept `intentOverride` in `ChatRequest`. If present and valid, skip the classifier and use it directly (with confidence 0.95 and appropriate defaults).
 
-5) Integrate Passive Insight Engine (decision signals merged into brain-chat context).
+**Files**: `supabase/functions/brain-chat/index.ts`, `src/hooks/useBrainChat.ts`
 
-6) Cross-module awareness: prompt sections injected only for installed apps.
+## Fix C: Extract BRAIN_PROPOSALS from Display
 
-7) Add internal metadata block BRAIN_META appended to assistant responses (not UI-visible). Frontend extracts it and logs to org_events.
+**Problem**: The prompt instructs the model to output a ` ```BRAIN_PROPOSALS ``` ` block, but `useBrainChat.ts` only strips `BRAIN_META`. The raw JSON proposals block will appear in the chat UI.
 
-HARD CONSTRAINTS
+**Solution**: Create a unified `extractBrainArtifacts()` function that returns `{ cleanText, meta, proposals }`:
+- Add `BRAIN_PROPOSALS_REGEX` similar to `BRAIN_META_REGEX`
+- Strip both blocks from display text
+- Parse proposals into `BrainProposal[]` (using the existing interface from `useBrainExecute.ts`)
+- Store proposals in component state (`lastProposals`)
+- Expose `lastProposals` from the hook for downstream use (ProposalCard rendering, sign/execute flow)
+- Apply stripping both during streaming (real-time) and after final flush
 
-- No auto-execution. Brain must only propose or draft. Any “execute” must require explicit confirmation workflow (existing).
+**File**: `src/hooks/useBrainChat.ts`
 
-- No UI changes.
+## Fix D: Standardize org_events Schema for BRAIN_META
 
-- Graceful fallback: if intent classifier fails, continue old behavior.
+**Problem**: The `logBrainMeta` function uses `event_type` and `object_type` but should follow a consistent contract for OIL ingestion.
 
-- Security: server-side classification only, role checked, meta not exposed to unauthorized.
+**Solution**: Ensure the org_events insert uses:
+```
+event_type: 'brain_meta'
+object_type: 'brain_message'
+metadata: { ...BrainMeta }
+```
 
-IMPLEMENTATION DETAILS
+This is already correct in the current code. The fix is to document and add the optional `object_id` field if a `brain_message` ID is available. Since message persistence happens async and we don't wait for its ID, we'll skip `object_id` for now but add a comment noting the intent.
 
-A) brain-chat/index.ts (Major rewrite)
+**File**: `src/hooks/useBrainChat.ts` (minor comment addition)
 
-A1) Add Intent Classifier (fast)
+## Fix E: SSE Parser Robustness (Monitoring Note)
 
-- Implement classifyIntent({message, conversationContext, systemContext}) -> IntentResult.
+**Problem**: The current parser splits on `\n` which works for most SSE but can fail if gateways send multi-line data fields or split JSON across chunks.
 
-- Use a fast model (gemini-2.5-flash-lite) for classification.
+**Solution**: Add a defensive improvement -- when `JSON.parse` fails, instead of pushing the line back and breaking immediately, accumulate across boundaries. Specifically:
+- Track incomplete SSE events using `\n\n` as event boundary awareness
+- The current fallback (push line back + break) is adequate for now
+- Add a comment documenting the limitation and monitoring point
+- No major rewrite needed unless issues are observed
 
-- Output MUST be strict JSON:
+**File**: `supabase/functions/brain-chat/index.ts` (no change -- this is a monitoring note only)
 
-  {
+## Fix F: Prompt Size Optimization
 
-    "intent": "guide|suggest|architect|design|simulate|diagnose|detect_risk|strategic_think|delegate|clarify|casual",
+**Problem**: The system prompt is very large (~800+ lines when fully expanded), increasing token costs and potentially reducing response quality.
 
-    "confidence": number (0..1),
+**Solution**: Convert verbose prose sections into compact structured JSON where possible:
+- Convert `WORKBOARD SNAPSHOT` from prose listing to a compact JSON summary
+- Convert `AVAILABLE ACTIONS` from verbose descriptions to a compact JSON array
+- Convert `PASSIVE INSIGHTS` from verbose listings to a compact JSON array
+- Keep `CORE IDENTITY`, `GUARDRAILS`, and `OUTPUT CONTRACTS` as prose (these need natural language for the model)
+- Estimated reduction: ~30-40% fewer prompt tokens
 
-    "risk_level": "low|medium|high",
+**File**: `supabase/functions/brain-chat/index.ts`
 
-    "modules_relevant": string[],
+---
 
-    "requires_simulation": boolean
+## Files Modified
 
-  }
+| File | Changes |
+|------|---------|
+| `supabase/functions/brain-chat/index.ts` | Fix A (server-side apps), Fix B (intentOverride), Fix F (compact prompt) |
+| `src/hooks/useBrainChat.ts` | Fix B (send intentOverride), Fix C (extract BRAIN_PROPOSALS), Fix D (schema comment) |
 
-- Add robust parsing:
+## No Changes Needed
 
-  - Strip code fences
+- `src/hooks/useSmartCapabilities.ts` -- already has `intent` field on capabilities
+- No database migrations
+- No UI component changes
+- No new edge functions
 
-  - JSON.parse with try/catch
-
-  - Validate keys & enums; if invalid, throw to fallback
-
-- Latency target: minimal; no streaming required here.
-
-A2) Build Rich System Context (replace installedApps: string[])
-
-- Create buildSystemContext(workspaceId, userId) that returns:
-
-  {
-
-    user_role: "owner|admin|member",
-
-    installed_modules: [
-
-      { id, name, version?, actions: [{key, title, description, risk?}] }
-
-    ],
-
-    available_actions: [{key, title, description, source_module}],
-
-    recent_activity: {
-
-      tasks_created_7d, tasks_completed_7d, blocked_tasks_count, overdue_count
-
-    },
-
-    decision_signals: { ...merged recent signals... },
-
-    chat_summaries: [{thread_id, summary, last_activity_at}]  // if feasible; else empty
-
-  }
-
-- Use existing patterns for workspace role (getUserWorkspaceRole).
-
-- For installed modules actions:
-
-  - If there is an app manifest/capabilities map already in code, use it.
-
-  - If not, implement a local registry mapping module id -> actions list (Workboard/OIL/Booking/Chat/Brain core).
-
-  - MUST be dynamic: only include actions for installed modules.
-
-- Ensure RLS-safe: only fetch workspace-scoped data.
-
-A3) Action Mapping Engine (dynamic)
-
-- Replace hardcoded action validation with:
-
-  - dynamicRegistry = actions derived from systemContext.installed_modules
-
-  - plus legacyActions (existing 13 strings) for backwards compatibility
-
-- When model returns an action:
-
-  - If in dynamicRegistry OR legacyActions -> accept
-
-  - Else -> coerce to “none” or “draft_only” (do not error hard)
-
-A4) Prompt Builder (composable sections)
-
-- Refactor monolithic system prompt to:
-
-  buildPrompt({
-
-    core_identity,
-
-    non_negotiable_principles,
-
-    system_context_summary,
-
-    intent_section,
-
-    module_sections,
-
-    action_registry_section,
-
-    passive_insights_section,
-
-    simulation_protocol_section (only when intent=simulate)
-
-  })
-
-- Core identity remains unchanged.
-
-- Include only relevant sections:
-
-  - module_sections only for installed modules
-
-  - simulation_protocol only when intent=simulate OR requires_simulation=true
-
-  - passive_insights always present but instructions say “surface only if contextually relevant”
-
-- Action registry section MUST list only available_actions (plus mention legacy supported actions internally but don’t encourage usage).
-
-A5) Decision Signals Integration (Passive Insight Engine)
-
-- Inline fetch decision signals inside brain-chat (reuse logic from decision-signals).
-
-- Add to systemContext and inject prompt section:
-
-  PASSIVE_INSIGHTS:
-
-  - Provide 3–7 top signals with short explanation, confidence, recommended questions to ask user.
-
-  - Instruct Brain: only mention insights if directly helpful to user’s current intent; keep it calm; no spam.
-
-A6) Simulation Protocol
-
-- If intent=simulate:
-
-  - Instruct Brain to produce a “Simulation Report”:
-
-    - Assumptions
-
-    - Inputs used (tasks/goals/OIL/decision signals)
-
-    - Impact summary (deadlines, delivery risk, OIL indicators)
-
-    - Risks + confidence
-
-    - “Not a commitment” disclaimer
-
-  - DO NOT propose execution; only show what-if results.
-
-- If user wants changes applied, Brain must output a Draft (not execute).
-
-A7) BRAIN_META output (internal metadata)
-
-- Append at end of assistant content (always) a fenced block:
-
-  ```BRAIN_META
-
-  {"intent":"...","confidence":0.85,"risk_level":"medium","modules_consulted":["workboard","oil"],"simulation_used":false}
-
-Keep it machine-readable JSON (single object).
-
-Ensure it is ALWAYS appended, even in fallback mode (use best available values).
-
-Ensure frontend can strip it from UI display if currently rendered.
-
-A8) Graceful fallback
-
-If classifier fails: set intent="suggest" confidence=0.4 risk_level="low" modules_relevant=[]
-
-Continue with old prompt path, but still include systemContext + BRAIN_META.
-
-B) src/hooks/useBrainChat.ts (Enhancement)
-
-B1) Build/Send systemContext
-
-Add a builder that fetches:
-
-user role in workspace
-
-installed apps list
-
-map installed apps to actions/capabilities (same registry used server-side if possible; else client sends installed app ids + server builds actions)
-
-recent activity summary (counts only)
-
-Send this as part of brain-chat request payload.
-
-B2) Extract BRAIN_META
-
-Parse assistant response for BRAIN_META ...
-
-Remove it from display text (do not show in UI).
-
-Store meta internally (react-query cache or local state).
-
-Log meta to org_events (OIL ingestion):
-
-event_name: "brain_meta"
-
-payload: meta + workspace_id + message_id
-
-C) src/hooks/useSmartCapabilities.ts (New capability cards)
-
-Add new capabilities with intent mapping and scoring:
-
-Simulate (intent: simulate)
-
-Diagnose (intent: diagnose)
-
-Detect Risks (intent: detect_risk)
-
-Architecture (intent: architect)
-
-Strategic Think (intent: strategic_think)
-
-Score based on workspace state:
-
-if blocked_tasks_count>0 -> boost Diagnose
-
-if overdue_count>0 -> boost Detect Risks
-
-if OIL delivery risk high -> boost Simulate/Detect Risks
-
-Keep UI unchanged (just capability data).
-
-TESTS / VERIFICATION
-
-Ensure brain-chat returns valid response + BRAIN_META always.
-
-Ensure classifier failures do not break chat.
-
-Ensure actions returned are filtered by registry.
-
-Ensure simulate intent uses simulation report format.
-
-Ensure passive insights are not spammy; only show if relevant.
-
-DELIVERABLE
-
-Provide final code changes in the three files.
-
-Provide a short checklist of how to verify locally (manual steps).
-
-Do not change any UI components beyond stripping BRAIN_META from visible text in hook parsing.
-
-Proceed to implement now.
+## Verification Checklist
+
+1. Brain chat still streams responses correctly
+2. BRAIN_META is stripped from UI display
+3. BRAIN_PROPOSALS is stripped from UI display and stored in state
+4. Capability buttons with `intent` field produce consistent behavior (no classifier override)
+5. Installed apps are fetched server-side, not trusted from client
+6. Prompt token count is reduced compared to current version
