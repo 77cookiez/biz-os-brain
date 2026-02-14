@@ -2,6 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 
+export interface GrowthReason {
+  code: 'FREQUENT_LIMIT_HITS' | 'PROJECTED_BREACH' | 'HIGH_UTILIZATION';
+  metric?: string;
+  percent?: number;
+  projected?: number;
+  limit?: number;
+  hits?: number;
+}
+
 export interface GrowthInsights {
   usage: {
     vendors_count: number;
@@ -31,6 +40,7 @@ export interface GrowthInsights {
   };
   recommended_action: 'upgrade' | 'optimize' | 'none';
   confidence_score: number;
+  reasons: GrowthReason[];
 }
 
 export function useGrowthInsights() {
