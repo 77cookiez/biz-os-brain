@@ -119,7 +119,7 @@ export function GrowthAdvisorPanel() {
                   } else {
                     translated = (t as Function)(`growth.reasons.${r.code}`, { count: String(r.count ?? '') });
                   }
-                  return <li key={idx}>{translated}</li>;
+                  return <li key={`${r.code}:${r.metric ?? idx}`}>{translated}</li>;
                 })}
               </ul>
             </div>
