@@ -152,7 +152,7 @@ export function useBrainExecute() {
 
   // ─── Draft: Confirm (get hash) ───
 
-  const confirmDraft = useCallback(async (draft: DraftObject): Promise<{ confirmation_hash: string; expires_at: number } | null> => {
+  const confirmDraft = useCallback(async (draft: DraftObject): Promise<{ confirmation_hash: string; expires_at: number; meaning_object_id?: string } | null> => {
     if (!currentWorkspace) return null;
 
     try {
@@ -171,7 +171,7 @@ export function useBrainExecute() {
         toast.error(data.reason || 'Failed to confirm draft');
         return null;
       }
-      return data as { confirmation_hash: string; expires_at: number };
+      return data as { confirmation_hash: string; expires_at: number; meaning_object_id?: string };
     } catch (e) {
       console.error('[BrainExecute] confirm error:', e);
       toast.error('Failed to confirm draft');
@@ -193,14 +193,19 @@ export function useBrainExecute() {
       // If no hash provided, request one first
       let hash = confirmationHash;
       let expiresAt = draft.expires_at;
+      let resolvedDraft = draft;
       if (!hash) {
         const confirmResult = await confirmDraft(draft);
         if (!confirmResult) return { success: false };
         hash = confirmResult.confirmation_hash;
         expiresAt = confirmResult.expires_at;
+        // Patch meaning if minted during confirm
+        if (confirmResult.meaning_object_id) {
+          resolvedDraft = { ...draft, meaning: { meaning_object_id: confirmResult.meaning_object_id } };
+        }
       }
 
-      const draftWithExpiry = { ...draft, expires_at: expiresAt };
+      const draftWithExpiry = { ...resolvedDraft, expires_at: expiresAt };
 
       const resp = await fetch(EXECUTE_URL, {
         method: 'POST',
