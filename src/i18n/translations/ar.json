@@ -1249,6 +1249,18 @@
     "limitHits": "بلوغ الحد (30 يوم)",
     "ctaUpgrade": "ترقية الخطة",
     "ctaOptimize": "عرض تفاصيل الاستخدام",
-    "nudgeUpgrade": "مساحة عملك تقترب من حدودها. فكّر في ترقية خطتك."
+    "nudgeUpgrade": "مساحة عملك تقترب من حدودها. فكّر في ترقية خطتك.",
+    "reasons": {
+      "frequentLimitHits": "وصلت لحدود الخطة {{hits}} مرة خلال آخر 30 يوم",
+      "projectedBreach": "{{metric}} متوقع يوصل {{projected}} (الحد: {{limit}})",
+      "highUtilization": "{{metric}} عند {{percent}}% من الاستخدام"
+    },
+    "metrics": {
+      "bookings": "الحجوزات",
+      "quotes": "عروض الأسعار",
+      "vendors": "المزودين",
+      "services": "الخدمات",
+      "seats": "المقاعد"
+    }
   }
 }

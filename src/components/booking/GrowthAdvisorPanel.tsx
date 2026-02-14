@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useGrowthInsights, GrowthInsights } from '@/hooks/useGrowthInsights';
+import { useGrowthInsights, GrowthInsights, GrowthReason } from '@/hooks/useGrowthInsights';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TrendingUp, ShieldCheck, AlertTriangle, ArrowUpCircle } from 'lucide-react';
-import { useCallback, useRef, useEffect } from 'react';
+import { TrendingUp, ShieldCheck, AlertTriangle, ArrowUpCircle, Info } from 'lucide-react';
+import { useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 
 function getMonthKey(workspaceId: string): string {
@@ -91,6 +91,15 @@ export function GrowthAdvisorPanel() {
           </p>
         </div>
 
+        {/* Reasons */}
+        {insights.reasons && insights.reasons.length > 0 && (
+          <ul className="space-y-1.5 text-xs text-muted-foreground">
+            {insights.reasons.map((r, i) => (
+              <ReasonItem key={i} reason={r} />
+            ))}
+          </ul>
+        )}
+
         {/* Projections (only for monthly metrics) */}
         {(insights.projected_end_of_month_usage.bookings > 0 || insights.projected_end_of_month_usage.quotes > 0) && (
           <div className="grid grid-cols-2 gap-3">
@@ -135,6 +144,39 @@ export function GrowthAdvisorPanel() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ReasonItem({ reason }: { reason: GrowthReason }) {
+  const { t } = useTranslation();
+
+  const text = (() => {
+    switch (reason.code) {
+      case 'FREQUENT_LIMIT_HITS':
+        return t('growth.reasons.frequentLimitHits', 'You hit plan limits {{hits}} times in the last 30 days', { hits: reason.hits });
+      case 'PROJECTED_BREACH':
+        return t('growth.reasons.projectedBreach', '{{metric}} projected to reach {{projected}} (limit: {{limit}})', {
+          metric: t(`growth.metrics.${reason.metric}`, reason.metric ?? ''),
+          projected: reason.projected,
+          limit: reason.limit,
+        });
+      case 'HIGH_UTILIZATION':
+        return t('growth.reasons.highUtilization', '{{metric}} at {{percent}}% utilization', {
+          metric: t(`growth.metrics.${reason.metric}`, reason.metric ?? ''),
+          percent: reason.percent,
+        });
+      default:
+        return '';
+    }
+  })();
+
+  if (!text) return null;
+
+  return (
+    <li className="flex items-start gap-2">
+      <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+      <span>{text}</span>
+    </li>
   );
 }
 
