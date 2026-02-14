@@ -126,7 +126,7 @@ export function BrainDraftPanel() {
   const hasMore = drafts.length > 3;
 
   return (
-    <Card className="border-primary/20 bg-primary/5">
+    <Card data-testid="brain-draft-panel" className="border-primary/20 bg-primary/5">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Brain className="h-4 w-4 text-primary" />

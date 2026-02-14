@@ -1501,7 +1501,7 @@
     }
   },
   "brainDraft": {
-    "title": "AI Business Brain",
+    "title": "Brain Drafts (Safe Mode)",
     "subtitle": "Suggestions are drafts. You stay in control.",
     "showMore": "Show {{count}} more",
     "showLess": "Show less",
@@ -1550,6 +1550,10 @@
       "strategic_growth": {
         "title": "Strategic Growth Plan",
         "body": "Get an executive view of your business health and a 90-day roadmap."
+      },
+      "dev_test": {
+        "title": "DEV TEST Draft",
+        "body": "This draft is forced for smoke testing purposes only."
       }
     },
     "actions": {
