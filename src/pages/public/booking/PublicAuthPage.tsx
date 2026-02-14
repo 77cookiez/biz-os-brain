@@ -19,7 +19,11 @@ export default function PublicAuthPage() {
   const [searchParams] = useSearchParams();
   // Detect basePath from current URL (v2 vs v1)
   const currentPath = window.location.pathname;
-  const basePath = currentPath.startsWith('/b2/') ? `/b2/${tenantSlug}` : `/b/${tenantSlug}`;
+  const basePath = currentPath.startsWith('/b3/')
+    ? `/b3/${tenantSlug}`
+    : currentPath.startsWith('/b2/')
+      ? `/b2/${tenantSlug}`
+      : `/b/${tenantSlug}`;
   const redirect = searchParams.get('redirect') || basePath;
 
   const [tab, setTab] = useState<'signin' | 'signup'>('signin');

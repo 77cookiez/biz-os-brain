@@ -1451,6 +1451,76 @@
     },
     "permissions": {
       "forbidden": "You do not have permission to perform this action."
+    },
+    "v3": {
+      "landing": {
+        "hero": {
+          "badge": "Trusted by 1,200+ businesses",
+          "title": "Book with {{name}} in minutes",
+          "subtitle": "Browse our services, get instant quotes, and secure your booking — all in one seamless experience.",
+          "cta": "Get Started",
+          "browse": "Browse Services",
+          "trust": {
+            "verified": "Verified Providers",
+            "secure": "Secure Booking",
+            "instant": "Instant Confirmation"
+          }
+        },
+        "stats": {
+          "events": { "value": "1,200+", "label": "Events Booked" },
+          "satisfaction": { "value": "98%", "label": "Satisfaction Rate" },
+          "providers": { "value": "50+", "label": "Service Providers" },
+          "support": { "value": "24/7", "label": "Support Available" }
+        },
+        "features": {
+          "heading": "Everything you need to book with confidence",
+          "subtitle": "Our platform makes it easy to find, compare, and book the perfect service for your needs.",
+          "browse": { "title": "Browse & Discover", "desc": "Explore a curated marketplace of verified service providers with detailed profiles and reviews." },
+          "booking": { "title": "Instant Booking", "desc": "Request quotes and book services in just a few clicks. No phone calls or emails needed." },
+          "verified": { "title": "Verified Providers", "desc": "Every service provider is vetted and approved to ensure the highest quality experience." },
+          "pricing": { "title": "Transparent Pricing", "desc": "See clear pricing upfront with no hidden fees. Compare quotes from multiple providers." },
+          "availability": { "title": "Real-time Availability", "desc": "Check availability instantly and find the perfect time slot that works for your schedule." },
+          "support": { "title": "Dedicated Support", "desc": "Our team is available around the clock to help with any questions or special requests." }
+        },
+        "howItWorks": {
+          "heading": "How it works",
+          "subtitle": "Get started in three simple steps",
+          "step1": { "title": "Browse Services", "desc": "Explore our curated selection of service providers and find the perfect match for your needs." },
+          "step2": { "title": "Request a Quote", "desc": "Share your event details and receive a customized quote tailored to your requirements." },
+          "step3": { "title": "Confirm & Enjoy", "desc": "Review the quote, confirm your booking, and relax — everything is taken care of." }
+        },
+        "testimonials": {
+          "heading": "Loved by our customers",
+          "subtitle": "See what people are saying about their experience",
+          "r1": { "name": "Sarah M.", "role": "Event Planner", "quote": "The booking process was incredibly smooth. I found the perfect catering service for my corporate event within minutes." },
+          "r2": { "name": "Ahmed K.", "role": "Wedding Organizer", "quote": "Outstanding quality and professionalism. The vendor communication was seamless and everything was delivered as promised." },
+          "r3": { "name": "Lisa W.", "role": "Restaurant Owner", "quote": "We use this platform for all our event bookings. The transparency in pricing and the quality of vendors is unmatched." }
+        },
+        "faq": {
+          "heading": "Frequently asked questions",
+          "q1": { "q": "How do I book a service?", "a": "Simply browse our services, select one that fits your needs, and submit a booking request. You'll receive a quote within hours." },
+          "q2": { "q": "Can I cancel or modify my booking?", "a": "Yes, you can cancel or modify your booking according to our cancellation policy. Contact us or the provider directly for changes." },
+          "q3": { "q": "Are the service providers verified?", "a": "Absolutely. Every provider on our platform goes through a thorough verification process before being approved." },
+          "q4": { "q": "What payment methods are accepted?", "a": "We support various payment methods including cash, bank transfer, and card payments. Details are provided in your booking confirmation." },
+          "q5": { "q": "How far in advance should I book?", "a": "We recommend booking at least 2-4 weeks in advance for the best availability, though last-minute requests are also welcome." },
+          "q6": { "q": "What happens after I submit a request?", "a": "The provider will review your request and send a detailed quote. You can then accept, negotiate, or explore other options." }
+        },
+        "cta": {
+          "heading": "Ready to book your next event?",
+          "subtitle": "Join hundreds of satisfied customers. Browse our services and get started today."
+        },
+        "footer": {
+          "description": "Your trusted platform for discovering and booking premium services. Quality, transparency, and convenience — every time.",
+          "quickLinks": "Quick Links",
+          "contact": "Contact",
+          "contactSoon": "Contact information coming soon",
+          "legalVendors": "Legal & Vendors",
+          "becomeProvider": "Become a Provider",
+          "providerLogin": "Provider Login",
+          "privacy": "Privacy Policy",
+          "rights": "All rights reserved."
+        }
+      }
     }
   },
   "growth": {

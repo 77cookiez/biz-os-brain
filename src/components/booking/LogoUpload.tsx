@@ -42,7 +42,7 @@ export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: Lo
 
     try {
       const fileExt = file.name.split('.').pop();
-      const filePath = `${workspaceId}/logo-${Date.now()}.${fileExt}`;
+      const filePath = `${workspaceId}/tenant/logo/logo-${Date.now()}.${fileExt}`;
 
       // Remove old logos first
       await removeOldLogos();
@@ -73,10 +73,10 @@ export function LogoUpload({ currentLogoUrl, workspaceId, onUploadComplete }: Lo
     try {
       const { data: files } = await supabase.storage
         .from('booking-assets')
-        .list(workspaceId, { search: 'logo-' });
+        .list(`${workspaceId}/tenant/logo`, { search: 'logo-' });
 
       if (files && files.length > 0) {
-        const filesToRemove = files.map(f => `${workspaceId}/${f.name}`);
+        const filesToRemove = files.map(f => `${workspaceId}/tenant/logo/${f.name}`);
         await supabase.storage.from('booking-assets').remove(filesToRemove);
       }
     } catch {

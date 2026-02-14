@@ -77,9 +77,9 @@ export default function PublicBookingLayoutV3() {
   };
 
   const navItems = [
-    { to: basePath, label: t('booking.public.browse'), end: true },
-    { to: `${basePath}/request`, label: t('booking.public.bookNow') },
-    { to: `${basePath}/my`, label: t('booking.public.myBookings') },
+    { to: `${basePath}/browse`, label: t('booking.public.browse'), end: false },
+    { to: `${basePath}/request`, label: t('booking.public.bookNow'), end: false },
+    { to: `${basePath}/my`, label: t('booking.public.myBookings'), end: false },
   ];
 
   return (
@@ -325,17 +325,15 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
             {/* Badge */}
             <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-muted/50 px-4 py-1.5 text-xs font-medium text-muted-foreground">
               <Zap className="h-3.5 w-3.5" style={{ color: pc }} />
-              Trusted by 1,200+ businesses
+              {t('booking.v3.landing.hero.badge')}
             </div>
 
             <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight leading-[1.1]">
-              Book with{' '}
-              <span style={{ color: pc }}>{workspaceName}</span>
-              {' '}in minutes
+              {t('booking.v3.landing.hero.title', { name: workspaceName })}
             </h1>
 
             <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Browse our services, get instant quotes, and secure your booking — all in one seamless experience.
+              {t('booking.v3.landing.hero.subtitle')}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -346,13 +344,13 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
                   style={tenantPrimary ? { backgroundColor: tenantPrimary, color: '#fff' } : {}}
                 >
                   <CalendarPlus className="h-4 w-4" />
-                  Get Started
+                  {t('booking.v3.landing.hero.cta')}
                 </Button>
               </Link>
-              <Link to={basePath}>
+              <Link to={`${basePath}/browse`}>
                 <Button size="lg" variant="outline" className="rounded-full px-8 h-12 text-sm font-semibold gap-2">
                   <Search className="h-4 w-4" />
-                  Browse Services
+                  {t('booking.v3.landing.hero.browse')}
                 </Button>
               </Link>
             </div>
@@ -361,15 +359,15 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
             <div className="flex items-center justify-center gap-8 pt-6 text-muted-foreground">
               <div className="flex items-center gap-1.5 text-xs">
                 <CheckCircle2 className="h-4 w-4" style={{ color: pc }} />
-                <span>Verified Providers</span>
+                <span>{t('booking.v3.landing.hero.trust.verified')}</span>
               </div>
               <div className="flex items-center gap-1.5 text-xs">
                 <Shield className="h-4 w-4" style={{ color: pc }} />
-                <span>Secure Booking</span>
+                <span>{t('booking.v3.landing.hero.trust.secure')}</span>
               </div>
               <div className="hidden sm:flex items-center gap-1.5 text-xs">
                 <Clock className="h-4 w-4" style={{ color: pc }} />
-                <span>Instant Confirmation</span>
+                <span>{t('booking.v3.landing.hero.trust.instant')}</span>
               </div>
             </div>
           </div>
@@ -381,10 +379,10 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 text-center">
             {[
-              { value: '1,200+', label: 'Events Booked' },
-              { value: '98%', label: 'Satisfaction Rate' },
-              { value: '50+', label: 'Service Providers' },
-              { value: '24/7', label: 'Support Available' },
+              { value: t('booking.v3.landing.stats.events.value'), label: t('booking.v3.landing.stats.events.label') },
+              { value: t('booking.v3.landing.stats.satisfaction.value'), label: t('booking.v3.landing.stats.satisfaction.label') },
+              { value: t('booking.v3.landing.stats.providers.value'), label: t('booking.v3.landing.stats.providers.label') },
+              { value: t('booking.v3.landing.stats.support.value'), label: t('booking.v3.landing.stats.support.label') },
             ].map(stat => (
               <div key={stat.label}>
                 <div className="text-2xl sm:text-3xl font-bold text-foreground">{stat.value}</div>
@@ -400,21 +398,21 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 id="features-heading" className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-              Everything you need to book with confidence
+              {t('booking.v3.landing.features.heading')}
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              Our platform makes it easy to find, compare, and book the perfect service for your needs.
+              {t('booking.v3.landing.features.subtitle')}
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { icon: Search, title: 'Browse & Discover', desc: 'Explore a curated marketplace of verified service providers with detailed profiles and reviews.' },
-              { icon: CalendarPlus, title: 'Instant Booking', desc: 'Request quotes and book services in just a few clicks. No phone calls or emails needed.' },
-              { icon: Star, title: 'Verified Providers', desc: 'Every service provider is vetted and approved to ensure the highest quality experience.' },
-              { icon: BarChart3, title: 'Transparent Pricing', desc: 'See clear pricing upfront with no hidden fees. Compare quotes from multiple providers.' },
-              { icon: Clock, title: 'Real-time Availability', desc: 'Check availability instantly and find the perfect time slot that works for your schedule.' },
-              { icon: Users, title: 'Dedicated Support', desc: 'Our team is available around the clock to help with any questions or special requests.' },
+              { icon: Search, title: t('booking.v3.landing.features.browse.title'), desc: t('booking.v3.landing.features.browse.desc') },
+              { icon: CalendarPlus, title: t('booking.v3.landing.features.booking.title'), desc: t('booking.v3.landing.features.booking.desc') },
+              { icon: Star, title: t('booking.v3.landing.features.verified.title'), desc: t('booking.v3.landing.features.verified.desc') },
+              { icon: BarChart3, title: t('booking.v3.landing.features.pricing.title'), desc: t('booking.v3.landing.features.pricing.desc') },
+              { icon: Clock, title: t('booking.v3.landing.features.availability.title'), desc: t('booking.v3.landing.features.availability.desc') },
+              { icon: Users, title: t('booking.v3.landing.features.support.title'), desc: t('booking.v3.landing.features.support.desc') },
             ].map(feature => (
               <div
                 key={feature.title}
@@ -442,18 +440,18 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 id="how-it-works-heading" className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-              How it works
+              {t('booking.v3.landing.howItWorks.heading')}
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              Get started in three simple steps
+              {t('booking.v3.landing.howItWorks.subtitle')}
             </p>
           </div>
 
           <div className="grid sm:grid-cols-3 gap-8">
             {[
-              { step: '01', title: 'Browse Services', desc: 'Explore our curated selection of service providers and find the perfect match for your needs.' },
-              { step: '02', title: 'Request a Quote', desc: 'Share your event details and receive a customized quote tailored to your requirements.' },
-              { step: '03', title: 'Confirm & Enjoy', desc: 'Review the quote, confirm your booking, and relax — everything is taken care of.' },
+              { step: '01', title: t('booking.v3.landing.howItWorks.step1.title'), desc: t('booking.v3.landing.howItWorks.step1.desc') },
+              { step: '02', title: t('booking.v3.landing.howItWorks.step2.title'), desc: t('booking.v3.landing.howItWorks.step2.desc') },
+              { step: '03', title: t('booking.v3.landing.howItWorks.step3.title'), desc: t('booking.v3.landing.howItWorks.step3.desc') },
             ].map((item, i) => (
               <div key={item.step} className="relative text-center">
                 <div
@@ -482,18 +480,18 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 id="testimonials-heading" className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-              Loved by our customers
+              {t('booking.v3.landing.testimonials.heading')}
             </h2>
             <p className="mt-4 text-muted-foreground text-lg">
-              See what people are saying about their experience
+              {t('booking.v3.landing.testimonials.subtitle')}
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { name: 'Sarah M.', role: 'Event Planner', quote: 'The booking process was incredibly smooth. I found the perfect catering service for my corporate event within minutes.', rating: 5 },
-              { name: 'Ahmed K.', role: 'Wedding Organizer', quote: 'Outstanding quality and professionalism. The vendor communication was seamless and everything was delivered as promised.', rating: 5 },
-              { name: 'Lisa W.', role: 'Restaurant Owner', quote: 'We use this platform for all our event bookings. The transparency in pricing and the quality of vendors is unmatched.', rating: 5 },
+              { name: t('booking.v3.landing.testimonials.r1.name'), role: t('booking.v3.landing.testimonials.r1.role'), quote: t('booking.v3.landing.testimonials.r1.quote'), rating: 5 },
+              { name: t('booking.v3.landing.testimonials.r2.name'), role: t('booking.v3.landing.testimonials.r2.role'), quote: t('booking.v3.landing.testimonials.r2.quote'), rating: 5 },
+              { name: t('booking.v3.landing.testimonials.r3.name'), role: t('booking.v3.landing.testimonials.r3.role'), quote: t('booking.v3.landing.testimonials.r3.quote'), rating: 5 },
             ].map(review => (
               <div key={review.name} className="rounded-2xl border border-border/50 bg-card p-6">
                 <div className="flex items-center gap-1 mb-4">
@@ -531,18 +529,18 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 id="faq-heading" className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-              Frequently asked questions
+              {t('booking.v3.landing.faq.heading')}
             </h2>
           </div>
 
           <div className="space-y-4">
             {[
-              { q: 'How do I book a service?', a: 'Simply browse our services, select one that fits your needs, and submit a booking request. You\'ll receive a quote within hours.' },
-              { q: 'Can I cancel or modify my booking?', a: 'Yes, you can cancel or modify your booking according to our cancellation policy. Contact us or the provider directly for changes.' },
-              { q: 'Are the service providers verified?', a: 'Absolutely. Every provider on our platform goes through a thorough verification process before being approved.' },
-              { q: 'What payment methods are accepted?', a: 'We support various payment methods including cash, bank transfer, and card payments. Details are provided in your booking confirmation.' },
-              { q: 'How far in advance should I book?', a: 'We recommend booking at least 2-4 weeks in advance for the best availability, though last-minute requests are also welcome.' },
-              { q: 'What happens after I submit a request?', a: 'The provider will review your request and send a detailed quote. You can then accept, negotiate, or explore other options.' },
+              { q: t('booking.v3.landing.faq.q1.q'), a: t('booking.v3.landing.faq.q1.a') },
+              { q: t('booking.v3.landing.faq.q2.q'), a: t('booking.v3.landing.faq.q2.a') },
+              { q: t('booking.v3.landing.faq.q3.q'), a: t('booking.v3.landing.faq.q3.a') },
+              { q: t('booking.v3.landing.faq.q4.q'), a: t('booking.v3.landing.faq.q4.a') },
+              { q: t('booking.v3.landing.faq.q5.q'), a: t('booking.v3.landing.faq.q5.a') },
+              { q: t('booking.v3.landing.faq.q6.q'), a: t('booking.v3.landing.faq.q6.a') },
             ].map(faq => (
               <details key={faq.q} className="group rounded-xl border border-border/50 bg-card">
                 <summary className="flex items-center justify-between px-6 py-4 cursor-pointer text-sm font-medium text-foreground hover:text-foreground/80 transition-colors list-none">
@@ -576,10 +574,10 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
 
             <div className="relative z-10 max-w-2xl mx-auto space-y-6">
               <h2 id="cta-heading" className="text-3xl sm:text-4xl font-bold" style={{ color: '#fff' }}>
-                Ready to book your next event?
+                {t('booking.v3.landing.cta.heading')}
               </h2>
               <p className="text-lg" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                Join hundreds of satisfied customers. Browse our services and get started today.
+                {t('booking.v3.landing.cta.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <Link to={`${basePath}/request`}>
@@ -588,20 +586,20 @@ function V3LandingPage({ settings, workspaceName, basePath, tenantSlug, tenantPr
                     className="rounded-full px-8 h-12 text-sm font-semibold gap-2 shadow-lg"
                     style={{ backgroundColor: '#fff', color: tenantPrimary || 'hsl(var(--primary))' }}
                   >
-                    <CalendarPlus className="h-4 w-4" />
-                    Book Now
-                  </Button>
-                </Link>
-                <Link to={basePath}>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="rounded-full px-8 h-12 text-sm font-semibold gap-2 border-2"
-                    style={{ borderColor: 'rgba(255,255,255,0.4)', color: '#fff', backgroundColor: 'transparent' }}
-                  >
-                    Browse Services
-                  </Button>
-                </Link>
+                  <CalendarPlus className="h-4 w-4" />
+                  {t('booking.public.bookNow')}
+                </Button>
+              </Link>
+              <Link to={`${basePath}/browse`}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full px-8 h-12 text-sm font-semibold gap-2 border-2"
+                  style={{ borderColor: 'rgba(255,255,255,0.4)', color: '#fff', backgroundColor: 'transparent' }}
+                >
+                  {t('booking.v3.landing.hero.browse')}
+                </Button>
+              </Link>
               </div>
             </div>
           </div>
@@ -625,9 +623,10 @@ interface FooterProps {
 }
 
 function V3Footer({ workspaceName, basePath, tenantSlug, contactEmail, whatsappNumber, tenantPrimary }: FooterProps) {
+  const { t } = useTranslation();
   const year = new Date().getFullYear();
   const cleanWhatsapp = whatsappNumber?.replace(/\D/g, '');
-  const vendorBase = `/v3/${tenantSlug}`;
+  const vendorBase = `/v/${tenantSlug}`;
   const pc = tenantPrimary || 'hsl(var(--primary))';
 
   return (
@@ -650,18 +649,18 @@ function V3Footer({ workspaceName, basePath, tenantSlug, contactEmail, whatsappN
               <span className="text-sm font-semibold text-foreground">{workspaceName}</span>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-xs">
-              Your trusted platform for discovering and booking premium services. Quality, transparency, and convenience — every time.
+              {t('booking.v3.landing.footer.description')}
             </p>
           </div>
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Quick Links</h3>
+            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">{t('booking.v3.landing.footer.quickLinks')}</h3>
             <nav className="space-y-2.5" aria-label="Footer quick links">
               {[
-                { to: basePath, label: 'Browse Services' },
-                { to: `${basePath}/request`, label: 'Book Now' },
-                { to: `${basePath}/my`, label: 'My Bookings' },
+                { to: `${basePath}/browse`, label: t('booking.v3.landing.hero.browse') },
+                { to: `${basePath}/request`, label: t('booking.public.bookNow') },
+                { to: `${basePath}/my`, label: t('booking.public.myBookings') },
               ].map(link => (
                 <Link key={link.to} to={link.to} className="block text-sm text-muted-foreground hover:text-foreground transition-colors">
                   {link.label}
@@ -672,7 +671,7 @@ function V3Footer({ workspaceName, basePath, tenantSlug, contactEmail, whatsappN
 
           {/* Contact */}
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Contact</h3>
+            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">{t('booking.v3.landing.footer.contact')}</h3>
             <div className="space-y-2.5">
               {contactEmail && (
                 <a href={`mailto:${contactEmail}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -687,26 +686,26 @@ function V3Footer({ workspaceName, basePath, tenantSlug, contactEmail, whatsappN
                 </a>
               )}
               {!contactEmail && !cleanWhatsapp && (
-                <p className="text-xs text-muted-foreground italic">Contact information coming soon</p>
+                <p className="text-xs text-muted-foreground italic">{t('booking.v3.landing.footer.contactSoon')}</p>
               )}
             </div>
           </div>
 
           {/* Legal */}
           <div className="space-y-4">
-            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Legal & Vendors</h3>
+            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">{t('booking.v3.landing.footer.legalVendors')}</h3>
             <div className="space-y-2.5">
               <Link to={vendorBase} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Store className="h-3.5 w-3.5 shrink-0" />
-                Become a Provider
+                {t('booking.v3.landing.footer.becomeProvider')}
               </Link>
               <Link to={vendorBase} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                Provider Login
+                {t('booking.v3.landing.footer.providerLogin')}
               </Link>
               <span className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Shield className="h-3.5 w-3.5 shrink-0" />
-                Privacy Policy
+                {t('booking.v3.landing.footer.privacy')}
               </span>
             </div>
           </div>
@@ -715,10 +714,10 @@ function V3Footer({ workspaceName, basePath, tenantSlug, contactEmail, whatsappN
         {/* Bottom */}
         <div className="mt-10 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
-            © {year} {workspaceName}. All rights reserved.
+            © {year} {workspaceName}. {t('booking.v3.landing.footer.rights')}
           </p>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Powered by Bookivo</span>
+            <span>{t('booking.public.footer.poweredBy')}</span>
             <Heart className="h-3 w-3 text-destructive" aria-hidden="true" />
           </div>
         </div>
