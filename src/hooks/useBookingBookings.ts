@@ -152,6 +152,26 @@ export function useBookingBookings() {
         metadata: { method: method || 'cash', marked_by: user.id },
       } as any);
 
+      // Commission tracking (analytics only)
+      const { data: bSettings } = await supabase
+        .from('booking_settings')
+        .select('commission_rate')
+        .eq('workspace_id', workspaceId)
+        .maybeSingle();
+
+      const commRate = bSettings?.commission_rate || 0;
+      if (commRate > 0) {
+        await supabase.from('booking_commission_ledger').insert({
+          workspace_id: workspaceId,
+          booking_id: bookingId,
+          booking_amount: paidAmount,
+          commission_rate: commRate,
+          commission_amount: Math.round(paidAmount * (commRate / 100) * 100) / 100,
+          currency: booking.currency,
+          status: 'pending',
+        } as any);
+      }
+
       // Audit + OIL
       await auditAndEmit({
         workspace_id: workspaceId,
@@ -160,7 +180,7 @@ export function useBookingBookings() {
         event_type: 'booking.payment_marked_paid',
         entity_type: 'booking_booking',
         entity_id: bookingId,
-        metadata: { method: method || 'cash', amount: paidAmount },
+        metadata: { method: method || 'cash', amount: paidAmount, commission_rate: commRate },
       });
     },
     onSuccess: () => {

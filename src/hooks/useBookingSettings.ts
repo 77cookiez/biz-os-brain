@@ -94,11 +94,9 @@ export function useBookingSettings() {
     },
   });
 
-  const isStripeEnabled = settings?.payment_mode === 'stripe_connect'
-    && settings?.stripe_onboarding_completed
-    && !!settings?.stripe_account_id;
-
-  const isOfflineOnly = !settings || settings.payment_mode === 'offline_only';
+  // BookEvo SaaS: always offline-only, no Stripe payment processing
+  const isStripeEnabled = false;
+  const isOfflineOnly = true;
 
   return { settings, isLoading, upsertSettings, isStripeEnabled, isOfflineOnly };
 }
