@@ -1426,5 +1426,25 @@
     "permissions": {
       "forbidden": "You do not have permission to perform this action."
     }
+  },
+  "growth": {
+    "title": "Growth Advisor",
+    "status": {
+      "healthy": "Healthy",
+      "at_risk": "At Risk",
+      "critical": "Action Needed"
+    },
+    "recommendation": {
+      "upgrade": "Your workspace is approaching or exceeding plan limits. We recommend upgrading to avoid disruptions.",
+      "optimize": "Some resources are nearing their limits. Review your usage to stay within your plan.",
+      "none": "Your workspace is running smoothly within plan limits."
+    },
+    "projectedBookings": "Projected Bookings",
+    "projectedQuotes": "Projected Quotes",
+    "confidence": "Confidence",
+    "limitHits": "Limit hits (30d)",
+    "ctaUpgrade": "Upgrade Plan",
+    "ctaOptimize": "View Usage Details",
+    "nudgeUpgrade": "Your workspace is approaching its limits. Consider upgrading your plan."
   }
 }
