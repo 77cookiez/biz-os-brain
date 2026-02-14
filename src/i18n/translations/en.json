@@ -1463,14 +1463,41 @@
   },
   "upgradeFunnel": {
     "title": "Upgrade Recommended",
-    "headline": "You're close to your plan limits",
+    "headline": "Your business is growing — time to level up",
     "ctaRequest": "Request Upgrade to {{plan}}",
-    "ctaViewPlans": "View All Plans",
+    "ctaViewPlans": "Compare Plans",
     "notNow": "Not now — remind me later",
     "requestSuccess": "Upgrade request submitted! Your admin will review it shortly.",
     "currentPlan": "Current",
     "recommended": "Recommended",
+    "mostPopular": "Most Popular",
     "free": "Free",
-    "month": "mo"
+    "month": "mo",
+    "priceSuggestion": "Based on your growth trajectory, the {{plan}} plan is recommended for uninterrupted operations.",
+    "features": {
+      "growth_insights": "Growth Insights",
+      "priority_support": "Priority Support",
+      "advanced_insights": "Advanced Insights",
+      "white_label": "White Label"
+    },
+    "tips": {
+      "title": "Smart Tips for Your Business",
+      "improve_conversion": {
+        "title": "Improve Quote Conversion",
+        "body": "You have many quotes but fewer bookings. Try sending follow-up messages to boost conversions."
+      },
+      "add_services": {
+        "title": "Expand Your Service Catalog",
+        "body": "Adding more services increases visibility and attracts a wider audience."
+      },
+      "manage_vendors": {
+        "title": "Manage Your Vendors",
+        "body": "You're approaching the vendor limit. Consider suspending inactive vendors or upgrading."
+      },
+      "invite_team": {
+        "title": "Invite Your Team",
+        "body": "You have available seats. Invite team members to help manage bookings and respond faster."
+      }
+    }
   }
 }
