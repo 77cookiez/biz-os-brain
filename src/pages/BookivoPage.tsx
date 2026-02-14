@@ -9,7 +9,6 @@ import AISmartSection from '@/components/bookivo/AISmartSection';
 import AiBizOSSection from '@/components/bookivo/AiBizOSSection';
 import FeatureGrid from '@/components/bookivo/FeatureGrid';
 import UseCasesSection from '@/components/bookivo/UseCasesSection';
-import HowItWorks from '@/components/bookivo/HowItWorks';
 import PricingPreview from '@/components/bookivo/PricingPreview';
 import FAQSection from '@/components/bookivo/FAQSection';
 import FinalCTA from '@/components/bookivo/FinalCTA';
@@ -23,10 +22,13 @@ export default function BookivoPage() {
     description: t('bookivo.landing.meta.description', 'AI-powered booking platform for modern service businesses. Launch booking pages, manage vendors, and grow with AI.'),
     ogTitle: t('bookivo.landing.meta.title', 'Bookivo — The Intelligent Booking OS'),
     ogDescription: t('bookivo.landing.meta.description', 'AI-powered booking platform for modern service businesses. Launch booking pages, manage vendors, and grow with AI.'),
+    ogUrl: 'https://biz-os-brain.lovable.app/bookivo',
+    canonical: 'https://biz-os-brain.lovable.app/bookivo',
+    twitterCard: 'summary_large_image',
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground scroll-smooth">
+    <div className="min-h-screen bg-background text-foreground">
       <BookivoHeader />
       <main>
         <HeroSection />
@@ -37,7 +39,6 @@ export default function BookivoPage() {
         <AiBizOSSection />
         <FeatureGrid />
         <UseCasesSection />
-        <HowItWorks />
         <PricingPreview />
         <FAQSection />
         <FinalCTA />

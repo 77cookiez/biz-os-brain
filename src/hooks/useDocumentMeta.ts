@@ -6,6 +6,9 @@ interface DocumentMetaOptions {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  ogUrl?: string;
+  canonical?: string;
+  twitterCard?: 'summary' | 'summary_large_image';
 }
 
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
@@ -16,6 +19,16 @@ function setMeta(name: string, content: string, attr: 'name' | 'property' = 'nam
     document.head.appendChild(el);
   }
   el.setAttribute('content', content);
+}
+
+function setLink(rel: string, href: string) {
+  let el = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+  if (!el) {
+    el = document.createElement('link');
+    el.setAttribute('rel', rel);
+    document.head.appendChild(el);
+  }
+  el.setAttribute('href', href);
 }
 
 export function useDocumentMeta(options: DocumentMetaOptions) {
@@ -37,9 +50,18 @@ export function useDocumentMeta(options: DocumentMetaOptions) {
     if (options.ogImage) {
       setMeta('og:image', options.ogImage, 'property');
     }
+    if (options.ogUrl) {
+      setMeta('og:url', options.ogUrl, 'property');
+    }
+    if (options.canonical) {
+      setLink('canonical', options.canonical);
+    }
+    if (options.twitterCard) {
+      setMeta('twitter:card', options.twitterCard);
+    }
 
     return () => {
       document.title = prevTitle;
     };
-  }, [options.title, options.description, options.ogTitle, options.ogDescription, options.ogImage]);
+  }, [options.title, options.description, options.ogTitle, options.ogDescription, options.ogImage, options.ogUrl, options.canonical, options.twitterCard]);
 }

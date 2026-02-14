@@ -13,24 +13,24 @@ export default function AISmartSection() {
   ];
 
   return (
-    <section className="py-20 sm:py-28" aria-labelledby="ai-heading">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 sm:py-32" aria-labelledby="ai-heading">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 id="ai-heading" className="text-3xl sm:text-4xl font-bold mb-4">
             {t('bookivo.landing.ai.title', 'Not Just Booking — Intelligent Booking.')}
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-xl mx-auto">
             {t('bookivo.landing.ai.subtitle', 'AI built into every layer of your booking workflow.')}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((f, i) => (
-            <div key={i} className="p-6 rounded-2xl border border-border bg-card hover:border-primary/40 transition-all group">
-              <div className="h-12 w-12 rounded-xl bg-[hsl(160_60%_45%/0.1)] flex items-center justify-center mb-4 group-hover:bg-[hsl(160_60%_45%/0.2)] transition-colors">
-                <f.icon className="h-6 w-6 text-[hsl(160_60%_45%)]" />
+            <div key={i} className="p-5 rounded-lg border border-border hover:border-primary/30 transition-colors">
+              <div className="flex items-center gap-3 mb-3">
+                <f.icon className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-medium">{f.title}</h3>
               </div>
-              <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
               <p className="text-sm text-muted-foreground">{f.desc}</p>
             </div>
           ))}

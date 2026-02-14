@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -45,45 +44,43 @@ export default function PricingPreview() {
   ];
 
   return (
-    <section id="pricing" className="py-20 sm:py-28" aria-labelledby="pricing-heading">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="pricing" className="py-24 sm:py-32" aria-labelledby="pricing-heading">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 id="pricing-heading" className="text-3xl sm:text-4xl font-bold mb-4">
             {t('bookivo.landing.pricing.title', 'Simple, Transparent Pricing')}
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-muted-foreground">
             {t('bookivo.landing.pricing.subtitle', 'Start free, upgrade when you grow.')}
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           {tiers.map((tier, idx) => (
-            <Card key={idx} className={`relative border-border ${tier.popular ? 'border-primary ring-1 ring-primary' : ''}`}>
+            <div key={idx} className={`relative p-8 rounded-lg border ${tier.popular ? 'border-primary' : 'border-border'}`}>
               {tier.popular && (
-                <div className="absolute -top-3 start-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                <div className="absolute -top-3 start-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-xs">
                   {t('bookivo.landing.pricing.popular', 'Most Popular')}
                 </div>
               )}
-              <CardContent className="p-8">
-                <h3 className="text-xl font-semibold mb-2">{tier.name}</h3>
-                <div className="mb-6">
-                  <span className="text-4xl font-bold">{tier.price}</span>
-                  {tier.period && <span className="text-muted-foreground text-sm ms-1">{tier.period}</span>}
-                </div>
-                <ul className="space-y-3 mb-8">
-                  {tier.features.map((f, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="h-4 w-4 text-primary shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link to="/auth?mode=signup">
-                  <Button variant={tier.popular ? 'default' : 'outline'} className="w-full">
-                    {t('bookivo.landing.pricing.cta', 'Get Started')}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+              <h3 className="text-lg font-semibold mb-1">{tier.name}</h3>
+              <div className="mb-6">
+                <span className="text-4xl font-bold">{tier.price}</span>
+                {tier.period && <span className="text-muted-foreground text-sm ms-1">{tier.period}</span>}
+              </div>
+              <ul className="space-y-3 mb-8">
+                {tier.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <Link to="/auth?mode=signup">
+                <Button variant={tier.popular ? 'default' : 'ghost'} className="w-full">
+                  {t('bookivo.landing.pricing.cta', 'Get Started')}
+                </Button>
+              </Link>
+            </div>
           ))}
         </div>
       </div>

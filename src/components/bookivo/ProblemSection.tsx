@@ -14,25 +14,25 @@ export default function ProblemSection() {
   ];
 
   return (
-    <section className="py-20 sm:py-28" aria-labelledby="problem-heading">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 sm:py-32" aria-labelledby="problem-heading">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 id="problem-heading" className="text-3xl sm:text-4xl font-bold mb-4">
             {t('bookivo.landing.problem.title', 'Still Managing Bookings the Old Way?')}
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-xl mx-auto">
             {t('bookivo.landing.problem.subtitle', 'These pain points cost you time, money, and customers every day.')}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {pains.map((p, i) => (
-            <div key={i} className="p-6 rounded-2xl border border-destructive/20 bg-destructive/5 hover:border-destructive/40 transition-colors">
-              <div className="h-12 w-12 rounded-xl bg-destructive/10 flex items-center justify-center mb-4">
-                <p.icon className="h-6 w-6 text-destructive" />
+            <div key={i} className="flex items-start gap-4 p-5 rounded-lg border border-border hover:border-muted-foreground/30 transition-colors">
+              <p.icon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-medium mb-1">{p.title}</h3>
+                <p className="text-sm text-muted-foreground">{p.desc}</p>
               </div>
-              <h3 className="text-lg font-semibold mb-2">{p.title}</h3>
-              <p className="text-sm text-muted-foreground">{p.desc}</p>
             </div>
           ))}
         </div>
