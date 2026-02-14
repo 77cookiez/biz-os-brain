@@ -478,18 +478,21 @@ serve(async (req) => {
       // 7. Finalize or rollback reservation
       if (result.success && result.result && typeof result.result === "object") {
         const r = result.result as Record<string, string>;
-        const entityId = String(r.id || "");
-        // Update placeholder with real entity_id
-        await sbService.from("executed_proposals")
-          .update({ entity_id: entityId, entity_type: r.type || proposal.type })
-          .eq("proposal_id", proposal.id)
-          .then(() => {}, (e: Error) => console.warn("[brain-execute] reservation update warning:", e.message));
+        const entityId = r.id ? String(r.id) : "";
+        if (entityId) {
+          const { error: updateErr } = await sbService.from("executed_proposals")
+            .update({ entity_id: entityId, entity_type: r.type || proposal.type })
+            .eq("proposal_id", proposal.id);
+          if (updateErr) console.warn("[brain-execute] reservation update warning:", updateErr.message);
+        } else {
+          console.warn("[brain-execute] success but missing entity id; reservation left as placeholder");
+        }
       } else {
         // Execution failed — remove reservation so user can retry
-        await sbService.from("executed_proposals")
+        const { error: cleanupErr } = await sbService.from("executed_proposals")
           .delete()
-          .eq("proposal_id", proposal.id)
-          .then(() => {}, (e: Error) => console.warn("[brain-execute] reservation cleanup warning:", e.message));
+          .eq("proposal_id", proposal.id);
+        if (cleanupErr) console.warn("[brain-execute] reservation cleanup warning:", cleanupErr.message);
       }
 
       await sbService.from("audit_logs").insert({
