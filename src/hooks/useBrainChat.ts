@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { buildMeaningFromText, createMeaningObject } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
+import type { BrainProposal } from '@/hooks/useBrainExecute';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -20,28 +21,45 @@ interface BrainMeta {
   simulation_used: boolean;
 }
 
+interface BrainArtifacts {
+  cleanText: string;
+  meta: BrainMeta | null;
+  proposals: BrainProposal[];
+}
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/brain-chat`;
 
 const BRAIN_META_REGEX = /```BRAIN_META\s*\n([\s\S]*?)```/;
+const BRAIN_PROPOSALS_REGEX = /```BRAIN_PROPOSALS\s*\n([\s\S]*?)```/;
 
-/** Strip BRAIN_META block from visible text and parse it */
-function extractBrainMeta(text: string): { cleanText: string; meta: BrainMeta | null } {
-  const match = text.match(BRAIN_META_REGEX);
-  if (!match) return { cleanText: text, meta: null };
+/** Strip BRAIN_META and BRAIN_PROPOSALS blocks from visible text; parse both */
+function extractBrainArtifacts(text: string): BrainArtifacts {
+  let cleanText = text;
+  let meta: BrainMeta | null = null;
+  let proposals: BrainProposal[] = [];
 
-  const cleanText = text.replace(BRAIN_META_REGEX, '').trimEnd();
-  try {
-    const meta = JSON.parse(match[1].trim());
-    return { cleanText, meta };
-  } catch {
-    return { cleanText, meta: null };
+  // Extract BRAIN_META
+  const metaMatch = cleanText.match(BRAIN_META_REGEX);
+  if (metaMatch) {
+    cleanText = cleanText.replace(BRAIN_META_REGEX, '');
+    try { meta = JSON.parse(metaMatch[1].trim()); } catch { /* ignore */ }
   }
+
+  // Extract BRAIN_PROPOSALS
+  const proposalsMatch = cleanText.match(BRAIN_PROPOSALS_REGEX);
+  if (proposalsMatch) {
+    cleanText = cleanText.replace(BRAIN_PROPOSALS_REGEX, '');
+    try { proposals = JSON.parse(proposalsMatch[1].trim()); } catch { /* ignore */ }
+  }
+
+  return { cleanText: cleanText.trimEnd(), meta, proposals };
 }
 
 export function useBrainChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastMeta, setLastMeta] = useState<BrainMeta | null>(null);
+  const [lastProposals, setLastProposals] = useState<BrainProposal[]>([]);
   const { businessContext, installedApps, currentWorkspace } = useWorkspace();
   const { currentLanguage, contentLocale } = useLanguage();
   const { user } = useAuth();
@@ -85,7 +103,12 @@ export function useBrainChat() {
     }
   }, [currentWorkspace, user, currentLanguage.code]);
 
-  /** Log BRAIN_META to org_events for OIL ingestion */
+  /**
+   * Log BRAIN_META to org_events for OIL ingestion.
+   * Schema contract: event_type='brain_meta', object_type='brain_message', metadata=BrainMeta.
+   * NOTE: object_id (brain_message_id) is not available here because message persistence is async.
+   * When message persistence returns an ID in the future, it can be added here.
+   */
   const logBrainMeta = useCallback(async (meta: BrainMeta) => {
     if (!currentWorkspace || !user) return;
     try {
@@ -154,7 +177,7 @@ export function useBrainChat() {
     };
   }, [currentWorkspace, installedApps]);
 
-  const sendMessage = useCallback(async (input: string, action?: string) => {
+  const sendMessage = useCallback(async (input: string, action?: string, intentOverride?: string) => {
     const userMsg: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
@@ -169,8 +192,8 @@ export function useBrainChat() {
     
     const upsertAssistant = (nextChunk: string) => {
       assistantSoFar += nextChunk;
-      // Strip BRAIN_META from display in real-time
-      const { cleanText } = extractBrainMeta(assistantSoFar);
+      // Strip BRAIN_META and BRAIN_PROPOSALS from display in real-time
+      const { cleanText } = extractBrainArtifacts(assistantSoFar);
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant') {
@@ -207,10 +230,12 @@ export function useBrainChat() {
             teamSize: businessContext.team_size,
             hasTeam: businessContext.has_team,
           } : undefined,
+          // installedApps still sent for backwards compat but server ignores it (Fix A)
           installedApps: installedApps.filter(a => a.is_active).map(a => a.app_id),
           systemContext: systemCtx,
           workContext,
           action,
+          intentOverride,
           userLang: contentLocale || currentLanguage.code,
           workspaceId: currentWorkspace?.id,
         }),
@@ -236,6 +261,9 @@ export function useBrainChat() {
       let textBuffer = '';
       let streamDone = false;
 
+      // SSE parser: splits on \n. If JSON.parse fails, accumulates for next chunk.
+      // NOTE (Fix E): This works for standard SSE. If gateways send multi-line data
+      // or split JSON across chunks, consider \n\n boundary parsing or an SSE library.
       while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -284,11 +312,11 @@ export function useBrainChat() {
         }
       }
 
-      // Extract BRAIN_META, clean display, log to OIL
+      // Extract BRAIN_META + BRAIN_PROPOSALS, clean display, log to OIL
       if (assistantSoFar) {
-        const { cleanText, meta } = extractBrainMeta(assistantSoFar);
+        const { cleanText, meta, proposals } = extractBrainArtifacts(assistantSoFar);
 
-        // Ensure final message is clean (no BRAIN_META)
+        // Ensure final message is clean (no artifacts)
         setMessages(prev => {
           const last = prev[prev.length - 1];
           if (last?.role === 'assistant') {
@@ -302,6 +330,9 @@ export function useBrainChat() {
           setLastMeta(meta);
           logBrainMeta(meta);
         }
+
+        // Store proposals for downstream use (ProposalCard, sign/execute flow)
+        setLastProposals(proposals);
 
         // Persist clean assistant response
         persistMessage('assistant', cleanText);
@@ -317,6 +348,7 @@ export function useBrainChat() {
   const clearMessages = useCallback(() => {
     setMessages([]);
     setLastMeta(null);
+    setLastProposals([]);
   }, []);
 
   return {
@@ -326,5 +358,6 @@ export function useBrainChat() {
     clearMessages,
     setMessages,
     lastMeta,
+    lastProposals,
   };
 }
