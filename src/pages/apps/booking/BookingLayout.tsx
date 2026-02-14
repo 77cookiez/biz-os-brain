@@ -2,6 +2,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { LayoutDashboard, Store, Package, Calendar, MessageSquare, BookOpen, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export default function BookingLayout() {
   const { t } = useTranslation();
@@ -41,7 +42,9 @@ export default function BookingLayout() {
         </div>
       </nav>
       <div className="flex-1 overflow-auto p-4 md:p-6">
-        <Outlet />
+        <ErrorBoundary>
+          <Outlet />
+        </ErrorBoundary>
       </div>
     </div>
   );

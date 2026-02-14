@@ -2874,6 +2874,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      can_manage_booking: {
+        Args: { _booking_id: string; _user_id: string }
+        Returns: boolean
+      }
       cleanup_old_org_events: { Args: never; Returns: undefined }
       cleanup_stale_memory: { Args: never; Returns: undefined }
       get_live_booking_tenant_by_slug: {
