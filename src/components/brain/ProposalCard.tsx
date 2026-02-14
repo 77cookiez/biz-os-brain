@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle2, XCircle, Loader2, Shield, Clock, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Shield, Clock, AlertTriangle, Eye, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,10 @@ const typeIcons: Record<string, string> = {
   plan: '📊',
   idea: '💡',
   update: '✏️',
+  draft_plan: '📝',
+  draft_message: '💬',
+  draft_design_change: '🎨',
+  draft_task_set: '📦',
 };
 
 const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
@@ -30,11 +34,17 @@ const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive'> 
 export function ProposalCard({ proposal, onConfirm, onReject, isExecuting }: ProposalCardProps) {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const isExpired = proposal.expires_at ? Date.now() > proposal.expires_at : false;
   const timeLeft = proposal.expires_at
     ? Math.max(0, Math.round((proposal.expires_at - Date.now()) / 1000 / 60))
     : null;
+
+  // Extract draft-specific fields
+  const scope = proposal.payload.scope as { affected_modules?: string[]; impact_summary?: string; affected_entities?: { entity_type: string; action: string; diff?: Record<string, { before: unknown; after: unknown }> }[] } | undefined;
+  const risks = (proposal.payload.risks as string[]) || [];
+  const isDraft = proposal.type.startsWith('draft_');
 
   const handleConfirm = async () => {
     setConfirming(true);
@@ -56,10 +66,16 @@ export function ProposalCard({ proposal, onConfirm, onReject, isExecuting }: Pro
           <span className="text-lg">{typeIcons[proposal.type] || '📄'}</span>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{proposal.title}</p>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <Badge variant="outline" className="text-[10px] capitalize">
-                {proposal.type}
+                {isDraft ? 'Draft' : proposal.type}
               </Badge>
+              {isDraft && (
+                <Badge variant="secondary" className="text-[10px]">
+                  <Eye className="h-2.5 w-2.5 mr-0.5" />
+                  Preview
+                </Badge>
+              )}
               <Badge variant={roleBadgeVariant[proposal.required_role] || 'secondary'} className="text-[10px]">
                 <Shield className="h-2.5 w-2.5 mr-0.5" />
                 {proposal.required_role}
@@ -83,6 +99,68 @@ export function ProposalCard({ proposal, onConfirm, onReject, isExecuting }: Pro
         </p>
       )}
 
+      {/* Dry-Run Preview (expandable) */}
+      {(scope || risks.length > 0) && (
+        <div className="space-y-2">
+          <button
+            onClick={() => setPreviewOpen(!previewOpen)}
+            className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+          >
+            <Eye className="h-3 w-3" />
+            {t('brain.preview', 'Preview Impact')}
+            {previewOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          </button>
+
+          {previewOpen && (
+            <div className="rounded-lg bg-muted/50 border border-border p-3 space-y-2 text-xs">
+              {/* Impact summary */}
+              {scope?.impact_summary && (
+                <p className="text-foreground">{scope.impact_summary}</p>
+              )}
+
+              {/* Affected modules */}
+              {scope?.affected_modules && scope.affected_modules.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-muted-foreground">Modules:</span>
+                  {scope.affected_modules.map(m => (
+                    <Badge key={m} variant="outline" className="text-[10px]">{m}</Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Affected entities (diff) */}
+              {scope?.affected_entities && scope.affected_entities.length > 0 && (
+                <div className="space-y-1">
+                  {scope.affected_entities.map((entity, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Badge variant={entity.action === 'delete' ? 'destructive' : entity.action === 'create' ? 'default' : 'secondary'} className="text-[10px]">
+                        {entity.action}
+                      </Badge>
+                      <span className="text-muted-foreground">{entity.entity_type}</span>
+                      {entity.diff && Object.entries(entity.diff).map(([field, { before, after }]) => (
+                        <span key={field} className="text-muted-foreground">
+                          {field}: <span className="line-through text-destructive">{String(before)}</span> → <span className="text-primary">{String(after)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Risks */}
+              {risks.length > 0 && (
+                <div className="space-y-1 pt-1 border-t border-border">
+                  <span className="text-muted-foreground font-medium">⚠️ Risks:</span>
+                  {risks.map((risk, i) => (
+                    <p key={i} className="text-muted-foreground ps-4">• {risk}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Expired warning */}
       {isExpired && (
         <div className="flex items-center gap-1.5 text-xs text-destructive">
@@ -104,7 +182,9 @@ export function ProposalCard({ proposal, onConfirm, onReject, isExecuting }: Pro
           ) : (
             <CheckCircle2 className="h-3 w-3 mr-1" />
           )}
-          {t('brain.confirm', 'Confirm & Execute')}
+          {isDraft
+            ? t('brain.confirmDraft', 'Approve & Execute')
+            : t('brain.confirm', 'Confirm & Execute')}
         </Button>
         <Button
           variant="outline"
