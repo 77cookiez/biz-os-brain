@@ -45,23 +45,64 @@ export interface BookingSettings {
   offline_methods: string[];
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
+  deleted_by: string | null;
 }
 
-export function useBookingSettings() {
+/** Returns all non-deleted sites for the workspace */
+export function useBookingSettingsList() {
+  const { currentWorkspace } = useWorkspace();
+  const workspaceId = currentWorkspace?.id;
+
+  const { data: sites, isLoading } = useQuery({
+    queryKey: ['booking-settings-list', workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from('booking_settings')
+        .select('*')
+        .eq('workspace_id', workspaceId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as BookingSettings[];
+    },
+    enabled: !!workspaceId,
+  });
+
+  return { sites: sites ?? [], isLoading };
+}
+
+/** 
+ * Hook to manage a single booking site settings.
+ * If siteId is provided, it fetches that specific site.
+ * If no siteId, it falls back to the first site (backward compatibility).
+ */
+export function useBookingSettings(siteId?: string | null) {
   const { currentWorkspace } = useWorkspace();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = currentWorkspace?.id;
 
   const { data: settings, isLoading } = useQuery({
-    queryKey: ['booking-settings', workspaceId],
+    queryKey: ['booking-settings', workspaceId, siteId],
     queryFn: async () => {
       if (!workspaceId) return null;
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('booking_settings')
         .select('*')
         .eq('workspace_id', workspaceId)
-        .maybeSingle();
+        .is('deleted_at', null);
+
+      if (siteId) {
+        query = query.eq('id', siteId);
+      } else {
+        query = query.order('created_at', { ascending: true }).limit(1);
+      }
+
+      const { data, error } = await query.maybeSingle();
+      
       if (error) throw error;
       return data as BookingSettings | null;
     },
@@ -87,10 +128,36 @@ export function useBookingSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking-settings', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['booking-settings-list', workspaceId] });
       toast.success(t('booking.wizard.saved'));
     },
+    onError: (error: any) => {
+      if (error?.code === 'P0001') {
+        toast.error(t('booking.sites.limitReached', 'Plan limit reached'));
+      } else {
+        toast.error(t('booking.wizard.saveFailed'));
+      }
+    },
+  });
+
+  const deleteSite = useMutation({
+    mutationFn: async (targetSiteId: string) => {
+      if (!workspaceId) throw new Error('No workspace');
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('booking_settings')
+        .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id, is_live: false } as any)
+        .eq('id', targetSiteId)
+        .eq('workspace_id', workspaceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['booking-settings', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['booking-settings-list', workspaceId] });
+      toast.success(t('booking.sites.deleted', 'Site deleted'));
+    },
     onError: () => {
-      toast.error(t('booking.wizard.saveFailed'));
+      toast.error(t('booking.sites.deleteFailed', 'Failed to delete site'));
     },
   });
 
@@ -98,5 +165,5 @@ export function useBookingSettings() {
   const isStripeEnabled = false;
   const isOfflineOnly = true;
 
-  return { settings, isLoading, upsertSettings, isStripeEnabled, isOfflineOnly };
+  return { settings, isLoading, upsertSettings, deleteSite, isStripeEnabled, isOfflineOnly };
 }

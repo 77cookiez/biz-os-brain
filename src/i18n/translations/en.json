@@ -1373,7 +1373,9 @@
       "pendingTitle": "Registration Under Review",
       "pendingDesc": "Your vendor registration is being reviewed by the marketplace admin. You'll get access once approved.",
       "suspended": "Account Suspended",
-      "suspendedDesc": "Your vendor account has been suspended. Contact the marketplace admin for more information."
+      "suspendedDesc": "Your vendor account has been suspended. Contact the marketplace admin for more information.",
+      "signOut": "Sign Out",
+      "profile": "Profile"
     },
     "vendors": {
       "title": "Vendors",
@@ -1395,6 +1397,30 @@
       "inviteTitle": "Vendor Invite Link",
       "copyLink": "Copy Link",
       "linkCopied": "Link copied to clipboard"
+    },
+    "sites": {
+      "title": "Your Sites",
+      "addNew": "Add New Site",
+      "delete": "Delete Site",
+      "deleted": "Site deleted",
+      "deleteFailed": "Failed to delete site",
+      "deleteConfirm": "Are you sure? This will remove the site permanently.",
+      "deleteConfirmTitle": "Delete Site",
+      "limitReached": "Your plan allows {{max}} site(s). Upgrade to add more.",
+      "premiumLanding": "Premium Landing Page",
+      "vendorPortal": "Vendor Portal",
+      "adminPanel": "Admin Panel",
+      "storefront": "Storefront",
+      "noSites": "No sites created yet",
+      "noSitesDesc": "Run the setup wizard to create your first site.",
+      "openV3": "Open Premium Page",
+      "copyUrl": "Copy URL",
+      "urlCopied": "URL copied!",
+      "status": {
+        "live": "Live",
+        "draft": "Draft",
+        "deleted": "Deleted"
+      }
     }
   },
   "usage": {
