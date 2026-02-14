@@ -243,33 +243,30 @@ export function useBookingQuotes() {
     onError: () => toast.error(t('booking.quotes.quoteFailed')),
   });
 
-  // Accept quote (customer action)
+  // Accept quote (atomic server-side RPC — prevents race conditions)
   const acceptQuote = useMutation({
-    mutationFn: async ({ quoteId, quoteRequestId }: { quoteId: string; quoteRequestId: string }) => {
-      const qr = quoteRequests.find(r => r.id === quoteRequestId);
-      if (qr && !canTransition(qr.status, 'accepted')) {
-        throw new Error(`Cannot transition from ${qr.status} to accepted`);
-      }
+    mutationFn: async ({ quoteId }: { quoteId: string; quoteRequestId?: string }) => {
+      if (!user) throw new Error('Not authenticated');
 
-      const { error: qError } = await supabase
-        .from('booking_quotes')
-        .update({ status: 'accepted' } as any)
-        .eq('id', quoteId);
-      if (qError) throw qError;
-
-      const { error: rError } = await supabase
-        .from('booking_quote_requests')
-        .update({ status: 'accepted' as any })
-        .eq('id', quoteRequestId);
-      if (rError) throw rError;
+      const { data, error } = await supabase.rpc('accept_quote_atomic', {
+        _quote_id: quoteId,
+        _user_id: user.id,
+      });
+      if (error) throw error;
+      return data as string; // booking_id
     },
-    onSuccess: () => {
+    onSuccess: (bookingId) => {
       queryClient.invalidateQueries({ queryKey: ['booking-quotes'] });
       queryClient.invalidateQueries({ queryKey: ['booking-quote-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['booking-bookings'] });
       toast.success(t('booking.quotes.quoteAccepted'));
-      emitEvent({ event_type: 'booking.quote_accepted', object_type: 'booking_quote' });
+      emitEvent({
+        event_type: 'booking.quote_accepted',
+        object_type: 'booking_booking',
+        metadata: { booking_id: bookingId },
+      });
     },
-    onError: () => toast.error(t('booking.quotes.quoteAcceptFailed')),
+    onError: (err: Error) => toast.error(err.message || t('booking.quotes.quoteAcceptFailed')),
   });
 
   return {

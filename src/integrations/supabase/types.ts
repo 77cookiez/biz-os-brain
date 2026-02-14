@@ -324,6 +324,60 @@ export type Database = {
           },
         ]
       }
+      billing_upgrade_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          notes: string | null
+          requested_by: string
+          requested_plan_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          requested_by: string
+          requested_plan_id: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          notes?: string | null
+          requested_by?: string
+          requested_plan_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_upgrade_requests_requested_plan_id_fkey"
+            columns: ["requested_plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_upgrade_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_availability_rules: {
         Row: {
           created_at: string
@@ -2864,6 +2918,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_quote_atomic: {
+        Args: { _quote_id: string; _user_id: string }
+        Returns: string
+      }
       booking_notify: {
         Args: {
           _data_json: Json
@@ -2874,6 +2932,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      can_manage_billing: { Args: { _workspace_id: string }; Returns: boolean }
       can_manage_booking: {
         Args: { _booking_id: string; _user_id: string }
         Returns: boolean
@@ -2883,6 +2942,12 @@ export type Database = {
         Returns: boolean
       }
       check_booking_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      check_quotes_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      check_seat_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      check_services_limit: {
+        Args: { _workspace_id: string }
+        Returns: boolean
+      }
       check_vendor_limit: { Args: { _workspace_id: string }; Returns: boolean }
       cleanup_old_org_events: { Args: never; Returns: undefined }
       cleanup_stale_memory: { Args: never; Returns: undefined }

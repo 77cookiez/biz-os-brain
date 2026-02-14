@@ -32,11 +32,16 @@
 - [x] `billing_subscriptions` table with offline_invoice default
 - [x] `billing_invoices` for manual invoice tracking
 - [x] All billing tables have proper RLS (admin-only management, member viewing)
-- [x] Feature guard: `can_use_feature()` RPC checks plan features
-- [x] Limit enforcement: `check_vendor_limit()`, `check_booking_limit()` RPCs
-- [x] Usage stats: `get_workspace_usage()` RPC for live counters
+- [x] Feature guard: `can_use_feature()` RPC checks plan features (auth-hardened)
+- [x] Limit enforcement: `check_vendor_limit()`, `check_booking_limit()`, `check_services_limit()`, `check_quotes_limit()`, `check_seat_limit()` RPCs — all auth-hardened
+- [x] DB-level BEFORE INSERT triggers enforce limits (vendor, booking, service, quote)
+- [x] Usage stats: `get_workspace_usage()` RPC for live counters (auth-hardened)
 - [x] `useFeatureGuard` hook exposes `canAddVendor`, `canAddBooking`, `canUseFeature` etc.
 - [x] Admin Billing Page at `/apps/booking/billing` with plan comparison, usage bars, invoices
+- [x] Billing page gated to workspace admins via `can_manage_billing()` RPC
+- [x] Upgrade request workflow: `billing_upgrade_requests` table with approve/reject flow
+- [x] Offline invoice mode: upgrades create pending requests, not immediate plan changes
+- [x] Atomic accept-quote RPC (`accept_quote_atomic`): transactional, idempotent, race-safe
 
 ### E. Internationalization
 - [x] All booking screens use i18n keys (no hardcoded strings)
