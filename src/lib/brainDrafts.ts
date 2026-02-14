@@ -169,5 +169,88 @@ export function buildDraftInsights(insights: GrowthInsights): DraftInsight[] {
     });
   }
 
+  // 7) Pricing optimization (growth signals present)
+  if (insights.recommended_action === 'upgrade' && insights.confidence_score >= 60) {
+    drafts.push({
+      id: 'pricing_optimization',
+      titleKey: 'brainDraft.drafts.pricing_optimization.title',
+      bodyKey: 'brainDraft.drafts.pricing_optimization.body',
+      severity: 'info',
+      tags: ['billing', 'pricing'],
+      actions: [
+        {
+          labelKey: 'brainDraft.actions.view_plans',
+          type: 'navigate',
+          path: '/apps/booking/billing',
+          analyticsCode: 'VIEW_PLANS_PRICING',
+        },
+      ],
+    });
+  }
+
+  // 8) Service performance audit (many services, low bookings)
+  if (u.services_count >= 5 && u.bookings_this_month < 3) {
+    drafts.push({
+      id: 'service_audit',
+      titleKey: 'brainDraft.drafts.service_audit.title',
+      bodyKey: 'brainDraft.drafts.service_audit.body',
+      severity: 'warning',
+      tags: ['services', 'conversion'],
+      actions: [
+        {
+          labelKey: 'brainDraft.actions.open_services',
+          type: 'navigate',
+          path: '/apps/booking/services',
+          analyticsCode: 'OPEN_SERVICES_AUDIT',
+        },
+        {
+          labelKey: 'brainDraft.actions.open_quotes',
+          type: 'navigate',
+          path: '/apps/booking/quotes',
+          analyticsCode: 'OPEN_QUOTES_AUDIT',
+        },
+      ],
+    });
+  }
+
+  // 9) Customer experience enhancement (active business)
+  if (u.bookings_this_month >= 5) {
+    drafts.push({
+      id: 'cx_enhancement',
+      titleKey: 'brainDraft.drafts.cx_enhancement.title',
+      bodyKey: 'brainDraft.drafts.cx_enhancement.body',
+      severity: 'info',
+      tags: ['customers', 'growth'],
+      actions: [
+        {
+          labelKey: 'brainDraft.actions.open_quotes',
+          type: 'navigate',
+          path: '/apps/booking/quotes',
+          analyticsCode: 'OPEN_QUOTES_CX',
+        },
+      ],
+    });
+  }
+
+  // 10) Strategic growth plan (always available as last item)
+  if (u.bookings_this_month > 0 || u.quotes_this_month > 0) {
+    drafts.push({
+      id: 'strategic_growth',
+      titleKey: 'brainDraft.drafts.strategic_growth.title',
+      bodyKey: 'brainDraft.drafts.strategic_growth.body',
+      severity: 'info',
+      tags: ['strategy', 'growth'],
+      actions: [
+        {
+          labelKey: 'brainDraft.actions.view_usage',
+          type: 'prefill',
+          path: '/apps/booking/billing?tab=usage',
+          prefill: { tab: 'usage' },
+          analyticsCode: 'VIEW_USAGE_STRATEGY',
+        },
+      ],
+    });
+  }
+
   return drafts;
 }

@@ -1534,6 +1534,22 @@
       "frequent_hits": {
         "title": "Frequent Limit Hits Detected",
         "body": "You've hit plan limits multiple times recently. Consider upgrading or optimizing workflows."
+      },
+      "pricing_optimization": {
+        "title": "Pricing Optimization Opportunity",
+        "body": "Growth signals suggest a scaling opportunity. Review your pricing strategy for better revenue."
+      },
+      "service_audit": {
+        "title": "Service Performance Audit",
+        "body": "You have many services but few bookings. Focus on top performers and consider removing weak ones."
+      },
+      "cx_enhancement": {
+        "title": "Enhance Customer Experience",
+        "body": "Your business is growing. Improve touchpoints, follow-ups, and loyalty strategies."
+      },
+      "strategic_growth": {
+        "title": "Strategic Growth Plan",
+        "body": "Get an executive view of your business health and a 90-day roadmap."
       }
     },
     "actions": {
