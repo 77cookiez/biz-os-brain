@@ -10,6 +10,7 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 
   requested: 'outline',
   quoted: 'secondary',
   accepted: 'default',
+  confirmed_pending_payment: 'secondary',
   paid_confirmed: 'default',
   completed: 'default',
   cancelled: 'destructive',
@@ -20,6 +21,8 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 
   trial: 'secondary',
   expired: 'destructive',
   grace: 'secondary',
+  deposit_paid: 'secondary',
+  refunded: 'destructive',
 };
 
 export function BookingStatusBadge({ status, className }: BookingStatusBadgeProps) {

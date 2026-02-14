@@ -4,6 +4,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOIL } from '@/hooks/useOIL';
 import { useBookingSubscription } from '@/hooks/useBookingSubscription';
+import { auditAndEmit } from '@/lib/booking/auditHelper';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -15,26 +16,19 @@ export interface BookingBooking {
   vendor_id: string;
   customer_user_id: string;
   status: string;
+  payment_status: string;
+  payment_provider: string | null;
+  offline_payment_method: string | null;
   total_amount: number;
   deposit_paid: number | null;
+  paid_amount: number | null;
   currency: string;
   event_date: string | null;
   cancellation_reason: string | null;
   completed_at: string | null;
   cancelled_at: string | null;
+  payment_intent_id: string | null;
   created_at: string;
-}
-
-export interface BookingPayment {
-  id: string;
-  booking_id: string;
-  amount: number;
-  currency: string;
-  payment_type: string;
-  provider: string;
-  status: string;
-  payment_reference: string | null;
-  paid_at: string | null;
 }
 
 export function useBookingBookings() {
@@ -61,7 +55,7 @@ export function useBookingBookings() {
     enabled: !!workspaceId,
   });
 
-  // Create booking from accepted quote (idempotent — checks for existing)
+  // Create booking (offline-first: no payment required)
   const createBooking = useMutation({
     mutationFn: async (input: {
       quote_id: string;
@@ -71,6 +65,7 @@ export function useBookingBookings() {
       total_amount: number;
       currency?: string;
       event_date?: string;
+      payment_provider?: string;
     }) => {
       if (!workspaceId || !user) throw new Error('Not authenticated');
       if (!canWrite) throw new Error('Subscription inactive');
@@ -81,7 +76,7 @@ export function useBookingBookings() {
         .select('id')
         .eq('quote_id', input.quote_id)
         .maybeSingle();
-      if (existing) return existing.id; // Already created
+      if (existing) return existing.id;
 
       const { data, error } = await supabase
         .from('booking_bookings')
@@ -94,7 +89,9 @@ export function useBookingBookings() {
           total_amount: input.total_amount,
           currency: input.currency || 'AED',
           event_date: input.event_date || null,
-          status: 'paid_confirmed' as any,
+          status: 'confirmed_pending_payment' as any,
+          payment_status: 'unpaid',
+          payment_provider: input.payment_provider || 'offline',
         } as any)
         .select('id')
         .single();
@@ -103,14 +100,74 @@ export function useBookingBookings() {
     },
     onSuccess: (bookingId) => {
       queryClient.invalidateQueries({ queryKey: ['booking-bookings'] });
-      toast.success(t('booking.bookings.paymentConfirmed'));
+      toast.success(t('booking.bookings.bookingCreated', 'Booking confirmed'));
       emitEvent({
         event_type: 'booking.booking_confirmed',
         object_type: 'booking_booking',
         metadata: { booking_id: bookingId },
       });
     },
-    onError: () => toast.error(t('booking.bookings.paymentFailed')),
+    onError: () => toast.error(t('booking.bookings.bookingCreateFailed', 'Failed to create booking')),
+  });
+
+  // Mark as Paid (offline payment confirmation)
+  const markAsPaid = useMutation({
+    mutationFn: async ({
+      bookingId,
+      method,
+      amount,
+    }: {
+      bookingId: string;
+      method?: string;
+      amount?: number;
+    }) => {
+      if (!workspaceId || !user) throw new Error('Not authenticated');
+      const booking = bookings.find(b => b.id === bookingId);
+      if (!booking) throw new Error('Booking not found');
+
+      const paidAmount = amount ?? booking.total_amount;
+
+      const { error } = await supabase
+        .from('booking_bookings')
+        .update({
+          payment_status: 'paid',
+          status: 'paid_confirmed' as any,
+          paid_amount: paidAmount,
+          offline_payment_method: method || 'cash',
+        } as any)
+        .eq('id', bookingId);
+      if (error) throw error;
+
+      // Record payment
+      await supabase.from('booking_payments').insert({
+        workspace_id: workspaceId,
+        booking_id: bookingId,
+        amount: paidAmount,
+        currency: booking.currency,
+        payment_type: 'full',
+        provider: 'offline',
+        payment_reference: `offline_${method || 'cash'}_${Date.now()}`,
+        status: 'paid',
+        paid_at: new Date().toISOString(),
+        metadata: { method: method || 'cash', marked_by: user.id },
+      } as any);
+
+      // Audit + OIL
+      await auditAndEmit({
+        workspace_id: workspaceId,
+        actor_user_id: user.id,
+        action: 'booking.payment_marked_paid',
+        event_type: 'booking.payment_marked_paid',
+        entity_type: 'booking_booking',
+        entity_id: bookingId,
+        metadata: { method: method || 'cash', amount: paidAmount },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['booking-bookings'] });
+      toast.success(t('booking.bookings.markedAsPaid', 'Booking marked as paid'));
+    },
+    onError: () => toast.error(t('booking.bookings.markAsPaidFailed', 'Failed to mark as paid')),
   });
 
   // Record payment (idempotent — checks for existing by reference)
@@ -125,7 +182,6 @@ export function useBookingBookings() {
     }) => {
       if (!workspaceId) throw new Error('No workspace');
 
-      // Idempotency: check by booking_id + payment_reference
       if (input.payment_reference) {
         const { data: existing } = await supabase
           .from('booking_payments')
@@ -171,9 +227,10 @@ export function useBookingBookings() {
   // Mark complete
   const markComplete = useMutation({
     mutationFn: async (bookingId: string) => {
+      if (!workspaceId || !user) throw new Error('Not authenticated');
       const booking = bookings.find(b => b.id === bookingId);
-      if (booking && booking.status !== 'paid_confirmed') {
-        throw new Error('Can only complete paid bookings');
+      if (booking && !['paid_confirmed', 'confirmed_pending_payment'].includes(booking.status)) {
+        throw new Error('Can only complete confirmed bookings');
       }
       const { error } = await supabase
         .from('booking_bookings')
@@ -183,15 +240,19 @@ export function useBookingBookings() {
         } as any)
         .eq('id', bookingId);
       if (error) throw error;
+
+      await auditAndEmit({
+        workspace_id: workspaceId,
+        actor_user_id: user.id,
+        action: 'booking.booking_completed',
+        event_type: 'booking.booking_completed',
+        entity_type: 'booking_booking',
+        entity_id: bookingId,
+      });
     },
-    onSuccess: (_, bookingId) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booking-bookings'] });
       toast.success(t('booking.bookings.bookingCompleted'));
-      emitEvent({
-        event_type: 'booking.booking_completed',
-        object_type: 'booking_booking',
-        metadata: { booking_id: bookingId },
-      });
     },
     onError: () => toast.error(t('booking.bookings.bookingCompleteFailed')),
   });
@@ -199,7 +260,7 @@ export function useBookingBookings() {
   // Cancel booking
   const cancelBooking = useMutation({
     mutationFn: async ({ bookingId, reason }: { bookingId: string; reason?: string }) => {
-      if (!user) throw new Error('Not authenticated');
+      if (!user || !workspaceId) throw new Error('Not authenticated');
       const booking = bookings.find(b => b.id === bookingId);
       if (booking && (booking.status === 'completed' || booking.status === 'cancelled')) {
         throw new Error(`Cannot cancel a ${booking.status} booking`);
@@ -215,24 +276,27 @@ export function useBookingBookings() {
         .eq('id', bookingId);
       if (error) throw error;
 
-      // Also cancel the quote request
       if (booking?.quote_request_id) {
         await supabase
           .from('booking_quote_requests')
           .update({ status: 'cancelled' as any })
           .eq('id', booking.quote_request_id);
       }
+
+      await auditAndEmit({
+        workspace_id: workspaceId,
+        actor_user_id: user.id,
+        action: 'booking.booking_cancelled',
+        event_type: 'booking.booking_cancelled',
+        entity_type: 'booking_booking',
+        entity_id: bookingId,
+        metadata: { reason },
+      });
     },
     onSuccess: (_, { bookingId }) => {
       queryClient.invalidateQueries({ queryKey: ['booking-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['booking-quote-requests'] });
       toast.success(t('booking.bookings.bookingCancelled'));
-      emitEvent({
-        event_type: 'booking.booking_cancelled',
-        object_type: 'booking_booking',
-        metadata: { booking_id: bookingId },
-        severity_hint: 'warning',
-      });
     },
     onError: () => toast.error(t('booking.bookings.bookingCancelFailed')),
   });
@@ -241,6 +305,7 @@ export function useBookingBookings() {
     bookings,
     isLoading,
     createBooking,
+    markAsPaid,
     recordPayment,
     markComplete,
     cancelBooking,

@@ -1,4 +1,3 @@
-import Stripe from "npm:stripe@17";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -15,8 +14,14 @@ Deno.serve(async (req) => {
   try {
     const PLATFORM_STRIPE_SECRET_KEY = Deno.env.get("PLATFORM_STRIPE_SECRET_KEY");
     if (!PLATFORM_STRIPE_SECRET_KEY) {
-      throw new Error("PLATFORM_STRIPE_SECRET_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Stripe is not configured on this platform. Contact your administrator." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    // Dynamic import — only load Stripe if secret exists
+    const Stripe = (await import("npm:stripe@17")).default;
 
     // Auth check
     const authHeader = req.headers.get("Authorization");
@@ -65,7 +70,6 @@ Deno.serve(async (req) => {
 
     const stripe = new Stripe(PLATFORM_STRIPE_SECRET_KEY, { apiVersion: "2024-12-18.acacia" });
 
-    // Check if tenant already has a stripe_account_id
     const { data: settings } = await supabase
       .from("booking_settings")
       .select("stripe_account_id, stripe_onboarding_completed")
@@ -75,14 +79,12 @@ Deno.serve(async (req) => {
     let stripeAccountId = settings?.stripe_account_id;
 
     if (!stripeAccountId) {
-      // Create new Express connected account
       const account = await stripe.accounts.create({
         type: "express",
         metadata: { workspace_id },
       });
       stripeAccountId = account.id;
 
-      // Save to booking_settings
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -92,11 +94,11 @@ Deno.serve(async (req) => {
         .update({
           stripe_account_id: stripeAccountId,
           stripe_onboarding_completed: false,
+          payment_mode: "stripe_connect",
         })
         .eq("workspace_id", workspace_id);
     }
 
-    // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: stripeAccountId,
       refresh_url: refresh_url || `${req.headers.get("origin")}/apps/booking/settings`,
@@ -106,10 +108,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ url: accountLink.url, stripe_account_id: stripeAccountId }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
     console.error("stripe-connect-onboard error:", error);

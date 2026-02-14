@@ -1,4 +1,3 @@
-import Stripe from "npm:stripe@17";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -15,13 +14,19 @@ Deno.serve(async (req) => {
   try {
     const PLATFORM_STRIPE_SECRET_KEY = Deno.env.get("PLATFORM_STRIPE_SECRET_KEY");
     const PLATFORM_STRIPE_WEBHOOK_SECRET = Deno.env.get("PLATFORM_STRIPE_WEBHOOK_SECRET");
+
+    // Graceful degradation: if Stripe is not configured, just acknowledge
     if (!PLATFORM_STRIPE_SECRET_KEY || !PLATFORM_STRIPE_WEBHOOK_SECRET) {
-      throw new Error("Stripe secrets not configured");
+      console.log("stripe-webhook: Stripe not configured, ignoring webhook");
+      return new Response(JSON.stringify({ received: true, note: "Stripe not configured" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
+    const Stripe = (await import("npm:stripe@17")).default;
     const stripe = new Stripe(PLATFORM_STRIPE_SECRET_KEY, { apiVersion: "2024-12-18.acacia" });
 
-    // Verify webhook signature
     const body = await req.text();
     const sig = req.headers.get("stripe-signature");
     if (!sig) {
@@ -31,7 +36,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let event: Stripe.Event;
+    let event: any;
     try {
       event = await stripe.webhooks.constructEventAsync(body, sig, PLATFORM_STRIPE_WEBHOOK_SECRET);
     } catch (err) {
@@ -47,33 +52,29 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Handle Connect account events
     if (event.type === "account.updated") {
-      const account = event.data.object as Stripe.Account;
+      const account = event.data.object;
       if (account.charges_enabled && account.payouts_enabled) {
         await adminClient
           .from("booking_settings")
-          .update({ stripe_onboarding_completed: true })
+          .update({ stripe_onboarding_completed: true, payment_mode: "stripe_connect" })
           .eq("stripe_account_id", account.id);
         console.log(`Stripe onboarding completed for account ${account.id}`);
       }
     }
 
-    // Handle payment events (from connected accounts)
     if (event.type === "payment_intent.succeeded") {
-      const pi = event.data.object as Stripe.PaymentIntent;
+      const pi = event.data.object;
       const meta = pi.metadata;
       if (meta?.quote_id && meta?.workspace_id) {
         const paymentType = meta.payment_type || "full";
 
-        // Update quote payment status
         await adminClient
           .from("booking_quotes")
           .update({ payment_status: "paid" })
           .eq("id", meta.quote_id);
 
-        // Update or create booking
-        const newStatus = paymentType === "deposit" ? "deposit_paid" : "confirmed";
+        const newStatus = paymentType === "deposit" ? "deposit_paid" : "paid_confirmed";
 
         const { data: existingBooking } = await adminClient
           .from("booking_bookings")
@@ -86,6 +87,7 @@ Deno.serve(async (req) => {
             .from("booking_bookings")
             .update({
               status: newStatus,
+              payment_status: "paid",
               payment_intent_id: pi.id,
               payment_provider: "stripe",
               paid_amount: pi.amount / 100,
@@ -94,7 +96,6 @@ Deno.serve(async (req) => {
             .eq("id", existingBooking.id);
         }
 
-        // Record payment
         await adminClient.from("booking_payments").insert({
           booking_id: existingBooking?.id,
           workspace_id: meta.workspace_id,
@@ -113,7 +114,7 @@ Deno.serve(async (req) => {
     }
 
     if (event.type === "payment_intent.payment_failed") {
-      const pi = event.data.object as Stripe.PaymentIntent;
+      const pi = event.data.object;
       const meta = pi.metadata;
       if (meta?.quote_id) {
         await adminClient
@@ -125,13 +126,13 @@ Deno.serve(async (req) => {
     }
 
     if (event.type === "charge.refunded") {
-      const charge = event.data.object as Stripe.Charge;
+      const charge = event.data.object;
       const pi = charge.payment_intent;
       if (pi) {
         const piId = typeof pi === "string" ? pi : pi.id;
         await adminClient
           .from("booking_bookings")
-          .update({ status: "refunded" })
+          .update({ status: "refunded", payment_status: "refunded" })
           .eq("payment_intent_id", piId);
 
         await adminClient

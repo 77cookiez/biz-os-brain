@@ -1,4 +1,3 @@
-import Stripe from "npm:stripe@17";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -15,10 +14,14 @@ Deno.serve(async (req) => {
   try {
     const PLATFORM_STRIPE_SECRET_KEY = Deno.env.get("PLATFORM_STRIPE_SECRET_KEY");
     if (!PLATFORM_STRIPE_SECRET_KEY) {
-      throw new Error("PLATFORM_STRIPE_SECRET_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "Online payments are not available. Platform Stripe is not configured." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Auth check
+    const Stripe = (await import("npm:stripe@17")).default;
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -51,7 +54,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify workspace membership
     const { data: isMember } = await supabase.rpc("is_workspace_member", {
       _user_id: userId,
       _workspace_id: workspace_id,
@@ -63,7 +65,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get quote details
+    // Check tenant payment mode
+    const { data: settings } = await supabase
+      .from("booking_settings")
+      .select("stripe_account_id, stripe_onboarding_completed, commission_rate, payment_mode")
+      .eq("workspace_id", workspace_id)
+      .single();
+
+    if (settings?.payment_mode !== "stripe_connect") {
+      return new Response(
+        JSON.stringify({ error: "This tenant uses offline payments only." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!settings?.stripe_account_id || !settings.stripe_onboarding_completed) {
+      return new Response(
+        JSON.stringify({ error: "Tenant has not completed Stripe onboarding" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { data: quote, error: quoteError } = await supabase
       .from("booking_quotes")
       .select("*")
@@ -78,39 +100,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get tenant's Stripe account
-    const { data: settings } = await supabase
-      .from("booking_settings")
-      .select("stripe_account_id, stripe_onboarding_completed, commission_rate")
-      .eq("workspace_id", workspace_id)
-      .single();
-
-    if (!settings?.stripe_account_id || !settings.stripe_onboarding_completed) {
-      return new Response(
-        JSON.stringify({ error: "Tenant has not completed Stripe onboarding" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const stripe = new Stripe(PLATFORM_STRIPE_SECRET_KEY, { apiVersion: "2024-12-18.acacia" });
 
-    // Determine amount: deposit or full
     const paymentType = quote.payment_required_type || "deposit";
     let paymentAmount: number;
     if (paymentType === "deposit" && quote.deposit_amount) {
-      paymentAmount = Math.round(quote.deposit_amount * 100); // cents
+      paymentAmount = Math.round(quote.deposit_amount * 100);
     } else {
-      paymentAmount = Math.round(quote.amount * 100); // cents
+      paymentAmount = Math.round(quote.amount * 100);
     }
 
-    // Calculate platform fee (commission)
     const commissionRate = settings.commission_rate || 0;
     const applicationFee = commissionRate > 0
       ? Math.round(paymentAmount * (commissionRate / 100))
       : undefined;
 
-    // Create payment intent on tenant's connected account
-    const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
+    const paymentIntentParams: any = {
       amount: paymentAmount,
       currency: quote.currency.toLowerCase(),
       automatic_payment_methods: { enabled: true },
@@ -140,10 +145,7 @@ Deno.serve(async (req) => {
         amount: paymentAmount,
         currency: quote.currency,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
     console.error("stripe-create-payment error:", error);
