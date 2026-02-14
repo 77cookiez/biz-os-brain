@@ -9,6 +9,7 @@ import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { getErrorMessage } from '@/lib/errorMapper';
 
 export interface BookingService {
   id: string;
@@ -149,7 +150,7 @@ export function useBookingServices(vendorId?: string) {
         meaning_object_id: meaningId,
       });
     },
-    onError: () => toast.error(t('booking.services.serviceCreateFailed')),
+    onError: (err) => toast.error(getErrorMessage(err, t('booking.services.serviceCreateFailed'))),
   });
 
   const updateService = useMutation({
