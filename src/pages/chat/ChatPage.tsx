@@ -10,6 +10,7 @@ import { MessageComposer } from '@/components/chat/MessageComposer';
 import { NewThreadDialog } from '@/components/chat/NewThreadDialog';
 import { ChatThreadHeader } from '@/components/chat/ChatThreadHeader';
 import { useChatThreads } from '@/hooks/useChatThreads';
+import { useTeamMembers } from '@/hooks/useTeamMembers';
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts, useChatAudit } from '@/hooks/useChatUtils';
@@ -75,7 +76,9 @@ export default function ChatPage() {
     }
   }, [selectedThreadId, messages.length, markAsRead]);
 
-  const isAdmin = true;
+  // Determine admin status from workspace membership role
+  const { members: teamMembers } = useTeamMembers();
+  const isAdmin = teamMembers.some(m => m.user_id === user?.id && (m.team_role === 'owner'));
 
   const selectedThread = threads.find(t => t.id === selectedThreadId);
   const threadTitle = selectedThread?.title || (selectedThread?.type === 'direct' ? 'Direct Message' : 'Group Chat');

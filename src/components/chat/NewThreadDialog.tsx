@@ -37,11 +37,12 @@ export function NewThreadDialog({ open, onOpenChange, onCreated, createThread }:
       const { data: memberData } = await supabase
         .from('workspace_members')
         .select('user_id')
-        .eq('workspace_id', currentWorkspace.id);
+        .eq('workspace_id', currentWorkspace.id)
+        .in('invite_status', ['active', 'accepted']);
 
       const memberIds = (memberData || [])
         .map(m => m.user_id)
-        .filter(id => id !== user?.id);
+        .filter((id): id is string => !!id && id !== user?.id);
 
       if (memberIds.length === 0) { setMembers([]); return; }
 

@@ -341,7 +341,7 @@ export default function TeamRolesSettingsPage() {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-[120px] sm:w-[130px] h-8 text-xs hidden sm:flex">
+                        <SelectTrigger className="w-[120px] sm:w-[130px] h-8 text-xs">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border-border">
