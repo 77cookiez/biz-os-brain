@@ -1917,34 +1917,43 @@ export type Database = {
       executed_drafts: {
         Row: {
           agent_type: string
+          audit_log_id: string | null
+          confirmed_meaning_object_id: string | null
           created_at: string
           draft_id: string
           draft_type: string
           entity_refs: Json
           error: string | null
           executed_by: string
+          request_id: string | null
           status: string
           workspace_id: string
         }
         Insert: {
           agent_type: string
+          audit_log_id?: string | null
+          confirmed_meaning_object_id?: string | null
           created_at?: string
           draft_id: string
           draft_type: string
           entity_refs?: Json
           error?: string | null
           executed_by: string
+          request_id?: string | null
           status?: string
           workspace_id: string
         }
         Update: {
           agent_type?: string
+          audit_log_id?: string | null
+          confirmed_meaning_object_id?: string | null
           created_at?: string
           draft_id?: string
           draft_type?: string
           entity_refs?: Json
           error?: string | null
           executed_by?: string
+          request_id?: string | null
           status?: string
           workspace_id?: string
         }

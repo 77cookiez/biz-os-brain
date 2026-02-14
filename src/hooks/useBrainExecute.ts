@@ -181,7 +181,7 @@ export function useBrainExecute() {
 
   // ─── Draft: Execute ───
 
-  const executeDraft = useCallback(async (draft: DraftObject, confirmationHash?: string): Promise<{ success: boolean; entities?: { type: string; id: string; action: string }[] }> => {
+  const executeDraft = useCallback(async (draft: DraftObject, confirmationHash?: string): Promise<{ success: boolean; entities?: { type: string; id: string; action: string }[]; replayed?: boolean }> => {
     if (!currentWorkspace) return { success: false };
     setIsExecuting(true);
     setExecutionError(null);
@@ -190,7 +190,7 @@ export function useBrainExecute() {
       const token = await getAccessToken();
       if (!token) { toast.error(t('common.authRequired')); return { success: false }; }
 
-      // If no hash provided, request one first
+      // If no hash provided, request one first (also mints meaning)
       let hash = confirmationHash;
       let expiresAt = draft.expires_at;
       let resolvedDraft = draft;
@@ -205,6 +205,13 @@ export function useBrainExecute() {
         }
       }
 
+      // Execute requires meaning_object_id (not meaning_payload)
+      // If still has meaning_payload after confirm, something went wrong
+      if (!('meaning_object_id' in resolvedDraft.meaning)) {
+        toast.error('Meaning must be minted before execution. Please try again.');
+        return { success: false };
+      }
+
       const draftWithExpiry = { ...resolvedDraft, expires_at: expiresAt };
 
       const resp = await fetch(EXECUTE_URL, {
@@ -217,6 +224,10 @@ export function useBrainExecute() {
 
       if (!resp.ok) {
         setExecutionError(data as ExecutionError);
+        // Strong idempotency: server returned replayed success (duplicate)
+        if (data.replayed) {
+          return { success: true, entities: data.entities, replayed: true };
+        }
         if (data.reason?.includes('expired')) toast.error(t('brain.proposalExpired', 'Draft expired. Please regenerate.'));
         else if (data.reason?.includes('role') || data.reason?.includes('permission')) toast.error(t('brain.insufficientRole', 'Insufficient permissions.'));
         else toast.error(data.reason || 'Execution failed');
@@ -230,7 +241,7 @@ export function useBrainExecute() {
         return next;
       });
 
-      return { success: true, entities: data.entities };
+      return { success: true, entities: data.entities, replayed: data.replayed };
     } catch (e) {
       console.error('[BrainExecute] executeDraft error:', e);
       toast.error('Execution failed');
