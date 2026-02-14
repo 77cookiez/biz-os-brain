@@ -2918,10 +2918,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_quote_atomic: {
-        Args: { _quote_id: string; _user_id: string }
-        Returns: string
-      }
+      accept_quote_atomic:
+        | { Args: { _quote_id: string }; Returns: string }
+        | { Args: { _quote_id: string; _user_id: string }; Returns: string }
       booking_notify: {
         Args: {
           _data_json: Json
@@ -2951,6 +2950,10 @@ export type Database = {
       check_vendor_limit: { Args: { _workspace_id: string }; Returns: boolean }
       cleanup_old_org_events: { Args: never; Returns: undefined }
       cleanup_stale_memory: { Args: never; Returns: undefined }
+      decide_upgrade: {
+        Args: { _decision: string; _notes?: string; _request_id: string }
+        Returns: Json
+      }
       get_live_booking_tenant_by_slug: {
         Args: { p_slug: string }
         Returns: Json
@@ -2992,6 +2995,10 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
+      }
+      request_upgrade: {
+        Args: { _notes?: string; _plan_id: string; _workspace_id: string }
+        Returns: string
       }
       workspace_id_from_path: { Args: { path: string }; Returns: string }
     }
