@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Brain, Target, Lightbulb, AlertTriangle, RefreshCw, XCircle, Settings, BookOpen } from 'lucide-react';
+import { Brain, Target, Lightbulb, AlertTriangle, RefreshCw, XCircle, Settings, BookOpen, FlaskConical, Stethoscope, ShieldAlert, PenTool, Compass } from 'lucide-react';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useOILIndicators } from '@/hooks/useOILIndicators';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,7 @@ export interface SmartCapability {
   action: string;
   promptKey: string;
   priority: number;
+  intent?: string;
 }
 
 const CAPABILITY_POOL: Omit<SmartCapability, 'priority'>[] = [
@@ -79,6 +80,52 @@ const CAPABILITY_POOL: Omit<SmartCapability, 'priority'>[] = [
     action: 'business_coaching',
     promptKey: 'brainPage.capability.coachingPrompt',
   },
+  // ─── Phase 2: New Intent-Based Capabilities ───
+  {
+    id: 'simulate',
+    icon: FlaskConical,
+    titleKey: 'brainPage.capability.simulate',
+    descKey: 'brainPage.capability.simulateDesc',
+    action: 'simulate',
+    promptKey: 'brainPage.capability.simulatePrompt',
+    intent: 'simulate',
+  },
+  {
+    id: 'diagnose',
+    icon: Stethoscope,
+    titleKey: 'brainPage.capability.diagnose',
+    descKey: 'brainPage.capability.diagnoseDesc',
+    action: 'diagnose',
+    promptKey: 'brainPage.capability.diagnosePrompt',
+    intent: 'diagnose',
+  },
+  {
+    id: 'detect_risks',
+    icon: ShieldAlert,
+    titleKey: 'brainPage.capability.detectRisks',
+    descKey: 'brainPage.capability.detectRisksDesc',
+    action: 'detect_risk',
+    promptKey: 'brainPage.capability.detectRisksPrompt',
+    intent: 'detect_risk',
+  },
+  {
+    id: 'architect',
+    icon: PenTool,
+    titleKey: 'brainPage.capability.architect',
+    descKey: 'brainPage.capability.architectDesc',
+    action: 'strategic_analysis',
+    promptKey: 'brainPage.capability.architectPrompt',
+    intent: 'architect',
+  },
+  {
+    id: 'strategic_think',
+    icon: Compass,
+    titleKey: 'brainPage.capability.strategicThink',
+    descKey: 'brainPage.capability.strategicThinkDesc',
+    action: 'strategic_analysis',
+    promptKey: 'brainPage.capability.strategicThinkPrompt',
+    intent: 'strategic_think',
+  },
 ];
 
 export function useSmartCapabilities(): SmartCapability[] {
@@ -110,6 +157,7 @@ export function useSmartCapabilities(): SmartCapability[] {
 
   return useMemo(() => {
     const deliveryRisk = coreIndicators.find(i => i.indicator_key === 'DeliveryRisk');
+    const deliveryRiskHigh = deliveryRisk && deliveryRisk.score < 40;
     const hour = new Date().getHours();
 
     const scored: SmartCapability[] = CAPABILITY_POOL.map(cap => {
@@ -120,7 +168,7 @@ export function useSmartCapabilities(): SmartCapability[] {
           priority = !businessContext?.setup_completed ? 100 : -1;
           break;
         case 'risk':
-          priority = deliveryRisk && deliveryRisk.score < 40 ? 90 : -1;
+          priority = deliveryRiskHigh ? 90 : -1;
           break;
         case 'reprioritize':
           priority = taskCounts.overdue > 3 ? 85 : taskCounts.overdue > 0 ? 50 : -1;
@@ -135,12 +183,26 @@ export function useSmartCapabilities(): SmartCapability[] {
           priority = 30;
           break;
         case 'planning':
-          // Slightly higher in the morning
           priority = hour < 12 ? 25 : 20;
           break;
         case 'coaching':
-          // Slightly higher in the evening
           priority = hour >= 12 ? 25 : 20;
+          break;
+        // ─── Phase 2 Capabilities ───
+        case 'simulate':
+          priority = deliveryRiskHigh ? 70 : taskCounts.overdue > 2 ? 40 : 15;
+          break;
+        case 'diagnose':
+          priority = taskCounts.blocked > 0 ? 75 : taskCounts.overdue > 0 ? 35 : 10;
+          break;
+        case 'detect_risks':
+          priority = deliveryRiskHigh ? 80 : taskCounts.overdue > 3 ? 55 : 12;
+          break;
+        case 'architect':
+          priority = 18;
+          break;
+        case 'strategic_think':
+          priority = hour < 10 ? 22 : 14;
           break;
       }
 

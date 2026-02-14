@@ -12,11 +12,36 @@ interface Message {
   content: string;
 }
 
+interface BrainMeta {
+  intent: string;
+  confidence: number;
+  risk_level: string;
+  modules_consulted: string[];
+  simulation_used: boolean;
+}
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/brain-chat`;
+
+const BRAIN_META_REGEX = /```BRAIN_META\s*\n([\s\S]*?)```/;
+
+/** Strip BRAIN_META block from visible text and parse it */
+function extractBrainMeta(text: string): { cleanText: string; meta: BrainMeta | null } {
+  const match = text.match(BRAIN_META_REGEX);
+  if (!match) return { cleanText: text, meta: null };
+
+  const cleanText = text.replace(BRAIN_META_REGEX, '').trimEnd();
+  try {
+    const meta = JSON.parse(match[1].trim());
+    return { cleanText, meta };
+  } catch {
+    return { cleanText, meta: null };
+  }
+}
 
 export function useBrainChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastMeta, setLastMeta] = useState<BrainMeta | null>(null);
   const { businessContext, installedApps, currentWorkspace } = useWorkspace();
   const { currentLanguage, contentLocale } = useLanguage();
   const { user } = useAuth();
@@ -60,6 +85,21 @@ export function useBrainChat() {
     }
   }, [currentWorkspace, user, currentLanguage.code]);
 
+  /** Log BRAIN_META to org_events for OIL ingestion */
+  const logBrainMeta = useCallback(async (meta: BrainMeta) => {
+    if (!currentWorkspace || !user) return;
+    try {
+      await supabase.from('org_events').insert({
+        workspace_id: currentWorkspace.id,
+        event_type: 'brain_meta',
+        object_type: 'brain_message',
+        metadata: meta as any,
+      });
+    } catch (e) {
+      console.warn('[Brain] Failed to log meta to org_events:', e);
+    }
+  }, [currentWorkspace, user]);
+
   /** Fetch current tasks & goals snapshot for assistant context */
   const fetchWorkContext = useCallback(async () => {
     if (!currentWorkspace) return undefined;
@@ -98,6 +138,22 @@ export function useBrainChat() {
     };
   }, [currentWorkspace?.id]);
 
+  /** Build lightweight system context for the edge function */
+  const buildSystemContext = useCallback(() => {
+    if (!currentWorkspace) return undefined;
+
+    const activeApps = installedApps.filter(a => a.is_active).map(a => a.app_id);
+
+    return {
+      user_role: 'member' as string, // Server will verify actual role
+      installed_modules: activeApps.map(appId => ({
+        id: appId,
+        name: appId,
+        actions: [] as { key: string; title: string; description: string }[], // Server builds full actions
+      })),
+    };
+  }, [currentWorkspace, installedApps]);
+
   const sendMessage = useCallback(async (input: string, action?: string) => {
     const userMsg: Message = { role: 'user', content: input };
     setMessages(prev => [...prev, userMsg]);
@@ -113,12 +169,14 @@ export function useBrainChat() {
     
     const upsertAssistant = (nextChunk: string) => {
       assistantSoFar += nextChunk;
+      // Strip BRAIN_META from display in real-time
+      const { cleanText } = extractBrainMeta(assistantSoFar);
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant') {
-          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleanText } : m));
         }
-        return [...prev, { role: 'assistant', content: assistantSoFar }];
+        return [...prev, { role: 'assistant', content: cleanText }];
       });
     };
 
@@ -130,6 +188,8 @@ export function useBrainChat() {
         setIsLoading(false);
         return;
       }
+
+      const systemCtx = buildSystemContext();
 
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
@@ -148,6 +208,7 @@ export function useBrainChat() {
             hasTeam: businessContext.has_team,
           } : undefined,
           installedApps: installedApps.filter(a => a.is_active).map(a => a.app_id),
+          systemContext: systemCtx,
           workContext,
           action,
           userLang: contentLocale || currentLanguage.code,
@@ -223,9 +284,27 @@ export function useBrainChat() {
         }
       }
 
-      // Persist assistant response after stream completes
+      // Extract BRAIN_META, clean display, log to OIL
       if (assistantSoFar) {
-        persistMessage('assistant', assistantSoFar);
+        const { cleanText, meta } = extractBrainMeta(assistantSoFar);
+
+        // Ensure final message is clean (no BRAIN_META)
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last?.role === 'assistant') {
+            return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: cleanText } : m));
+          }
+          return prev;
+        });
+
+        // Store meta internally
+        if (meta) {
+          setLastMeta(meta);
+          logBrainMeta(meta);
+        }
+
+        // Persist clean assistant response
+        persistMessage('assistant', cleanText);
       }
     } catch (error) {
       console.error('Chat error:', error);
@@ -233,10 +312,11 @@ export function useBrainChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, businessContext, installedApps, currentLanguage.code, contentLocale, persistMessage, fetchWorkContext]);
+  }, [messages, businessContext, installedApps, currentLanguage.code, contentLocale, persistMessage, fetchWorkContext, buildSystemContext, logBrainMeta]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
+    setLastMeta(null);
   }, []);
 
   return {
@@ -245,5 +325,6 @@ export function useBrainChat() {
     sendMessage,
     clearMessages,
     setMessages,
+    lastMeta,
   };
 }
