@@ -42,7 +42,7 @@ export function ProposalCard({ proposal, onConfirm, onReject, isExecuting }: Pro
     : null;
 
   // Extract draft-specific fields
-  const scope = proposal.payload.scope as { affected_modules?: string[]; impact_summary?: string; affected_entities?: { entity_type: string; action: string; diff?: Record<string, { before: unknown; after: unknown }> }[] } | undefined;
+  const scope = proposal.payload.scope as { affected_modules?: string[]; impact_summary?: string; affected_entities?: { entity_type: string; action: string; diff?: Record<string, unknown> }[] } | undefined;
   const risks = (proposal.payload.risks as string[]) || [];
   const isDraft = proposal.type.startsWith('draft_');
 
@@ -137,11 +137,21 @@ export function ProposalCard({ proposal, onConfirm, onReject, isExecuting }: Pro
                         {entity.action}
                       </Badge>
                       <span className="text-muted-foreground">{entity.entity_type}</span>
-                      {entity.diff && Object.entries(entity.diff).map(([field, { before, after }]) => (
-                        <span key={field} className="text-muted-foreground">
-                          {field}: <span className="line-through text-destructive">{String(before)}</span> → <span className="text-primary">{String(after)}</span>
-                        </span>
-                      ))}
+                      {entity.diff && Object.entries(entity.diff).map(([field, value]) => {
+                        const diffVal = value as { before?: unknown; after?: unknown } | unknown;
+                        if (diffVal && typeof diffVal === 'object' && 'before' in diffVal && 'after' in diffVal) {
+                          return (
+                            <span key={field} className="text-muted-foreground">
+                              {field}: <span className="line-through text-destructive">{String((diffVal as { before: unknown }).before)}</span> → <span className="text-primary">{String((diffVal as { after: unknown }).after)}</span>
+                            </span>
+                          );
+                        }
+                        return (
+                          <span key={field} className="text-muted-foreground">
+                            {field}: {JSON.stringify(diffVal)}
+                          </span>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>

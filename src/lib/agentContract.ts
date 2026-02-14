@@ -18,6 +18,9 @@ export type DraftType =
   | 'draft_design_change'
   | 'draft_task_set';
 
+/** Type-safe field diff for entity updates */
+export type FieldDiff = Record<string, { before: unknown; after: unknown }>;
+
 export interface DraftObject {
   id: string;
   type: DraftType;
@@ -43,6 +46,12 @@ export interface DraftObject {
   confirmation_hash?: string;
   /** Expiry timestamp (set by server) */
   expires_at?: number;
+  /**
+   * ULL meaning_object_id — required for any draft that will be stored
+   * or surfaced as user-facing content. Set during execution by the agent.
+   * Drafts without this are transient previews only.
+   */
+  meaning_object_id?: string;
 }
 
 export interface DraftScope {
@@ -59,7 +68,7 @@ export interface AffectedEntity {
   entity_id?: string;
   action: 'create' | 'update' | 'delete';
   /** Field-level diff for updates */
-  diff?: Record<string, { before: unknown; after: unknown }>;
+  diff?: FieldDiff;
 }
 
 // ─── Agent Types ───
@@ -234,7 +243,9 @@ export function resolveAgent(draftType: DraftType): AgentContract | null {
 /**
  * Check if a proposal is a legacy type (handled by existing brain-execute-action)
  * vs a new draft type that needs the agent pipeline.
+ * Legacy types do NOT start with 'draft_'.
  */
 export function isLegacyProposalType(type: string): boolean {
-  return ['task', 'goal', 'plan', 'idea', 'update'].includes(type);
+  const LEGACY_TYPES = ['task', 'goal', 'plan', 'idea', 'update'];
+  return LEGACY_TYPES.includes(type) && !type.startsWith('draft_');
 }

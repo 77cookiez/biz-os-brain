@@ -38,7 +38,7 @@ export function NewThreadDialog({ open, onOpenChange, onCreated, createThread }:
         .from('workspace_members')
         .select('user_id')
         .eq('workspace_id', currentWorkspace.id)
-        .in('invite_status', ['active', 'accepted']);
+        .eq('invite_status', 'accepted');
 
       const memberIds = (memberData || [])
         .map(m => m.user_id)
