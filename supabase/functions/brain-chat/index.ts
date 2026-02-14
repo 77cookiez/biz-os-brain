@@ -49,6 +49,7 @@ interface ChatRequest {
   };
   workContext?: { tasks: WorkTask[]; goals: WorkGoal[] };
   action?: string;
+  intentOverride?: string;
   userLang?: string;
   workspaceId?: string;
 }
@@ -68,6 +69,9 @@ const LEGACY_ACTIONS = [
   "set_goals", "weekly_checkin", "weekly_checkin_ids", "weekly_checkin_priorities",
   "suggest_assignee",
 ];
+
+// ─── Valid Intents ───
+const VALID_INTENTS = ["guide", "suggest", "architect", "design", "simulate", "diagnose", "detect_risk", "strategic_think", "delegate", "clarify", "casual"];
 
 // ─── Module Action Registry ───
 const MODULE_ACTIONS: Record<string, { name: string; actions: { key: string; title: string; description: string; risk?: string }[] }> = {
@@ -121,13 +125,29 @@ const MODULE_ACTIONS: Record<string, { name: string; actions: { key: string; tit
   },
 };
 
+// ─── Fix A: Server-Side Installed Apps Fetch ───
+async function fetchInstalledApps(sb: any, workspaceId: string): Promise<string[]> {
+  try {
+    const { data, error } = await sb
+      .from("workspace_apps")
+      .select("app_id")
+      .eq("workspace_id", workspaceId)
+      .eq("is_active", true);
+    if (error || !data || data.length === 0) return ["brain"];
+    const ids = data.map((r: any) => r.app_id as string);
+    if (!ids.includes("brain")) ids.push("brain");
+    return ids;
+  } catch {
+    return ["brain"];
+  }
+}
+
 // ─── Intent Classifier ───
 async function classifyIntent(
   message: string,
   conversationContext: Message[],
   apiKey: string,
 ): Promise<IntentResult> {
-  const VALID_INTENTS = ["guide", "suggest", "architect", "design", "simulate", "diagnose", "detect_risk", "strategic_think", "delegate", "clarify", "casual"];
   const VALID_RISK = ["low", "medium", "high"];
 
   const fallback: IntentResult = {
@@ -205,6 +225,27 @@ ${recentContext}`,
   }
 }
 
+// ─── Fix B: Resolve Intent (classifier OR override) ───
+function resolveIntentOverride(intentOverride: string | undefined): IntentResult | null {
+  if (!intentOverride || !VALID_INTENTS.includes(intentOverride)) return null;
+  // Map intent to likely relevant modules
+  const moduleMap: Record<string, string[]> = {
+    simulate: ["brain", "workboard", "oil"],
+    diagnose: ["brain", "workboard", "oil"],
+    detect_risk: ["oil", "workboard"],
+    architect: ["brain"],
+    strategic_think: ["brain"],
+    delegate: ["workboard"],
+  };
+  return {
+    intent: intentOverride,
+    confidence: 0.95,
+    risk_level: intentOverride === "detect_risk" ? "medium" : "low",
+    modules_relevant: moduleMap[intentOverride] || ["brain"],
+    requires_simulation: intentOverride === "simulate",
+  };
+}
+
 // ─── Decision Signals (inline, reused from decision-signals logic) ───
 interface DecisionSignal {
   signal_type: string;
@@ -217,7 +258,6 @@ async function fetchDecisionSignals(sb: any, workspaceId: string): Promise<Decis
   try {
     const now = new Date();
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString();
-    const staleThreshold = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString();
 
     const [openTasksRes, completedRes, createdRes, blockedRes, goalsRes] = await Promise.all([
       sb.from("tasks").select("id, title, status, blocked_reason, updated_at, created_at, goal_id")
@@ -311,7 +351,7 @@ function isValidAction(action: string, registry: { key: string }[]): boolean {
   return registry.some(a => a.key === action);
 }
 
-// ─── Prompt Builder ───
+// ─── Fix F: Prompt Builder (compact structured JSON sections) ───
 function buildSystemPrompt(params: {
   langLabel: string;
   businessContext?: ChatRequest["businessContext"];
@@ -326,7 +366,7 @@ function buildSystemPrompt(params: {
 }): string {
   const { langLabel, businessContext, installedAppIds, workContext, intent, action, actionRegistry, decisionSignals, oilPromptSection, userRole } = params;
 
-  // ═══ CORE IDENTITY (unchanged) ═══
+  // ═══ CORE IDENTITY (prose — needed for model comprehension) ═══
   let prompt = `You are the AI Business Brain for AiBizos — a unified AI Business Operating System.
 
 ═══ CORE IDENTITY ═══
@@ -351,211 +391,98 @@ INTELLIGENCE ORCHESTRATOR: Reason across all installed modules, classify intent,
 - Give long explanations unless asked
 
 ═══ RELATIONSHIP WITH OIL ═══
-Organizational Intelligence Layer (OIL) is a SEPARATE system app.
-You NEVER replicate OIL logic. You may ONLY consume OIL outputs (indicators, memory, guidance).
+OIL is a SEPARATE system app. You NEVER replicate OIL logic. You may ONLY consume OIL outputs.
 Treat all OIL data as: advisory, probabilistic, and contextual.
-When OIL data is available:
-- Reference insights calmly: "Based on recent execution patterns…"
-- Surface memory when relevant: "There's a recurring signal suggesting…"
-- Suggest as drafts only: "You may want to consider…"
-- Avoid certainty, judgment, and urgency unless explicitly indicated
+When OIL data is available: reference calmly, suggest as drafts only, avoid certainty/judgment/urgency.
 Silence is acceptable when there is nothing meaningful to add.
 
 ═══ ASSISTANT MODE (Voice & Casual) ═══
-This is your DEFAULT interaction mode for natural, lightweight, day-to-day interaction.
-
-INPUT: Users may speak casually, use voice, partial thoughts, mixed languages, slang.
-Examples: "رتّب لي مهامي اليوم", "خلّي هذه بكرة", "هذه المهمة على أحمد", "اليوم ضغط", "عدّلها شوي"
-You must NOT ask users to restate clearly unless meaning is truly ambiguous.
-
-ASSISTANT MODE RESPONSE STYLE:
-- Short, human, calm, non-technical
-- Match user tone (casual ↔ professional)
-- AVOID: long explanations, system talk, feature descriptions, teaching mode
-
-ASSISTANT MODE RESPONSE STRUCTURE (for changes):
-1. Acknowledge (1 line)
-2. Draft change (clear, minimal)
-3. Confirmation question
-
-Example:
-User: "خلّي مهمة التقرير بكرة"
-You: "تمام. بحوّل مهمة التقرير لبكرة. أطبّق؟"
-
-OIL IN ASSISTANT MODE:
-- If OIL signals are relevant, mention them briefly (1 line max), never overwhelm or alarm
-- Example: "بس ملاحظة سريعة: عندك ضغط تسليم اليوم، فالتأجيل ممكن يخفف."
-- If not relevant: say nothing
+DEFAULT interaction mode. Users may speak casually, use voice, partial thoughts, mixed languages, slang.
+Response: Short, human, calm, non-technical. Match user tone. Structure: Acknowledge → Draft → Confirm.
+OIL in assistant mode: 1 line max if relevant, else nothing.
 
 ═══ STRATEGIC MODE (Default for longer questions) ═══
-For planning, analysis, and guidance — use this structure:
-1. What I'm seeing (1–2 lines, contextual)
-2. Why it matters (brief)
-3. Suggested draft (bullet points, optional)
-4. Confirmation question
+Structure: 1. What I'm seeing (1–2 lines) 2. Why it matters 3. Suggested draft 4. Confirmation question.
 
-═══ DAILY BRIEF (OIL-Driven, Non-Intrusive) ═══
-Daily Brief is optional, short, and once per day max.
-Only provide when: OIL Visibility ≠ Minimal, or user explicitly asks.
-
-DAILY BRIEF STRUCTURE (STRICT — max 5 lines total):
-1. Title: "Today's Snapshot"
-2. Overall State (1 line from OIL indicators)
-3. One Key Signal (optional, only if meaningful)
-4. Why It Matters (1 line)
-5. Optional Draft Suggestion (ONE only)
-6. Close Gently: "Want me to prepare a draft?" or "Shall we leave it as is?"
-
-DAILY BRIEF HARD LIMITS:
-- Max 5 lines total
-- No numbers unless necessary
-- No urgency language
-- No repetition day-to-day
+═══ DAILY BRIEF (max 5 lines, once/day) ═══
+Structure: Title → State → Signal → Why → Draft → Close. No numbers unless necessary. No urgency.
 
 ═══ TONE ═══
-Calm, clear, professional, human, supportive.
-Match the user's tone — casual if casual, formal if formal.
-Adapt based on organizational health:
-- Improving → encouraging
-- Stable → neutral
-- Deteriorating → cautious (never dramatic)
-
-═══ PHRASING FOR BEST PRACTICES ═══
-NEVER say: "Best practice says you should…"
-INSTEAD say: "In similar situations, teams often…" or "A commonly effective approach is…"
+Calm, clear, professional, human, supportive. Match user tone. Adapt to org health.
 
 ═══ EXECUTION FLOW (NON-NEGOTIABLE) ═══
 YOU MUST NEVER EXECUTE ANY DATABASE ACTION. YOU ARE THINK-ONLY.
-ALL changes follow: Ask → Draft → Preview → Confirm → Execute (via separate secure endpoint)
-ALL suggestions are labeled as DRAFTS.
-The user reviews and approves before anything reaches Workboard.
-Even in voice or casual commands — NEVER skip confirmation.
-You CANNOT create tasks, goals, plans, or ideas directly. You can ONLY propose them.
+ALL changes follow: Ask → Draft → Preview → Confirm → Execute (via separate secure endpoint).
+ALL suggestions are labeled as DRAFTS. Even in voice/casual — NEVER skip confirmation.
+
+═══ GUARDRAILS ═══
+NEVER: "You are doing this wrong" | rank people | score individuals | create urgency | override user | anthropomorphize.
+INSTEAD: "In similar situations, teams often…" | "A pattern is emerging…"
+WHEN IN DOUBT: Be quieter. Be softer. Be optional. Silence > wrong insight.
 
 LANGUAGE: Always respond in ${langLabel}. Match the user's tone naturally.
 
 ═══ PROPOSAL OUTPUT CONTRACT ═══
-When you propose actionable items (tasks, goals, plans, ideas, updates), you MUST include a structured proposals block at the end of your response in this EXACT format:
+When you propose actionable items, include at end:
 
 \`\`\`BRAIN_PROPOSALS
-[
-  {
-    "id": "<generate a unique UUID>",
-    "type": "task",
-    "title": "Clear title in English",
-    "payload": {
-      "description": "Optional description",
-      "status": "backlog",
-      "due_date": null,
-      "is_priority": false
-    },
-    "required_role": "member"
-  }
-]
+[{"id":"<uuid>","type":"task|goal|plan|idea|update","title":"English title","payload":{...},"required_role":"member|admin|owner"}]
 \`\`\`
 
-PROPOSAL RULES:
-- id: generate a UUID v4 for each proposal
-- type: "task" | "goal" | "plan" | "idea" | "update"
-- title: English, concise, actionable
-- payload: type-specific fields
-- required_role: "member" for personal items, "admin" for team-wide, "owner" for structural changes
-- Valid JSON only, English for structured fields
-- Natural language response stays in user's language
-- You MUST NOT execute proposals yourself.
+Rules: Valid JSON only. English for structured fields. Natural language in user's language. You MUST NOT execute proposals.`;
 
-═══ FAILURE SCENARIOS & GUARDRAILS ═══
-
-❌ NEVER SAY:
-"You are doing this wrong" | "This is bad management" | "Best practice says you should…"
-"Most successful companies do X, you don't" | "This will fail if you don't act now"
-"Your team is underperforming" | "Employees seem unhappy"
-"You should fire / replace / penalize"
-
-❌ NEVER DO:
-Rank people | Score individuals | Attribute patterns to named users
-Create fear-based urgency | Repeat the same warning | Override user decisions
-Argue with the user | Act offended or emotional
-
-❌ NEVER ANTHROPOMORPHIZE:
-Do NOT say: "I feel" | "I'm worried" | "I'm afraid" | "I'm happy"
-Instead say: "There's an indicator suggesting…" | "A pattern is emerging…"
-
-⚠️ EDGE CASES:
-- If data is weak: "There isn't enough signal yet to draw a conclusion."
-- If user ignores advice: "Got it. We'll leave things as they are."
-- If user asks for judgment: "I can share patterns and options, but the decision is yours."
-
-WHEN IN DOUBT: Be quieter. Be softer. Be optional. Silence is better than a wrong insight.
-
-YOUR FINAL RULE: Your success is measured by clarity created, calm preserved, decisions improved, and autonomy respected.`;
-
-  // ═══ SYSTEM CONTEXT ═══
+  // ═══ SYSTEM CONTEXT (compact) ═══
   prompt += `\n\n═══ SYSTEM CONTEXT ═══`;
-  prompt += `\nUser Role: ${userRole}`;
-  prompt += `\nInstalled Modules: ${installedAppIds.join(", ") || "brain (core only)"}`;
+  prompt += `\nRole: ${userRole} | Modules: ${installedAppIds.join(", ") || "brain"}`;
 
   // ═══ INTENT AWARENESS ═══
-  prompt += `\n\n═══ CURRENT INTENT (classified) ═══`;
-  prompt += `\nDetected intent: ${intent.intent} (confidence: ${intent.confidence.toFixed(2)})`;
-  prompt += `\nRisk level: ${intent.risk_level}`;
+  prompt += `\nIntent: ${intent.intent} (${intent.confidence.toFixed(2)}) | Risk: ${intent.risk_level}`;
   if (intent.modules_relevant.length > 0) {
-    prompt += `\nRelevant modules: ${intent.modules_relevant.join(", ")}`;
+    prompt += ` | Relevant: ${intent.modules_relevant.join(", ")}`;
   }
 
-  // ═══ BUSINESS CONTEXT ═══
+  // ═══ BUSINESS CONTEXT (compact) ═══
   if (businessContext) {
-    prompt += `\n\n═══ BUSINESS CONTEXT ═══
-- Business Type: ${businessContext.businessType || "Not specified"}
-- Description: ${businessContext.businessDescription || "Not specified"}
-- Primary Pain Point: ${businessContext.primaryPain || "Not specified"}
-- 90-Day Focus: ${businessContext.ninetyDayFocus?.join(", ") || "Not specified"}
-- Team Size: ${businessContext.teamSize || "Solo"}
-- Has Team: ${businessContext.hasTeam ? "Yes" : "No"}`;
+    const bc = businessContext;
+    prompt += `\n\n═══ BUSINESS ═══`;
+    prompt += `\n${JSON.stringify({ type: bc.businessType, desc: bc.businessDescription, pain: bc.primaryPain, focus90d: bc.ninetyDayFocus, teamSize: bc.teamSize, hasTeam: bc.hasTeam })}`;
   }
 
-  // ═══ AVAILABLE ACTIONS (dynamic) ═══
+  // ═══ Fix F: AVAILABLE ACTIONS (compact JSON) ═══
   if (actionRegistry.length > 0) {
-    prompt += `\n\n═══ AVAILABLE ACTIONS ═══`;
-    prompt += `\nYou may propose actions from this registry. All follow Ask→Draft→Confirm→Execute flow.`;
-    for (const a of actionRegistry) {
-      prompt += `\n- ${a.key}: ${a.title} — ${a.description} [${a.source_module}]`;
-    }
+    prompt += `\n\n═══ ACTIONS (Ask→Draft→Confirm→Execute) ═══`;
+    prompt += `\n${JSON.stringify(actionRegistry.map(a => ({ k: a.key, t: a.title, m: a.source_module })))}`;
   }
 
-  // ═══ WORKBOARD SNAPSHOT ═══
+  // ═══ Fix F: WORKBOARD SNAPSHOT (compact JSON) ═══
   if (workContext) {
     const today = new Date().toISOString().split("T")[0];
-    const overdue = workContext.tasks.filter(t => t.isOverdue);
-    const blocked = workContext.tasks.filter(t => t.status === "blocked");
-    const priority = workContext.tasks.filter(t => t.isPriority);
-    const inProgress = workContext.tasks.filter(t => t.status === "in_progress");
+    const summary = {
+      date: today,
+      total: workContext.tasks.length,
+      overdue: workContext.tasks.filter(t => t.isOverdue).length,
+      blocked: workContext.tasks.filter(t => t.status === "blocked").length,
+      priority: workContext.tasks.filter(t => t.isPriority).length,
+      inProgress: workContext.tasks.filter(t => t.status === "in_progress").length,
+    };
+    // Compact task list: only key fields
+    const tasks = workContext.tasks.map(t => {
+      const o: any = { s: t.status, t: t.title };
+      if (t.isPriority) o.p = true;
+      if (t.dueDate) o.d = t.dueDate;
+      if (t.isOverdue) o.ov = true;
+      if (t.blockedReason) o.br = t.blockedReason;
+      return o;
+    });
+    const goals = workContext.goals.map(g => {
+      const o: any = { t: g.title };
+      if (g.dueDate) o.d = g.dueDate;
+      if (g.kpi) o.kpi = `${g.kpi.name}:${g.kpi.current ?? 0}/${g.kpi.target ?? "?"}`;
+      return o;
+    });
 
-    prompt += `\n\n═══ CURRENT WORKBOARD SNAPSHOT (${today}) ═══`;
-    prompt += `\nTotal open tasks: ${workContext.tasks.length}`;
-    prompt += `\nOverdue: ${overdue.length} | Blocked: ${blocked.length} | Priority: ${priority.length} | In Progress: ${inProgress.length}`;
-
-    if (workContext.tasks.length > 0) {
-      prompt += `\n\nTASKS:`;
-      for (const t of workContext.tasks) {
-        let line = `- [${t.status.toUpperCase()}] ${t.title}`;
-        if (t.isPriority) line += " ⭐";
-        if (t.dueDate) line += ` (due: ${t.dueDate})`;
-        if (t.isOverdue) line += " ⚠️ OVERDUE";
-        if (t.blockedReason) line += ` [blocked: ${t.blockedReason}]`;
-        prompt += `\n${line}`;
-      }
-    }
-
-    if (workContext.goals.length > 0) {
-      prompt += `\n\nACTIVE GOALS:`;
-      for (const g of workContext.goals) {
-        let line = `- ${g.title}`;
-        if (g.dueDate) line += ` (due: ${g.dueDate})`;
-        if (g.kpi) line += ` [KPI: ${g.kpi.name} ${g.kpi.current ?? 0}/${g.kpi.target ?? "?"}]`;
-        prompt += `\n${line}`;
-      }
-    }
+    prompt += `\n\n═══ WORKBOARD ═══`;
+    prompt += `\n${JSON.stringify({ ...summary, tasks, goals })}`;
   }
 
   // ═══ OIL CONTEXT (injected if available) ═══
@@ -563,53 +490,29 @@ YOUR FINAL RULE: Your success is measured by clarity created, calm preserved, de
     prompt += oilPromptSection;
   }
 
-  // ═══ PASSIVE INSIGHTS (decision signals) ═══
+  // ═══ Fix F: PASSIVE INSIGHTS (compact JSON) ═══
   if (decisionSignals.length > 0) {
-    prompt += `\n\n═══ PASSIVE INSIGHTS (Decision Signals) ═══`;
-    prompt += `\nThese are organizational observations. Only mention if directly relevant to the user's current question. Do not spam.`;
-    for (const s of decisionSignals) {
-      prompt += `\n- [${s.signal_type}] ${s.title}: ${s.explanation} (confidence: ${s.confidence_level})`;
-    }
+    prompt += `\n\n═══ PASSIVE INSIGHTS (surface only if relevant, no spam) ═══`;
+    prompt += `\n${JSON.stringify(decisionSignals.map(s => ({ type: s.signal_type, title: s.title, info: s.explanation, conf: s.confidence_level })))}`;
   }
 
   // ═══ SIMULATION PROTOCOL ═══
   if (intent.intent === "simulate" || intent.requires_simulation) {
-    prompt += `\n\n═══ SIMULATION PROTOCOL (Active) ═══
-The user wants a "what-if" analysis. Produce a Simulation Report:
-
-STRUCTURE:
-1. **Assumptions** — State what you're assuming based on available data
-2. **Inputs Used** — List which tasks/goals/OIL indicators/signals you're referencing
-3. **Impact Summary** — Model the impact on deadlines, delivery risk, and OIL indicators
-4. **Risks & Confidence** — Rate your confidence in this simulation
-5. **Disclaimer** — "This is a simulation, not a commitment. No changes have been made."
-
-RULES:
-- Do NOT propose execution. Only show what-if results.
-- If the user wants to apply changes after seeing the simulation, output a DRAFT proposal.
-- Be transparent about data gaps: "I don't have enough data to model X accurately."`;
+    prompt += `\n\n═══ SIMULATION PROTOCOL ═══
+Produce: 1.Assumptions 2.Inputs Used 3.Impact Summary 4.Risks & Confidence 5.Disclaimer("simulation, not commitment").
+Do NOT propose execution. Only show what-if. If user wants changes, output a DRAFT.`;
   }
 
   // ═══ DIAGNOSE PROTOCOL ═══
   if (intent.intent === "diagnose") {
-    prompt += `\n\n═══ DIAGNOSE PROTOCOL (Active) ═══
-The user wants root-cause analysis. Structure your response:
-1. **Symptoms** — What patterns are observable in the data
-2. **Possible Causes** — Ranked by likelihood based on available signals
-3. **Recommended Investigation** — What questions to ask or data to check
-4. **Draft Action** — One concrete suggestion to address the most likely cause
-Keep it calm and evidence-based. Avoid speculation without data.`;
+    prompt += `\n\n═══ DIAGNOSE PROTOCOL ═══
+Structure: 1.Symptoms 2.Possible Causes (ranked) 3.Recommended Investigation 4.Draft Action. Calm, evidence-based.`;
   }
 
   // ═══ DETECT RISK PROTOCOL ═══
   if (intent.intent === "detect_risk") {
-    prompt += `\n\n═══ RISK DETECTION PROTOCOL (Active) ═══
-The user wants proactive risk identification. Structure your response:
-1. **Current Risk Landscape** — What risks are visible from tasks, goals, OIL indicators
-2. **Emerging Risks** — What could develop if current trends continue
-3. **Blind Spots** — Areas where you lack data to assess risk
-4. **Mitigation Drafts** — 1-2 concrete actions per identified risk
-Frame as "areas worth attention" not "problems."`;
+    prompt += `\n\n═══ RISK DETECTION PROTOCOL ═══
+Structure: 1.Current Risks 2.Emerging Risks 3.Blind Spots 4.Mitigation Drafts. Frame as "areas worth attention."`;
   }
 
   // ═══ ACTION INSTRUCTIONS (legacy actions) ═══
@@ -622,13 +525,13 @@ Frame as "areas worth attention" not "problems."`;
 
   // ═══ BRAIN_META INSTRUCTION ═══
   prompt += `\n\n═══ INTERNAL METADATA (MANDATORY) ═══
-At the VERY END of every response, you MUST append this block:
+At the VERY END of every response, append:
 
 \`\`\`BRAIN_META
 {"intent":"${intent.intent}","confidence":${intent.confidence.toFixed(2)},"risk_level":"${intent.risk_level}","modules_consulted":${JSON.stringify(intent.modules_relevant)},"simulation_used":${intent.intent === "simulate" || intent.requires_simulation}}
 \`\`\`
 
-This is for internal tracking only. Do not reference it in your response text.`;
+Internal tracking only. Do not reference it in response text.`;
 
   return prompt;
 }
@@ -636,90 +539,19 @@ This is for internal tracking only. Do not reference it in your response text.`;
 // ─── Legacy Action Instructions ───
 function getActionInstructions(action: string): string | null {
   const map: Record<string, string> = {
-    create_plan: `\n\nCURRENT TASK: Help draft a business plan.
-Ask maximum 1-2 clarifying questions, then structure the response as a DRAFT:
-1. Plan title and type (Sales/Marketing/Operations/Finance/Team/Custom)
-2. Clear objectives
-3. Weekly breakdown (4 weeks)
-4. Key tasks and milestones
-Remind the user this is a draft that will be sent to Workboard for review.`,
-    setup_business: `\n\nCURRENT TASK: Initial business setup conversation.
-Ask about:
-1. Business type (trade, services, factory, online, retail, consulting, other)
-2. Primary pain point to address first
-3. Team size (solo or number of team members)
-4. Top 1-3 goals for the next 90 days
-Keep it conversational and friendly.`,
-    strategic_analysis: `\n\nCURRENT TASK: Strategic Analysis.
-Analyze the current state of the business using available OIL indicators, workboard data, and business context.
-Provide:
-1. A concise assessment of the current situation (2-3 lines)
-2. Key risks or gaps detected (if any)
-3. 2-3 strategic recommendations as actionable drafts
-Focus on what matters most RIGHT NOW. Be specific, not generic.`,
-    business_planning: `\n\nCURRENT TASK: Business Planning.
-Evaluate the current goals and tasks landscape.
-If goals exist: assess progress and suggest a draft action plan to accelerate them.
-If no goals exist: ask ONE question about the user's top priority for the next 90 days, then draft a plan.
-Structure any plan as:
-1. Clear objective
-2. 3-5 actionable steps
-3. Suggested timeline
-All suggestions are DRAFTS for user review.`,
-    business_coaching: `\n\nCURRENT TASK: Business Coaching.
-Based on the current workboard data and any OIL indicators:
-1. Identify ONE specific pattern in the user's work habits
-2. Provide ONE actionable tip based on best practices
-3. Keep it encouraging and practical — never judgmental
-Maximum 5-6 lines total. Be concise and specific.`,
-    risk_analysis: `\n\nCURRENT TASK: Risk Analysis.
-Focus specifically on delivery risks and potential issues:
-1. Analyze overdue tasks, blocked items, and declining indicators
-2. Identify the TOP 2-3 risks to the business right now
-3. For each risk, suggest one concrete mitigation action
-Be direct but not alarming. All suggestions are DRAFTS.`,
-    reprioritize: `\n\nCURRENT TASK: Task Reprioritization.
-Review the current task list, especially overdue and in-progress items.
-Suggest a reprioritized order:
-1. What should be done TODAY (max 3 tasks)
-2. What can be moved to this week
-3. What can be deferred or delegated
-Present as a DRAFT plan.`,
-    unblock_tasks: `\n\nCURRENT TASK: Resolve Blocked Tasks.
-Review any blocked tasks and their blocked reasons.
-For each blocked task:
-1. Acknowledge the blocker
-2. Suggest a practical resolution or workaround
-3. If the blocker requires a decision, frame it clearly
-Keep suggestions actionable and concise.`,
-    set_goals: `\n\nCURRENT TASK: Goal Setting.
-Help the user define clear, measurable 90-day goals.
-Start by asking about their top business priority right now.
-Then help structure 1-3 goals with:
-1. Clear title
-2. Measurable KPI (if applicable)
-3. Target date
-Present as DRAFTS.`,
-    weekly_checkin: `\n\nCURRENT TASK: Weekly Check-in Summary.
-Generate a concise weekly check-in summary (3-4 lines MAXIMUM).
-Focus on:
-1. Key accomplishments and their impact
-2. Most important decisions made
-3. One forward-looking recommendation
-Do NOT list raw data. Synthesize and provide insight. Be brief.
-IMPORTANT: No code blocks, no ULL_MEANING_V1 blocks. Plain text only.`,
-    weekly_checkin_ids: `\n\nCURRENT TASK: Problem Solving (IDS — Identify, Discuss, Solve).
-Suggest ONE practical, actionable solution in 2-3 lines maximum.
-Be specific and concrete — not generic advice.
-IMPORTANT: No code blocks. Plain text only.`,
-    weekly_checkin_priorities: `\n\nCURRENT TASK: Suggest Next Week Priorities.
-Return ONLY 3 numbered lines (1. 2. 3.).
-Each line is a specific, actionable task title — no explanations.
-Respond in the user's language.
-IMPORTANT: No code blocks. Plain text only.`,
-    suggest_assignee: `\n\nCURRENT TASK: Suggest the best team member to assign a task to.
-Return ONLY a valid JSON object with no markdown or code fences:
-{"user_id": "the_user_id", "reason": "One sentence reason in the user's language"}`,
+    create_plan: `\n\nTASK: Draft a business plan. Ask 1-2 questions, then structure: title, objectives, weekly breakdown (4w), tasks/milestones. DRAFT for review.`,
+    setup_business: `\n\nTASK: Business setup. Ask: type, pain point, team size, 90-day goals. Conversational.`,
+    strategic_analysis: `\n\nTASK: Strategic Analysis. 1.Current assessment (2-3 lines) 2.Risks/gaps 3.2-3 strategic draft recommendations. Specific, not generic.`,
+    business_planning: `\n\nTASK: Business Planning. If goals exist: assess progress, draft acceleration plan. If not: ask ONE priority question, then draft. Structure: objective, 3-5 steps, timeline. DRAFTS.`,
+    business_coaching: `\n\nTASK: Coaching. 1.ONE pattern 2.ONE tip. Max 5-6 lines. Encouraging, practical.`,
+    risk_analysis: `\n\nTASK: Risk Analysis. 1.Analyze overdue/blocked/declining 2.TOP 2-3 risks 3.One mitigation per risk. Direct, not alarming. DRAFTS.`,
+    reprioritize: `\n\nTASK: Reprioritize. 1.TODAY (max 3) 2.This week 3.Defer/delegate. DRAFT plan.`,
+    unblock_tasks: `\n\nTASK: Unblock. Per blocked task: 1.Acknowledge 2.Resolution/workaround 3.Frame decisions clearly. Actionable.`,
+    set_goals: `\n\nTASK: Goal Setting. Ask top priority. Structure 1-3 goals: title, KPI, target date. DRAFTS.`,
+    weekly_checkin: `\n\nTASK: Weekly summary (3-4 lines MAX). 1.Accomplishments 2.Decisions 3.One recommendation. Synthesize, don't list. Plain text only.`,
+    weekly_checkin_ids: `\n\nTASK: IDS problem solving. ONE solution, 2-3 lines max. Specific. Plain text only.`,
+    weekly_checkin_priorities: `\n\nTASK: Next week priorities. ONLY 3 numbered lines. Specific task titles, no explanations. User's language. Plain text only.`,
+    suggest_assignee: `\n\nTASK: Suggest assignee. Return ONLY JSON (no markdown): {"user_id":"the_id","reason":"one sentence in user language"}`,
   };
   return map[action] || null;
 }
@@ -763,63 +595,35 @@ async function buildOILSection(sb: any, workspaceId: string): Promise<string> {
 
     if (!shouldInject) return "";
 
-    let section = `\n\n═══ ORGANIZATIONAL INTELLIGENCE (OIL — consumed, not computed) ═══`;
-    section += `\nYou are receiving this data from OIL. You did NOT compute it. Treat it as advisory context.`;
+    let section = `\n\n═══ OIL (consumed, not computed) ═══`;
 
     const hasDeteriorating = coreIndicators.some((i: any) => i.trend === "down" || i.score < 40);
     const hasImproving = coreIndicators.some((i: any) => i.trend === "up" && i.score > 60);
-    const toneDirective = hasDeteriorating
-      ? "TONE: Cautious — things need attention. Be supportive, not alarming."
-      : hasImproving
-        ? "TONE: Encouraging — things are moving well. Acknowledge progress."
-        : "TONE: Neutral — stable situation. Be clear and professional.";
-    section += `\n${toneDirective}`;
+    const tone = hasDeteriorating ? "cautious" : hasImproving ? "encouraging" : "neutral";
+    section += `\nTone: ${tone} | Style: ${oil.guidance_style}`;
 
-    const styleMap: Record<string, string> = {
-      conservative: "Only surface HIGH-confidence insights. Be cautious and understated.",
-      advisory: "Provide clear, professional suggestions as DRAFTS. Balanced tone.",
-      challenging: "Surface risks earlier. Ask direct probing questions. Be forthright.",
-    };
-    section += `\nGUIDANCE STYLE: ${styleMap[oil.guidance_style] || styleMap.advisory}`;
-
-    section += `\nDISPLAY RULES:`;
-    section += `\n- ONLY mention insights when relevant to the user's question or during daily briefs`;
-    section += `\n- Do NOT present raw scores — weave insights naturally into your response`;
-    section += `\n- Every insight is a DRAFT suggestion, not a command`;
-    section += `\n- NEVER reference any individual person — all insights are team/org level only`;
-
-    if (oil.always_explain_why) section += `\n- ALWAYS explain "why this matters" for every insight`;
-    if (oil.leadership_guidance_enabled) {
-      section += `\n- Support leadership subtly — shorten learning curves, surface blind spots gently`;
-      section += `\n- NEVER imply incompetence or judgment`;
-    }
-    if (oil.show_best_practice_comparisons) section += `\n- When relevant, say "In similar situations, teams often…"`;
-    if (oil.auto_surface_blind_spots) section += `\n- Proactively surface organizational blind spots when detected`;
-    if (oil.external_knowledge === "off") section += `\n- Do NOT reference any external best practices or benchmarks`;
-    if (oil.exclude_market_news) section += `\n- NEVER include market news — only principles and warnings`;
+    const rules: string[] = [];
+    if (oil.always_explain_why) rules.push("explain-why");
+    if (oil.leadership_guidance_enabled) rules.push("leadership-support");
+    if (oil.show_best_practice_comparisons) rules.push("best-practices");
+    if (oil.auto_surface_blind_spots) rules.push("blind-spots");
+    if (oil.external_knowledge === "off") rules.push("no-external");
+    if (oil.exclude_market_news) rules.push("no-market-news");
+    if (rules.length > 0) section += `\nRules: ${rules.join(", ")}`;
 
     if (coreIndicators.length > 0) {
-      section += `\n\nCORE INDICATORS (contextual awareness — do not display as numbers):`;
-      for (const ind of coreIndicators) {
-        section += `\n- ${ind.indicator_key}: ${ind.score}/100 (${ind.trend}) — ${(ind.drivers as string[]).join(", ")}`;
-      }
+      section += `\nCore: ${JSON.stringify(coreIndicators.map((i: any) => ({ k: i.indicator_key, s: i.score, tr: i.trend, dr: i.drivers })))}`;
     }
 
     if (secondaryIndicators.length > 0) {
-      section += `\n\nSECONDARY (reference only when user asks):`;
-      for (const ind of secondaryIndicators) {
-        section += `\n- ${ind.indicator_key}: ${ind.score}/100 (${ind.trend}) — ${(ind.drivers as string[]).join(", ")}`;
-      }
+      section += `\nSecondary: ${JSON.stringify(secondaryIndicators.map((i: any) => ({ k: i.indicator_key, s: i.score, tr: i.trend })))}`;
     }
 
     if (memory && memory.length > 0) {
       const minConfidence = oil.guidance_style === "conservative" ? 0.7 : 0.5;
       const filteredMemory = memory.filter((m: any) => m.confidence >= minConfidence);
       if (filteredMemory.length > 0) {
-        section += `\n\nORG MEMORY (organizational patterns — never attribute to individuals):`;
-        for (const m of filteredMemory) {
-          section += `\n- [${m.memory_type}] ${m.statement} (confidence: ${m.confidence})`;
-        }
+        section += `\nMemory: ${JSON.stringify(filteredMemory.map((m: any) => ({ type: m.memory_type, stmt: m.statement, conf: m.confidence })))}`;
       }
     }
 
@@ -876,7 +680,7 @@ serve(async (req) => {
     }
 
     const body = await req.json() as ChatRequest;
-    const { messages, businessContext, installedApps, systemContext, workContext, action, userLang, workspaceId } = body;
+    const { messages, businessContext, systemContext, workContext, action, intentOverride, userLang, workspaceId } = body;
 
     // ─── Input Validation ───
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -919,10 +723,16 @@ serve(async (req) => {
       }
     }
 
+    // ─── Service Client (for server-side fetches) ───
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, serviceKey);
+
+    // ─── Fix A: Server-side installed apps (ignore client-sent installedApps) ───
+    const installedAppIds = workspaceId
+      ? await fetchInstalledApps(sb, workspaceId)
+      : ["brain"];
+
     // ─── Action Validation (dynamic + legacy) ───
-    const installedAppIds = installedApps || ["brain"];
-    // Always include brain
-    if (!installedAppIds.includes("brain")) installedAppIds.push("brain");
     const actionRegistry = buildActionRegistry(installedAppIds);
 
     if (action && !isValidAction(action, actionRegistry)) {
@@ -948,19 +758,19 @@ serve(async (req) => {
     };
     const langLabel = langMap[userLang || ""] || (userLang ? `Language: ${userLang}` : "English");
 
-    // ─── Service Client (for server-side fetches) ───
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sb = createClient(supabaseUrl, serviceKey);
-
-    // ─── Parallel: Intent Classification + OIL + Decision Signals + Role ───
+    // ─── Fix B: Resolve intent (override OR classifier) ───
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user")?.content || "";
 
-    const [intentResult, oilSection, decisionSignals, userRole] = await Promise.all([
-      classifyIntent(lastUserMsg, messages, LOVABLE_API_KEY),
+    // Parallel fetches: intent (only if no override), OIL, signals, role
+    const overrideResult = resolveIntentOverride(intentOverride);
+    const [classifiedIntent, oilSection, decisionSignals, userRole] = await Promise.all([
+      overrideResult ? Promise.resolve(overrideResult) : classifyIntent(lastUserMsg, messages, LOVABLE_API_KEY),
       workspaceId ? buildOILSection(sb, workspaceId) : Promise.resolve(""),
       workspaceId ? fetchDecisionSignals(sb, workspaceId) : Promise.resolve([]),
       workspaceId ? getUserWorkspaceRole(sb, user.id, workspaceId) : Promise.resolve(systemContext?.user_role || "member"),
     ]);
+
+    const intentResult = overrideResult || classifiedIntent;
 
     // ─── Build System Prompt ───
     const systemPrompt = buildSystemPrompt({
