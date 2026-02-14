@@ -92,20 +92,39 @@ export function GrowthAdvisorPanel() {
         </div>
 
         {/* Reasons */}
-        {insights.reasons && insights.reasons.length > 0 && (
-          <div className="mt-1 space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">
-              {t('growth.reasons.title', 'Why we recommend this')}
-            </p>
-            <ul className={`list-disc list-inside text-sm space-y-1 ${status === 'critical' ? 'text-destructive' : 'text-muted-foreground'}`}>
-              {insights.reasons.map((r: GrowthReason, idx: number) => {
-                const key = `growth.reasons.${r.code}`;
-                const translated = (t as Function)(key, { count: String(r.count ?? '') });
-                return <li key={idx}>{translated}</li>;
-              })}
-            </ul>
-          </div>
-        )}
+        {insights.reasons && insights.reasons.length > 0 && (() => {
+          const uniqueReasons = insights.reasons.filter((r, idx, arr) => {
+            const k = `${r.code}:${r.metric ?? ''}`;
+            return arr.findIndex(x => `${x.code}:${x.metric ?? ''}` === k) === idx;
+          });
+          return (
+            <div className="mt-1 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                {t('growth.reasons.title', 'Why we recommend this')}
+              </p>
+              <ul className={`list-disc list-inside text-sm space-y-1 ${status === 'critical' ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {uniqueReasons.map((r: GrowthReason, idx: number) => {
+                  const metricLabel = r.metric ? t(`growth.metrics.${r.metric}`, r.metric) : '';
+                  let translated: string;
+                  if (r.code === 'PROJECTED_BREACH' && r.projected != null && r.limit != null) {
+                    translated = t('growth.reasons.PROJECTED_BREACH', {
+                      metric: metricLabel,
+                      projected: String(r.projected),
+                      limit: String(r.limit),
+                    });
+                  } else if (r.code === 'PROJECTED_BREACH') {
+                    translated = t('growth.reasons.PROJECTED_BREACH_generic');
+                  } else if (r.code === 'HIGH_UTILIZATION') {
+                    translated = t('growth.reasons.HIGH_UTILIZATION', { metric: metricLabel });
+                  } else {
+                    translated = (t as Function)(`growth.reasons.${r.code}`, { count: String(r.count ?? '') });
+                  }
+                  return <li key={idx}>{translated}</li>;
+                })}
+              </ul>
+            </div>
+          );
+        })()}
 
         {/* Projections (only for monthly metrics) */}
         {(insights.projected_end_of_month_usage.bookings > 0 || insights.projected_end_of_month_usage.quotes > 0) && (

@@ -1449,8 +1449,16 @@
     "reasons": {
       "title": "Why we recommend this",
       "FREQUENT_LIMIT_HITS": "You hit your plan limits {{count}} times in the last 30 days.",
-      "PROJECTED_BREACH": "Based on your current growth, you are projected to exceed your limits before the end of the month.",
-      "HIGH_UTILIZATION": "Your usage is above 80% in one or more areas."
+      "PROJECTED_BREACH": "{{metric}} is projected to reach {{projected}} this month (limit {{limit}}).",
+      "PROJECTED_BREACH_generic": "Based on your current growth, you are projected to exceed your limits before the end of the month.",
+      "HIGH_UTILIZATION": "{{metric}} usage is above 80%."
+    },
+    "metrics": {
+      "vendors": "Vendors",
+      "services": "Services",
+      "bookings": "Bookings",
+      "quotes": "Quotes",
+      "seats": "Seats"
     }
   }
 }
