@@ -468,13 +468,18 @@ serve(async (req) => {
       // 7. Record idempotency + Audit log
       if (result.success && result.result && typeof result.result === "object") {
         const r = result.result as Record<string, string>;
-        // Race-safe: PK uniqueness prevents duplicates even under concurrency
-        await sbService.from("executed_proposals").insert({
-          proposal_id: proposal.id,
-          workspace_id: workspace_id,
-          entity_type: r.type || proposal.type,
-          entity_id: r.id || proposal.id,
-        }).then(() => {}, () => {}); // ignore duplicate key errors
+        const entityId = String(r.id || "");
+        if (entityId) {
+          // Race-safe: PK uniqueness prevents duplicates even under concurrency
+          const { error: idempErr } = await sbService.from("executed_proposals").insert({
+            proposal_id: proposal.id,
+            workspace_id: workspace_id,
+            entity_type: r.type || proposal.type,
+            entity_id: entityId,
+          });
+          // If PK duplicate → entity was already created (shouldn't happen here since we checked above)
+          if (idempErr) console.warn("[brain-execute] idempotency insert warning:", idempErr.message);
+        }
       }
 
       await sbService.from("audit_logs").insert({

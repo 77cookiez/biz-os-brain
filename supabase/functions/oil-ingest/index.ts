@@ -87,28 +87,30 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // ─── CRITICAL: Workspace membership guard (cross-tenant prevention) ───
-    const { data: ws } = await supabase
+    // ─── CRITICAL: Workspace access guard (canonical pattern from brain-chat) ───
+    // Step 1: Resolve workspace → company_id (404 if not found)
+    const { data: ws, error: wsErr } = await supabase
       .from("workspaces")
       .select("company_id")
       .eq("id", workspace_id)
       .maybeSingle();
 
-    if (!ws?.company_id) {
+    if (wsErr || !ws?.company_id) {
       return new Response(
-        JSON.stringify({ error: "Invalid workspace_id" }),
+        JSON.stringify({ error: "Workspace not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { data: membership } = await supabase
+    // Step 2: Verify user membership via user_roles (403 if not member)
+    const { data: membership, error: memErr } = await supabase
       .from("user_roles")
       .select("role")
       .eq("company_id", ws.company_id)
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!membership) {
+    if (memErr || !membership) {
       return new Response(
         JSON.stringify({ error: "Forbidden" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
