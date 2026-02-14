@@ -3030,6 +3030,10 @@ export type Database = {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
       }
+      log_growth_event: {
+        Args: { _event_type: string; _meta?: Json; _workspace_id: string }
+        Returns: undefined
+      }
       log_usage_event: {
         Args: { _event_type: string; _meta?: Json; _workspace_id: string }
         Returns: undefined

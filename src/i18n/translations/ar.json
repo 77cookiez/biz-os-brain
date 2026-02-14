@@ -1264,5 +1264,17 @@
       "quotes": "عروض الأسعار",
       "seats": "المقاعد"
     }
+  },
+  "upgradeFunnel": {
+    "title": "ترقية مقترحة",
+    "headline": "أنت قريب من حدود خطتك",
+    "ctaRequest": "طلب ترقية إلى {{plan}}",
+    "ctaViewPlans": "عرض جميع الخطط",
+    "notNow": "ليس الآن — ذكّرني لاحقًا",
+    "requestSuccess": "تم إرسال طلب الترقية! سيراجعه المسؤول قريبًا.",
+    "currentPlan": "الحالية",
+    "recommended": "مقترحة",
+    "free": "مجانية",
+    "month": "شهر"
   }
 }
