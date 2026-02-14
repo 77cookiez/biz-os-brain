@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useBookingSettings } from '@/hooks/useBookingSettings';
+import { useBookingSettings, useBookingSettingsList, BookingSettings } from '@/hooks/useBookingSettings';
 import { useBookingSubscription } from '@/hooks/useBookingSubscription';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { LogoUpload } from '@/components/booking/LogoUpload';
-// StripeConnectCard removed — BookEvo SaaS uses offline payments only
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,8 +15,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Settings, Rocket, Globe, Copy, ExternalLink, Check, Smartphone, Download, Loader2,
-  CheckCircle2, Apple, Shield, Crown, Monitor, Mail, Lock, ChevronRight,
+  CheckCircle2, Apple, Shield, Crown, Monitor, Mail, Lock, ChevronRight, Trash2, Plus, Store
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,21 +38,28 @@ const PUBLISHING_STEPS = ['configure', 'generate', 'build', 'upload', 'submit', 
 
 export default function BookingSettingsPage() {
   const { t } = useTranslation();
-  const { settings, isLoading, upsertSettings } = useBookingSettings();
+  const { sites, isLoading: sitesLoading } = useBookingSettingsList();
   const { subscription } = useBookingSubscription();
   const { currentWorkspace } = useWorkspace();
+  
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloadingIos, setDownloadingIos] = useState(false);
   const [downloadingAndroid, setDownloadingAndroid] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const publicUrl = settings?.tenant_slug
-    ? `${getPublicBaseUrl()}/b/${settings.tenant_slug}`
-    : null;
+  // Hook for the selected site (if any)
+  const { settings, upsertSettings, deleteSite } = useBookingSettings(selectedSiteId);
 
-  const handleCopy = async () => {
-    if (!publicUrl) return;
-    await navigator.clipboard.writeText(publicUrl);
+  // Calculate plan limits
+  const isEnterprise = subscription?.plan === 'enterprise' || subscription?.plan === 'business';
+  const maxSites = isEnterprise ? 999 : 1;
+  const sitesCount = sites.length;
+  const canAddSite = sitesCount < maxSites;
+
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success(t('common.copied', 'Copied!'));
     setTimeout(() => setCopied(false), 2000);
@@ -56,6 +67,18 @@ export default function BookingSettingsPage() {
 
   const handleLogoChange = (url: string | null) => {
     upsertSettings.mutate({ logo_url: url } as any);
+  };
+
+  const handleDeleteSite = async (siteId: string) => {
+    try {
+      await deleteSite.mutateAsync(siteId);
+      if (selectedSiteId === siteId) {
+        setSelectedSiteId(null);
+        setShowWizard(false);
+      }
+    } catch (err) {
+      // Error handled in hook
+    }
   };
 
   const handleDownloadAppPack = async (platform: 'ios' | 'android') => {
@@ -110,7 +133,26 @@ export default function BookingSettingsPage() {
     upsertSettings.mutate({ publishing_progress: progress } as any);
   };
 
-  if (isLoading) {
+  // If in wizard mode (editing or creating)
+  if (showWizard) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-foreground">{t('booking.wizard.title')}</h1>
+          <Button variant="outline" onClick={() => { setShowWizard(false); setSelectedSiteId(null); }}>
+            {t('common.cancel')}
+          </Button>
+        </div>
+        <BookingSetupWizard 
+          siteId={selectedSiteId} 
+          onComplete={() => { setShowWizard(false); setSelectedSiteId(null); }} 
+        />
+      </div>
+    );
+  }
+
+  // Loading state
+  if (sitesLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-40" />
@@ -119,29 +161,203 @@ export default function BookingSettingsPage() {
     );
   }
 
-  if (showWizard) {
+  // --- Main View: Site List ---
+  // If not editing specific settings, show the list
+  if (!selectedSiteId && !showWizard) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-8">
+        <SubscriptionBanner />
+        
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{t('booking.wizard.title')}</h1>
-          <Button variant="outline" onClick={() => setShowWizard(false)}>
-            {t('common.cancel')}
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-foreground">{t('booking.sites.title')}</h1>
+            <p className="text-muted-foreground text-sm">
+              {sitesCount} / {isEnterprise ? '∞' : maxSites} {t('booking.sites.storefront', 'Site(s)')}
+            </p>
+          </div>
+          
+          <Button 
+            onClick={() => { setSelectedSiteId(null); setShowWizard(true); }}
+            disabled={!canAddSite}
+          >
+            <Plus className="h-4 w-4 me-2" />
+            {t('booking.sites.addNew')}
           </Button>
         </div>
-        <BookingSetupWizard onComplete={() => setShowWizard(false)} />
+
+        {!canAddSite && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-lg flex gap-3 text-sm text-amber-800 dark:text-amber-200">
+            <Crown className="h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-medium">{t('booking.billing.limitReached')}</p>
+              <p className="mt-1 opacity-90">{t('booking.sites.limitReached', { max: maxSites })}</p>
+            </div>
+          </div>
+        )}
+
+        {sites.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 text-primary">
+                <Store className="h-8 w-8" />
+              </div>
+              <h3 className="text-lg font-medium">{t('booking.sites.noSites')}</h3>
+              <p className="text-muted-foreground mt-1 mb-6 max-w-sm">
+                {t('booking.sites.noSitesDesc')}
+              </p>
+              <Button onClick={() => setShowWizard(true)}>
+                <Rocket className="h-4 w-4 me-2" />
+                {t('booking.settings.launchWizard')}
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {sites.map(site => (
+              <Card key={site.id} className="overflow-hidden border-l-4" style={{ borderLeftColor: site.primary_color || 'hsl(var(--primary))' }}>
+                <CardHeader className="pb-3 border-b border-border/50 bg-muted/20">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      {site.logo_url ? (
+                        <img src={site.logo_url} alt={site.app_name || 'Logo'} className="h-10 w-10 rounded-lg object-cover bg-background border border-border" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold">
+                          {(site.app_name || 'S').charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <CardTitle className="text-lg">{site.app_name || t('booking.brand.productName')}</CardTitle>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant={site.is_live ? 'default' : 'secondary'} className="text-[10px] px-1.5 h-5">
+                            {site.is_live ? t('booking.sites.status.live') : t('booking.sites.status.draft')}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground font-mono">/b/{site.tenant_slug}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setSelectedSiteId(site.id); }}>
+                        <Settings className="h-4 w-4 me-2" />
+                        {t('common.settings')}
+                      </Button>
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>{t('booking.sites.deleteConfirmTitle')}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {t('booking.sites.deleteConfirm')}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteSite(site.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              {t('booking.sites.delete')}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Link 1: V3 Premium Landing (Primary) */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase">{t('booking.sites.premiumLanding')}</Label>
+                    <div className="flex gap-2">
+                      <Button variant="secondary" className="w-full justify-start text-xs h-9 font-medium" asChild>
+                        <a href={`/b3/${site.tenant_slug}`} target="_blank" rel="noopener noreferrer">
+                          <Crown className="h-3.5 w-3.5 me-2 text-amber-500" />
+                          {t('booking.sites.openV3', 'Open Premium')}
+                        </a>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => handleCopy(`${getPublicBaseUrl()}/b3/${site.tenant_slug}`)}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Link 2: Standard Storefront */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase">{t('booking.sites.storefront')}</Label>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="w-full justify-start text-xs h-9" asChild>
+                        <a href={`/b/${site.tenant_slug}`} target="_blank" rel="noopener noreferrer">
+                          <Globe className="h-3.5 w-3.5 me-2" />
+                          /b/{site.tenant_slug}
+                        </a>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => handleCopy(`${getPublicBaseUrl()}/b/${site.tenant_slug}`)}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Link 3: Vendor Portal */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase">{t('booking.sites.vendorPortal')}</Label>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="w-full justify-start text-xs h-9" asChild>
+                        <a href={`/v/${site.tenant_slug}`} target="_blank" rel="noopener noreferrer">
+                          <Store className="h-3.5 w-3.5 me-2" />
+                          /v/{site.tenant_slug}
+                        </a>
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-9 w-9 shrink-0" onClick={() => handleCopy(`${getPublicBaseUrl()}/v/${site.tenant_slug}`)}>
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Link 4: Admin Panel */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase">{t('booking.sites.adminPanel')}</Label>
+                    <Button variant="outline" className="w-full justify-start text-xs h-9" asChild>
+                      <a href={`/admin/booking/${site.tenant_slug}`} target="_blank" rel="noopener noreferrer">
+                        <Lock className="h-3.5 w-3.5 me-2" />
+                        {t('booking.sites.adminPanel')}
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
 
-  const progressData = settings?.publishing_progress ?? {};
+  // --- Settings View ---
+  // When selectedSiteId is active, show the original settings view for that site
+  if (!settings) return <div className="p-8 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" /></div>;
+
+  const progressData = settings.publishing_progress ?? {};
+  const publicUrl = settings.tenant_slug ? `${getPublicBaseUrl()}/b/${settings.tenant_slug}` : null;
 
   return (
     <div className="space-y-6">
-      <SubscriptionBanner />
+      <div className="flex items-center gap-2 mb-2">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedSiteId(null)} className="gap-1 ps-0">
+          <ChevronRight className="h-4 w-4 rotate-180" />
+          {t('common.back')}
+        </Button>
+        <span className="text-muted-foreground">/</span>
+        <span className="font-medium text-foreground">{settings.app_name || 'Settings'}</span>
+      </div>
+
       <div className="flex items-center gap-3">
         <h1 className="text-2xl font-bold text-foreground">{t('booking.settings.title')}</h1>
-        <Badge variant={settings?.is_live ? 'default' : 'secondary'}>
-          {settings?.is_live ? t('booking.settings.live', 'Live') : t('booking.settings.draft', 'Draft')}
+        <Badge variant={settings.is_live ? 'default' : 'secondary'}>
+          {settings.is_live ? t('booking.settings.live', 'Live') : t('booking.settings.draft', 'Draft')}
         </Badge>
       </div>
 
@@ -162,13 +378,13 @@ export default function BookingSettingsPage() {
           <p className="text-sm text-muted-foreground">
             {t('booking.settings.pwaDesc')}
           </p>
-          {settings?.is_live && publicUrl && (
+          {settings.is_live && publicUrl && (
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
               <code className="text-sm font-mono bg-muted px-3 py-1.5 rounded-md break-all text-foreground flex-1">
                 {publicUrl}
               </code>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleCopy}>
+                <Button variant="outline" size="sm" onClick={() => handleCopy(publicUrl!)}>
                   {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   <span className="ms-1">{copied ? t('common.copied', 'Copied') : t('common.copy', 'Copy')}</span>
                 </Button>
@@ -214,7 +430,7 @@ export default function BookingSettingsPage() {
       </Card>
 
       {/* ========== MODE 3: Native App Publishing (Advanced) ========== */}
-      {settings?.is_live && (
+      {settings.is_live && (
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
@@ -240,9 +456,9 @@ export default function BookingSettingsPage() {
             </div>
 
             {/* App Identity Summary */}
-            {settings?.app_name && (
+            {settings.app_name && (
               <div className="flex items-center gap-4 p-3 rounded-lg border border-border">
-                {settings?.app_icon_url && (
+                {settings.app_icon_url && (
                   <img
                     src={settings.app_icon_url}
                     alt="App Icon"
@@ -251,7 +467,7 @@ export default function BookingSettingsPage() {
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-foreground truncate">{settings.app_name}</p>
-                  {settings?.app_description && (
+                  {settings.app_description && (
                     <p className="text-xs text-muted-foreground truncate mt-0.5">{settings.app_description}</p>
                   )}
                   <p className="text-xs font-mono text-muted-foreground mt-0.5" dir="ltr">
@@ -264,7 +480,7 @@ export default function BookingSettingsPage() {
               </div>
             )}
 
-            {!settings?.app_name && (
+            {!settings.app_name && (
               <div className="text-sm text-muted-foreground">
                 <p>{t('booking.settings.yourAppDesc')}</p>
                 <Button variant="outline" size="sm" className="mt-2" onClick={() => setShowWizard(true)}>
@@ -288,7 +504,6 @@ export default function BookingSettingsPage() {
 
               {/* iOS Tab */}
               <TabsContent value="ios" className="space-y-4 mt-4">
-                {/* What You Need */}
                 <div className="space-y-2">
                   <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                     {t('booking.settings.whatYouNeed', 'What You Need')}
@@ -309,7 +524,6 @@ export default function BookingSettingsPage() {
                   </div>
                 </div>
 
-                {/* Download Button */}
                 <Button className="w-full" onClick={() => handleDownloadAppPack('ios')} disabled={downloadingIos}>
                   {downloadingIos ? (
                     <><Loader2 className="h-4 w-4 me-2 animate-spin" />{t('booking.settings.downloadingPack')}</>
@@ -318,7 +532,6 @@ export default function BookingSettingsPage() {
                   )}
                 </Button>
 
-                {/* Publishing Progress Tracker */}
                 <PublishingProgressTracker
                   platform="ios"
                   progress={progressData['ios']}
@@ -370,7 +583,7 @@ export default function BookingSettingsPage() {
       )}
 
       {/* ========== MODE 4: Done-for-You Publishing (Premium) ========== */}
-      {settings?.is_live && (
+      {settings.is_live && (
         <Card className="border-dashed">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
@@ -397,10 +610,8 @@ export default function BookingSettingsPage() {
         </Card>
       )}
 
-      {/* Payment mode: offline only — no Stripe Connect in BookEvo SaaS */}
-
       {/* Logo quick-edit when live */}
-      {settings?.is_live && currentWorkspace && (
+      {settings.is_live && currentWorkspace && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-foreground">
@@ -417,25 +628,6 @@ export default function BookingSettingsPage() {
         </Card>
       )}
 
-      {/* Subscription status */}
-      {subscription && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t('booking.subscription.title')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-3">
-              <BookingStatusBadge status={subscription.status} />
-              <span className="text-sm text-muted-foreground">
-                {t('booking.subscription.plan')}: {subscription.plan}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Setup wizard card */}
       <Card>
         <CardHeader>
@@ -446,37 +638,35 @@ export default function BookingSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            {settings?.is_live ? t('booking.settings.goLiveDesc') : t('booking.settings.setupDesc')}
+            {settings.is_live ? t('booking.settings.goLiveDesc') : t('booking.settings.setupDesc')}
           </p>
 
-          {settings && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-              <div>
-                <span className="text-muted-foreground">{t('booking.settings.themeLabel')}:</span>{' '}
-                <span className="text-foreground font-medium">{t(`booking.wizard.theme.${settings.theme_template}`)}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t('booking.wizard.money.currency')}:</span>{' '}
-                <span className="text-foreground font-medium">{settings.currency}</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground">{t('booking.vendors.status')}:</span>{' '}
-                <BookingStatusBadge status={settings.is_live ? 'active' : 'pending'} />
-              </div>
-              {settings.tenant_slug && (
-                <div className="col-span-2 sm:col-span-3">
-                  <span className="text-muted-foreground">{t('booking.settings.slugLabel')}:</span>{' '}
-                  <code className="text-foreground font-mono text-xs bg-muted px-1.5 py-0.5 rounded break-all">
-                    /b/{settings.tenant_slug}
-                  </code>
-                </div>
-              )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+            <div>
+              <span className="text-muted-foreground">{t('booking.settings.themeLabel')}:</span>{' '}
+              <span className="text-foreground font-medium">{t(`booking.wizard.theme.${settings.theme_template}`)}</span>
             </div>
-          )}
+            <div>
+              <span className="text-muted-foreground">{t('booking.wizard.money.currency')}:</span>{' '}
+              <span className="text-foreground font-medium">{settings.currency}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">{t('booking.vendors.status')}:</span>{' '}
+              <BookingStatusBadge status={settings.is_live ? 'active' : 'pending'} />
+            </div>
+            {settings.tenant_slug && (
+              <div className="col-span-2 sm:col-span-3">
+                <span className="text-muted-foreground">{t('booking.settings.slugLabel')}:</span>{' '}
+                <code className="text-foreground font-mono text-xs bg-muted px-1.5 py-0.5 rounded break-all">
+                  /b/{settings.tenant_slug}
+                </code>
+              </div>
+            )}
+          </div>
 
           <Button onClick={() => setShowWizard(true)}>
             <Rocket className="h-4 w-4 me-2" />
-            {settings ? t('booking.settings.editSettings') : t('booking.settings.launchWizard')}
+            {t('booking.settings.editSettings')}
           </Button>
         </CardContent>
       </Card>

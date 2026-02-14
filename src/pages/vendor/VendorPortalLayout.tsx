@@ -531,6 +531,18 @@ export default function VendorPortalLayout() {
                 <span className="hidden sm:inline">{t('booking.vendor.viewStore')}</span>
               </Button>
             </Link>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="gap-1.5 text-xs text-destructive hover:text-destructive"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                window.location.href = `/b/${tenantSlug}/auth`;
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{t('booking.vendor.signOut')}</span>
+            </Button>
           </div>
         </div>
       </header>

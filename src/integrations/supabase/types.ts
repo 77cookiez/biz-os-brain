@@ -1073,6 +1073,8 @@ export type Database = {
           contact_email: string | null
           created_at: string
           currency: string
+          deleted_at: string | null
+          deleted_by: string | null
           deposit_enabled: boolean
           deposit_type: string | null
           deposit_value: number | null
@@ -1115,6 +1117,8 @@ export type Database = {
           contact_email?: string | null
           created_at?: string
           currency?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           deposit_enabled?: boolean
           deposit_type?: string | null
           deposit_value?: number | null
@@ -1157,6 +1161,8 @@ export type Database = {
           contact_email?: string | null
           created_at?: string
           currency?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           deposit_enabled?: boolean
           deposit_type?: string | null
           deposit_value?: number | null
@@ -1184,7 +1190,7 @@ export type Database = {
           {
             foreignKeyName: "booking_settings_workspace_id_fkey"
             columns: ["workspace_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
