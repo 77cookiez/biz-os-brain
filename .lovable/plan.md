@@ -1,216 +1,263 @@
-# Bookivo Site Management Overhaul
+# Bookivo Storefront -- Complete Fix and Quality Plan
 
-## Problem Summary
+## Identified Issues
 
-The current Bookivo settings page has critical gaps:
+### 1. Broken Links in V3 Storefront
 
-1. **Single-site limitation** -- only one storefront per workspace, no way to create additional sites
-2. **No site deletion** -- once created, a site cannot be removed or reset
-3. **Landing page unreachable** -- no clear link to the V3 storefront from settings
-4. **Vendor portal missing logout** -- no sign-out button in vendor layout
-5. **Incomplete storefront** -- V3 landing page needs to be connected properly
-6. **No multi-site support for enterprise plans** -- Business plan (enterprise) should allow multiple storefronts
+- **PublicAuthPage** hardcodes basePath detection for `/b/` and `/b2/` only -- it does NOT detect `/b3/` paths. Users on the V3 storefront who are redirected to auth get sent to wrong paths.
+- **V3 Footer** links to `/v3/:tenantSlug` for vendor portal but that route does NOT exist (vendor portal is at `/v/:tenantSlug`).
+- **"Browse Services" button** in V3 hero links back to `basePath` (the landing page itself) instead of scrolling down or linking to browse page. There is no separate browse route under `/b3/`.
 
-## Architecture Decision
+### 2. Image Upload Not Working
 
-Currently: `booking_settings` has ONE row per workspace (1:1 relationship).
+- **LogoUpload** uploads to bucket `booking-assets` at path `{workspaceId}/logo-{timestamp}`. This path pattern does NOT match the RLS policies, which expect paths like `{workspaceId}/tenant/logo/{file}`.
+- **Storage RLS policies** enforce specific path patterns. The LogoUpload component uses a legacy path format that likely fails silently.
 
-For multi-site support on enterprise plans, we need to evolve this to a 1:N model where a workspace can have multiple `booking_settings` rows (each representing a separate storefront/site).
+### 3. AI Features Not Working
 
-```text
-Current:  workspace --> 1 booking_settings row --> 1 site
-Proposed: workspace --> N booking_settings rows --> N sites (enterprise only)
+- **Brain Chat** requires an active session and a deployed `brain-chat` edge function. This is infrastructure-level -- needs verification that the function is deployed and the API key is configured.
+- Will verify edge function deployment status.
+
+### 4. V3 Landing Page Content is Hardcoded English
+
+- All V3 landing page text (Hero, Features, How It Works, Testimonials, FAQ, CTA) is hardcoded in English strings, NOT using i18n keys. Arabic users see English text.
+
+### 5. Missing V3 Index/Browse Route
+
+- When user navigates from landing page to browse, there is no index route rendering `PublicBrowsePage` inside the V3 layout. The `/b3/:tenantSlug` only shows the landing page, and nested `Outlet` renders nothing on the landing page.
+
+### 6. Auth Page Does Not Support V3 Path
+
+- `PublicAuthPage` detects `/b2/` but not `/b3/`, causing redirect loops or wrong navigation after login.
+
+---
+
+## Fix Plan (Ordered by Impact)
+
+### Fix A: Auth Page V3 Support
+
+**File:** `src/pages/public/booking/PublicAuthPage.tsx`
+
+Change the basePath detection logic from:
+
+```
+const basePath = currentPath.startsWith('/b2/') ? `/b2/${tenantSlug}` : `/b/${tenantSlug}`;
 ```
 
-## Implementation Plan
+To:
 
-### Phase 1: Site Management UI (BookingSettingsPage)
+```
+const basePath = currentPath.startsWith('/b3/')
+  ? `/b3/${tenantSlug}`
+  : currentPath.startsWith('/b2/')
+    ? `/b2/${tenantSlug}`
+    : `/b/${tenantSlug}`;
+```
 
-**1A. Site List View**
+### Fix B: V3 Footer Vendor Portal Link
 
-- Replace the current single-site settings page with a "Sites" list at the top
-- Show all `booking_settings` rows for the current workspace as cards
-- Each card shows: site name (app_name), tenant_slug, status (Live/Draft), and quick actions
-- Quick actions: Open Site, Copy URL, Edit (wizard), Delete
-- "Add New Site" button -- gated by plan (Free/Pro = 1 site, Business = unlimited)
+**File:** `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx`
 
-**1B. Public URL Links (all versions)**
+Change `V3Footer` vendor link from `/v3/${tenantSlug}` to `/v/${tenantSlug}` (the actual vendor portal route).
 
-- For each site, show links to:
-  - V1: `/b/{slug}`
-  - V3: `/b3/{slug}` (labeled "Premium Landing Page")
-  - Vendor Portal: `/v/{slug}`
-  - Admin: `/admin/booking/{slug}`
-- Current settings page only shows `/b/{slug}` -- we add V3 link prominently
+### Fix C: V3 Browse Route + Navigation
 
-**1C. Delete Site**
+**File:** `src/App.tsx`
 
-- Add a delete button with confirmation dialog
-- Deleting a site sets `is_live = false` and clears `tenant_slug` (soft delete)
-- Or full delete of the `booking_settings` row (hard delete) with cascade warning
-- Only workspace owners/admins can delete
+Add an index route inside the V3 route group so that `/b3/:tenantSlug` can serve both landing page and browse:
 
-**1D. Plan Gating for Multi-Site**
+- The current design renders the landing page inline when `isLanding` is true, and `<Outlet>` otherwise. This is correct but needs a dedicated "browse" sub-route.
+- Add `<Route path="browse" element={<PublicBrowsePage />} />` inside the V3 route group.
 
-- Free and Pro plans: max 1 site (show upgrade prompt if they try to add more)
-- Business (enterprise) plan: unlimited sites
-- Use `billing_plans.features` to store `max_sites` or check plan ID directly
+**File:** `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx`
 
-### Phase 2: Vendor Portal Logout Button
+Update the "Browse Services" button in the Hero to link to `${basePath}/browse` instead of `${basePath}`.
 
-**2A. Add Sign Out to VendorPortalLayout**
+### Fix D: Logo Upload Path Mismatch
 
-- Add a LogOut button/icon in the vendor portal header (next to AI Assist and View Store buttons)
-- On click: call `supabase.auth.signOut()` and redirect to tenant auth page
-- Works on both desktop and mobile
+**File:** `src/components/booking/LogoUpload.tsx`
 
-**2B. Add Sign Out to V2 Vendor Portal**
+Change the upload path from:
 
-- Same treatment for `VendorPortalLayoutV2`
+```
+const filePath = `${workspaceId}/logo-${Date.now()}.${fileExt}`;
+```
 
-### Phase 3: V3 Landing Page Connection
+To the standardized path:
 
-**3A. Settings Page V3 Link**
+```
+const filePath = `${workspaceId}/tenant/logo/logo-${Date.now()}.${fileExt}`;
+```
 
-- In the "Hosted Store + PWA" card, add a second URL row for the V3 premium landing page
-- Label: "Premium Landing Page" with an external link button
-- URL: `/b3/{tenant_slug}`
+Also update `removeOldLogos` to search in the correct path prefix (`${workspaceId}/tenant/logo/`).
 
-**3B. V3 Route Index**
+### Fix E: V3 Landing Page i18n
 
-- Currently `/b3/:tenantSlug` renders the landing page inline in the layout
-- Add an index route for browse page so sub-pages (vendors, request quote) work
+**File:** `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx`
 
-### Phase 4: Database Changes
+Replace all hardcoded English strings in the V3LandingPage component with `t()` calls using new i18n keys.
 
-**4A. Add `sites_limit` to billing_plans features**
+**Files:** `src/i18n/translations/en.json`, `src/i18n/translations/ar.json`
 
-- Update the `features` JSONB in `billing_plans` to include `max_sites`:
-  - Free: `max_sites: 1`
-  - Pro: `max_sites: 1`
-  - Business: `max_sites: null` (unlimited)
+Add full translation keys under `booking.v3.landing`:
 
-**4B. Allow multiple booking_settings per workspace**
+- Hero: title, subtitle, badge, cta, browse, trust indicators
+- Stats: values and labels
+- Features: each title and description
+- How It Works: heading, subtitle, each step
+- Testimonials: heading, subtitle, each review
+- FAQ: heading, each question and answer
+- CTA: heading, subtitle, buttons
+- Footer: brand description, quick links heading, contact heading, legal heading, vendor links, copyright
 
-- Currently `booking_settings` has an implicit 1:1 with workspace (code uses `.maybeSingle()`)
-- The schema already allows multiple rows -- no migration needed
-- Update `useBookingSettings` hook to return an array and accept a `settingsId` filter
-- Update `BookingSettingsPage` to list all sites
+### Fix F: V3 Header Nav "Browse" Link
 
-### Phase 5: i18n (EN/AR)
+Update nav items in V3 header to use `${basePath}/browse` for the browse link instead of the landing page URL (which would just reload the landing).
 
-New keys:
+### Fix G: Verify AI/Brain Edge Function
 
-- `booking.sites.title` -- "Your Sites" / "مواقعك"
-- `booking.sites.addNew` -- "Add New Site" / "إضافة موقع جديد"
-- `booking.sites.delete` -- "Delete Site" / "حذف الموقع"
-- `booking.sites.deleteConfirm` -- "Are you sure? This will remove the site permanently." / "هل أنت متأكد؟ سيتم حذف الموقع نهائياً."
-- `booking.sites.limitReached` -- "Your plan allows {max} site(s). Upgrade to add more." / "خطتك تسمح بـ {max} موقع. قم بالترقية لإضافة المزيد."
-- `booking.sites.premiumLanding` -- "Premium Landing Page" / "الصفحة الرئيسية المميزة"
-- `booking.sites.vendorPortal` -- "Vendor Portal" / "بوابة المزود"
-- `booking.sites.adminPanel` -- "Admin Panel" / "لوحة الإدارة"
-- `booking.vendor.signOut` -- "Sign Out" / "تسجيل الخروج"
+- Check if `brain-chat` edge function is deployed and has required secrets (API keys).
+- If secrets are missing, prompt user.
 
-## Technical Details
+---
 
-### Files to Modify
+## Files to Modify
 
 
-| File                                                    | Change                                         |
-| ------------------------------------------------------- | ---------------------------------------------- |
-| `src/pages/apps/booking/BookingSettingsPage.tsx`        | Add site list, delete, V3 links, multi-site UI |
-| `src/hooks/useBookingSettings.ts`                       | Support array of settings, add delete mutation |
-| `src/pages/vendor/VendorPortalLayout.tsx`               | Add logout button in header                    |
-| `src/pages/vendor/v2/VendorPortalLayoutV2.tsx`          | Add logout button in header                    |
-| `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx` | Ensure index route renders landing             |
-| `src/i18n/translations/en.json`                         | New i18n keys                                  |
-| `src/i18n/translations/ar.json`                         | New i18n keys                                  |
-| `src/App.tsx`                                           | Add index route for V3                         |
+| File                                                    | Changes                                                                |
+| ------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `src/pages/public/booking/PublicAuthPage.tsx`           | Add `/b3/` path detection                                              |
+| `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx` | Fix footer vendor link, i18n all strings, update nav/hero browse links |
+| `src/App.tsx`                                           | Add browse route under V3                                              |
+| `src/components/booking/LogoUpload.tsx`                 | Fix storage path to match RLS                                          |
+| `src/i18n/translations/en.json`                         | Add ~60 V3 landing page translation keys                               |
+| `src/i18n/translations/ar.json`                         | Add ~60 V3 landing page translation keys (Arabic)                      |
 
 
-### Database Changes (Migration)
+## No Database Changes Required
 
-- UPDATE `billing_plans` features JSONB to include `max_sites` values
-- No schema changes needed -- `booking_settings` already supports multiple rows per workspace
+All fixes are frontend-only. No migrations, no RLS changes, no new RPCs.
 
-### Security
+## Expected Results After Fix
 
-- Delete operation uses existing RLS (`admins_manage_booking_settings`)
-- Multi-site creation inherits existing insert permissions
-- No new RPCs needed  
+- All V3 storefront links work correctly (browse, auth, vendor portal, request quote)
+- Image uploads succeed with correct storage paths
+- V3 landing page displays in user's language (EN/AR)
+- Navigation is consistent across desktop and mobile
+- Auth redirects work correctly for all storefront versions (V1, V2, V3) 
 
-&nbsp;
+# نقاط تحتاج تدقيق أو تحسين قبل التنفيذ
 
-## نقاط لازم تنتبه لها (تصحيح/تحسين)
+## 1️⃣ بيانك يقول: “No Database Changes Required”
 
-### 1) لا تعتمد على “UI gating” فقط
+هنا عندي تحفظ صغير.
 
-حتى لو أخفيت زر “Add New Site”، لازم تمنع الزيادة **على مستوى السيرفر/الـ DB**:
+لو كان:
 
-- إمّا عبر **RLS policy للـ insert** تتحقق من عدد المواقع مقابل `max_sites`
-- أو عبر **RPC** (أفضل) يقوم بالتحقق ثم الإدخال  
-بدون هذا، أي عميل يقدر يسوي insert مباشر ويكسر حد الخطة.
+- Logo path لم يكن مطابق سابقًا
+- وتم رفع ملفات في مسارات قديمة
 
-### 2) قرار الحذف: soft delete vs hard delete
+فممكن تحتاج:
 
-ذكرت خيارين، ممتاز، لكن لازم تحسم سلوك النظام:
+- تنظيف bucket
+- أو migration بسيط لإعادة تسمية الملفات
+- أو fallback لقراءة المسار القديم لو موجود
 
-- **Soft delete**: لا تمسح `tenant_slug` عادةً إلا إذا تبغى “تحرير السلاق” لإعادة استخدامه.
-  - الأفضل: أضف حقول مثل `deleted_at`, `deleted_by`, واعتبره غير ظاهر في القوائم.
-- **Hard delete**: خطر إذا فيه جداول مرتبطة (vendors / bookings / quotes / media). لازم “cascade warning” حقيقي (يعني تعرف إيش اللي بينحذف).
+فأنا أقترح تعديل البيان إلى:
 
-> اقتراحي: **Soft delete افتراضيًا** + خيار “Delete permanently” للـ owners فقط.
+> No schema changes required. Storage path alignment required.
 
-### 3) `tenant_slug` لازم يكون فريد عالميًا (مش داخل workspace فقط)
+حتى لا ينفذ الفريق fix بدون التفكير في الملفات الموجودة سابقًا.
 
-بما أن الروابط عامة `/b/{slug}` و`/b3/{slug}` و`/v/{slug}`، فـ slug إذا تكرر بين workspaces يصير تضارب routing.
+---
 
-- تأكد من وجود **unique index** على `tenant_slug` (مع السماح بـ NULL لو تستخدم soft delete).
-- لو ما تقدر Unique بسبب soft delete: استخدم **partial unique index** حيث `deleted_at IS NULL` أو `is_live=true` حسب منطقك.
+## 2️⃣ Auth redirect logic يحتاج حماية إضافية
 
-### 4) تغيير `useBookingSettings` من `.maybeSingle()` إلى list
+الكود المقترح:
 
-صحيح، لكن انتبه لتأثيره على:
+```
+currentPath.startsWith('/b3/')
 
-- الصفحات اللي تفترض “موقع واحد”
-- أي logic يعتمد على “current settings”  
-الحل:
-- خليه يرجع **list + helper** مثل `getDefaultSite()` (مثلاً أول site أو المعلّم `is_primary=true` لو أضفتها).
+```
 
-### 5) “Status: Live/Draft” تعريفه لازم يكون واضح
+جيد، لكن الأفضل أن تعتمد على:
 
-أنت تستخدم `is_live`. طيب ماذا عن:
+- `tenantSlug` المستخرج من params
+- وليس على `startsWith` فقط
 
-- موقع تم إنشاؤه لكن لم يكتمل (Draft)
-- موقع محذوف soft (Deleted)  
-أنصح تضيف “computed status” في UI:
-- `Deleted` إذا `deleted_at != null`
-- `Live` إذا `is_live=true`
-- `Draft` غير ذلك
+لأن:
 
-### 6) V3 routing: “index route” كلامك صح لكن يلزم تعريف واضح
+- لو غيرنا structure مستقبلاً
+- أو استخدمنا nested routes
 
-عبارتك:
+سيكسر logic.
 
-> “Add an index route for browse page so sub-pages work”  
-> صحيحة إذا عندك nested routes مثل:
+اقتراح أقوى معماريًا:
 
-- `/b3/:tenantSlug` (landing)
-- `/b3/:tenantSlug/vendors`
-- `/b3/:tenantSlug/request-quote`  
-المهم: في `App.tsx` أو الراوتر لازم يكون فيه **Route Index** داخل layout V3، مو مجرد route منفصل.
+- استخرج route group من router config بدل string matching.
 
-## اقتراحات “تكمّل” الخطة بدون ما تعقّدها
+---
 
-- إضافة **“Set as Primary”** للموقع داخل workspace (اختياري لكنه يحل سؤال: أي موقع يفتح افتراضيًا؟)
-- إضافة **Audit log event** عند (Create/Delete/Go Live) لأن هذا إعداد حساس
-- زر “Copy Vendor Portal URL” و “Copy Admin URL” مع toast واضح (يحسن UX)
+## 3️⃣ Browse route: انتبه لتجربة الرجوع
 
-## خلاصة الحكم
+إذا أصبح `/b3/:tenantSlug/browse` صفحة مستقلة:
 
-- ✅ الخطة **صحيحة** كتصميم عام وتنفيذ مرحلي.
-- ⚠️ تحتاج فقط تضيف/تؤكد:
-  1. Enforcement للـ `max_sites` **سيرفر/RLS أو RPC**
-  2. سياسة حذف واضحة (Soft default)
-  3. **Unique slug** عالميًا
-  4. تعديل الـ hooks بعناية مع “default site”
+تأكد من:
+
+- scroll restoration
+- page title
+- canonical URL (SEO)
+- shareable link behavior
+
+وإلا ستبدو كأنها SPA fragment فقط.
+
+---
+
+## 4️⃣ Brain Edge Function Verification
+
+ذكرت:
+
+> Verify deployment and secrets
+
+لكن الأفضل تضيف في البيان:
+
+- Add health check call
+- Add user-visible error if edge function unreachable
+- Add fallback disabled state in UI
+
+حتى لا يظهر “AI does nothing” بدون تفسير.
+
+---
+
+# 🟢 هل الخطة كافية لجعل V3 Production-ready؟
+
+تقريبًا نعم، لكن أضيف لك 3 تحسينات تجعلها احترافية جدًا:
+
+### 🔹 إضافة Loading State واضح في V3
+
+- أثناء تحميل tenant data
+- بدل flash أو blank state
+
+---
+
+### 🔹 إضافة 404 state لـ tenantSlug غير موجود
+
+حالياً إن لم يوجد tenant:
+
+- ماذا يحدث؟
+- هل تظهر صفحة فارغة؟
+- هل redirect؟
+
+هذا يجب توضيحه في البيان.
+
+---
+
+### 🔹 حماية slug mismatch في auth redirect
+
+إذا:
+
+- المستخدم سجل في tenant A
+- وحاول الدخول على tenant B
+
+هل يتم منعه؟  
+هذه نقطة أمنية مهمة.
