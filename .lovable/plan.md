@@ -1,263 +1,276 @@
-# Bookivo Storefront -- Complete Fix and Quality Plan
+# Bookivo Production Landing Page Rebuild
 
-## Identified Issues
+## Overview
 
-### 1. Broken Links in V3 Storefront
+Complete rebuild of `src/pages/BookivoPage.tsx` from a basic 6-section page to a 14-section, investor-ready SaaS landing page with dark-mode-first design, full i18n, SEO metadata, and modern premium aesthetics inspired by Stripe/Linear.
 
-- **PublicAuthPage** hardcodes basePath detection for `/b/` and `/b2/` only -- it does NOT detect `/b3/` paths. Users on the V3 storefront who are redirected to auth get sent to wrong paths.
-- **V3 Footer** links to `/v3/:tenantSlug` for vendor portal but that route does NOT exist (vendor portal is at `/v/:tenantSlug`).
-- **"Browse Services" button** in V3 hero links back to `basePath` (the landing page itself) instead of scrolling down or linking to browse page. There is no separate browse route under `/b3/`.
+**Important:** This project uses React + Vite (not Next.js). All features will be built within the existing stack with identical quality.
 
-### 2. Image Upload Not Working
+## Architecture
 
-- **LogoUpload** uploads to bucket `booking-assets` at path `{workspaceId}/logo-{timestamp}`. This path pattern does NOT match the RLS policies, which expect paths like `{workspaceId}/tenant/logo/{file}`.
-- **Storage RLS policies** enforce specific path patterns. The LogoUpload component uses a legacy path format that likely fails silently.
+The landing page will be modular -- each section is a separate component inside a new `src/components/bookivo/` directory for maintainability.
 
-### 3. AI Features Not Working
-
-- **Brain Chat** requires an active session and a deployed `brain-chat` edge function. This is infrastructure-level -- needs verification that the function is deployed and the API key is configured.
-- Will verify edge function deployment status.
-
-### 4. V3 Landing Page Content is Hardcoded English
-
-- All V3 landing page text (Hero, Features, How It Works, Testimonials, FAQ, CTA) is hardcoded in English strings, NOT using i18n keys. Arabic users see English text.
-
-### 5. Missing V3 Index/Browse Route
-
-- When user navigates from landing page to browse, there is no index route rendering `PublicBrowsePage` inside the V3 layout. The `/b3/:tenantSlug` only shows the landing page, and nested `Outlet` renders nothing on the landing page.
-
-### 6. Auth Page Does Not Support V3 Path
-
-- `PublicAuthPage` detects `/b2/` but not `/b3/`, causing redirect loops or wrong navigation after login.
-
----
-
-## Fix Plan (Ordered by Impact)
-
-### Fix A: Auth Page V3 Support
-
-**File:** `src/pages/public/booking/PublicAuthPage.tsx`
-
-Change the basePath detection logic from:
-
-```
-const basePath = currentPath.startsWith('/b2/') ? `/b2/${tenantSlug}` : `/b/${tenantSlug}`;
+```text
+src/
+  components/bookivo/
+    BookivoHeader.tsx
+    HeroSection.tsx
+    SocialProofStrip.tsx
+    ProblemSection.tsx
+    SolutionSection.tsx
+    AISmartSection.tsx
+    AiBizOSSection.tsx
+    FeatureGrid.tsx
+    HowItWorks.tsx
+    PricingPreview.tsx
+    FAQSection.tsx
+    FinalCTA.tsx
+    BookivoFooter.tsx
+  pages/
+    BookivoPage.tsx          (orchestrator -- imports all sections)
 ```
 
-To:
+## Section Breakdown (14 Sections)
 
-```
-const basePath = currentPath.startsWith('/b3/')
-  ? `/b3/${tenantSlug}`
-  : currentPath.startsWith('/b2/')
-    ? `/b2/${tenantSlug}`
-    : `/b/${tenantSlug}`;
-```
+### 1. Header (Sticky)
 
-### Fix B: V3 Footer Vendor Portal Link
+- Bookivo logo + wordmark
+- Nav links: Features, Pricing, FAQ (scroll anchors)
+- CTA buttons: Sign In (ghost), Start Free (primary Electric Blue)
+- Backdrop-blur, dark glass effect
 
-**File:** `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx`
+### 2. Hero Section
 
-Change `V3Footer` vendor link from `/v3/${tenantSlug}` to `/v/${tenantSlug}` (the actual vendor portal route).
+- Headline: "Run Your Booking Business with AI."
+- Subheadline: "Launch stunning booking pages, manage vendors, receive service requests, and let AI help you grow -- all from one powerful platform."
+- CTA: "Start Free" -> /auth?mode=signup, "Explore Smart AI Plan" -> #pricing, "Watch Demo" -> scroll
+- Trust badge: "No credit card required"
+- Dark gradient background with Electric Blue + Emerald glow orbs
+- Subtle dot-grid pattern overlay
 
-### Fix C: V3 Browse Route + Navigation
+### 3. Social Proof Strip
 
-**File:** `src/App.tsx`
+- Avatar cluster + "Trusted by X+ service businesses"
+- 5-star rating
+- Key metrics inline (e.g., "500+ bookings managed")
 
-Add an index route inside the V3 route group so that `/b3/:tenantSlug` can serve both landing page and browse:
+### 4. Problem Section
 
-- The current design renders the landing page inline when `isLanding` is true, and `<Outlet>` otherwise. This is correct but needs a dedicated "browse" sub-route.
-- Add `<Route path="browse" element={<PublicBrowsePage />} />` inside the V3 route group.
+- Title: "Still Managing Bookings the Old Way?"
+- 4 pain point cards with icons:
+  - Manual WhatsApp bookings
+  - No structured vendor management
+  - No analytics or insights
+  - No professional online presence
+- Dark cards with red/orange accent to highlight pain
 
-**File:** `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx`
+### 5. Solution Section
 
-Update the "Browse Services" button in the Hero to link to `${basePath}/browse` instead of `${basePath}`.
+- Title: "Meet Bookivo. Your Complete Booking OS."
+- Visual showcase of:
+  - Hosted storefront (V1 and Premium V3)
+  - Vendor portal
+  - Admin dashboard
+  - Quote request management
+  - Multi-language support
+  - PWA support
+- Side-by-side layout with mockup illustration
 
-### Fix D: Logo Upload Path Mismatch
+### 6. AI Smart Section
 
-**File:** `src/components/booking/LogoUpload.tsx`
+- Title: "Not Just Booking -- Intelligent Booking."
+- Features:
+  - AI pricing suggestions
+  - Vendor performance insights
+  - Growth recommendations
+  - Booking analytics
+  - Smart automation
+- Gradient accent cards with Emerald highlights
 
-Change the upload path from:
+### 7. AiBizOS Section (Subtle)
 
-```
-const filePath = `${workspaceId}/logo-${Date.now()}.${fileExt}`;
-```
+- Title: "Powered by AiBizOS"
+- Brief, understated explanation:
+  - Modular architecture
+  - Future-ready ecosystem
+  - Shared identity and security
+  - Upgradeable AI layer
+  - Enterprise scalability
+- Muted styling, not overpowering
 
-To the standardized path:
+### 8. Feature Grid (Icon-based)
 
-```
-const filePath = `${workspaceId}/tenant/logo/logo-${Date.now()}.${fileExt}`;
-```
+- 8 features in a 2x4 or 4x2 grid:
+  - Global-ready architecture
+  - Multi-language by design
+  - Multi-currency support
+  - AI-driven workflows
+  - White-label capability
+  - Secure multi-tenant
+  - 14-day free trial
+  - Privacy-first
 
-Also update `removeOldLogos` to search in the correct path prefix (`${workspaceId}/tenant/logo/`).
+### 9. How It Works (3 Steps)
 
-### Fix E: V3 Landing Page i18n
+- Set Up -> Customize -> Launch
+- Numbered cards with connector lines
+- Clean, minimal design
 
-**File:** `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx`
+### 10. Pricing Preview (3 Cards)
 
-Replace all hardcoded English strings in the V3LandingPage component with `t()` calls using new i18n keys.
+- Free: $0 / 14 days
+- Smart AI (highlighted): $49/mo -- with "Most Popular" badge
+- Business: Custom pricing
+- Each with feature list and CTA button
 
-**Files:** `src/i18n/translations/en.json`, `src/i18n/translations/ar.json`
+### 11. FAQ Section
 
-Add full translation keys under `booking.v3.landing`:
+- 6-8 expandable questions using `<details>` elements
+- Covers: trial, pricing, languages, data, AI features, cancellation
 
-- Hero: title, subtitle, badge, cta, browse, trust indicators
-- Stats: values and labels
-- Features: each title and description
-- How It Works: heading, subtitle, each step
-- Testimonials: heading, subtitle, each review
-- FAQ: heading, each question and answer
-- CTA: heading, subtitle, buttons
-- Footer: brand description, quick links heading, contact heading, legal heading, vendor links, copyright
+### 12. Final CTA
 
-### Fix F: V3 Header Nav "Browse" Link
+- Large gradient banner (Electric Blue -> Emerald)
+- "Ready to modernize your booking business?"
+- CTA buttons
 
-Update nav items in V3 header to use `${basePath}/browse` for the browse link instead of the landing page URL (which would just reload the landing).
+### 13. Footer
 
-### Fix G: Verify AI/Brain Edge Function
+- Links: Pricing, Login, Sign Up, Privacy, Terms
+- "A Product by AiBizOS" branding
+- Copyright
 
-- Check if `brain-chat` edge function is deployed and has required secrets (API keys).
-- If secrets are missing, prompt user.
+## Design System
 
----
+- **Primary:** Electric Blue (#3B82F6)
+- **Accent:** Emerald (#10B981)
+- **Background:** Dark SaaS gradient (slate-950 -> slate-900)
+- **Cards:** Dark glass effect (bg-slate-900/50 border-slate-800)
+- **Typography:** Bold headings, generous whitespace
+- **Animations:** Subtle hover transitions on cards, smooth scroll
+- Dark mode first -- uses existing Tailwind dark theme tokens
 
-## Files to Modify
+## i18n Strategy
+
+All text uses `t('bookivo.landing.*')` keys. New keys added to:
+
+- `src/i18n/translations/en.json` (~80 new keys under `bookivo.landing`)
+- `src/i18n/translations/ar.json` (~80 Arabic translations)
+
+Key namespaces:
+
+- `bookivo.landing.hero.*`
+- `bookivo.landing.problem.*`
+- `bookivo.landing.solution.*`
+- `bookivo.landing.ai.*`
+- `bookivo.landing.aibizos.*`
+- `bookivo.landing.features.*`
+- `bookivo.landing.howItWorks.*`
+- `bookivo.landing.pricing.*`
+- `bookivo.landing.faq.*`
+- `bookivo.landing.cta.*`
+- `bookivo.landing.footer.*`
+
+## SEO
+
+- `useDocumentMeta` hook for title, description, OG tags
+- Semantic HTML: `<header>`, `<main>`, `<section>`, `<footer>`, proper heading hierarchy (h1 -> h2 -> h3)
+- Accessible: aria-labels, aria-labelledby, keyboard navigation for FAQ
+
+## Files to Create/Modify
 
 
-| File                                                    | Changes                                                                |
-| ------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `src/pages/public/booking/PublicAuthPage.tsx`           | Add `/b3/` path detection                                              |
-| `src/pages/public/booking/v3/PublicBookingLayoutV3.tsx` | Fix footer vendor link, i18n all strings, update nav/hero browse links |
-| `src/App.tsx`                                           | Add browse route under V3                                              |
-| `src/components/booking/LogoUpload.tsx`                 | Fix storage path to match RLS                                          |
-| `src/i18n/translations/en.json`                         | Add ~60 V3 landing page translation keys                               |
-| `src/i18n/translations/ar.json`                         | Add ~60 V3 landing page translation keys (Arabic)                      |
+| File                                          | Action                 |
+| --------------------------------------------- | ---------------------- |
+| `src/components/bookivo/HeroSection.tsx`      | Create                 |
+| `src/components/bookivo/SocialProofStrip.tsx` | Create                 |
+| `src/components/bookivo/ProblemSection.tsx`   | Create                 |
+| `src/components/bookivo/SolutionSection.tsx`  | Create                 |
+| `src/components/bookivo/AISmartSection.tsx`   | Create                 |
+| `src/components/bookivo/AiBizOSSection.tsx`   | Create                 |
+| `src/components/bookivo/FeatureGrid.tsx`      | Create                 |
+| `src/components/bookivo/HowItWorks.tsx`       | Create                 |
+| `src/components/bookivo/PricingPreview.tsx`   | Create                 |
+| `src/components/bookivo/FAQSection.tsx`       | Create                 |
+| `src/components/bookivo/FinalCTA.tsx`         | Create                 |
+| `src/components/bookivo/BookivoHeader.tsx`    | Create                 |
+| `src/components/bookivo/BookivoFooter.tsx`    | Create                 |
+| `src/pages/BookivoPage.tsx`                   | Rewrite (orchestrator) |
+| `src/i18n/translations/en.json`               | Add ~80 keys           |
+| `src/i18n/translations/ar.json`               | Add ~80 keys           |
 
 
 ## No Database Changes Required
 
-All fixes are frontend-only. No migrations, no RLS changes, no new RPCs.
+This is purely a frontend marketing page rebuild. No migrations, no RLS changes. 
 
-## Expected Results After Fix
+## ملاحظات وتحسينات مهمة قبل التنفيذ
 
-- All V3 storefront links work correctly (browse, auth, vendor portal, request quote)
-- Image uploads succeed with correct storage paths
-- V3 landing page displays in user's language (EN/AR)
-- Navigation is consistent across desktop and mobile
-- Auth redirects work correctly for all storefront versions (V1, V2, V3) 
+### 1) عدد الأقسام “14” لكنه فعليًا 13
 
-# نقاط تحتاج تدقيق أو تحسين قبل التنفيذ
+أنت كاتب “14-section” لكن القائمة من 1 إلى 13.  
+إذا تريدها 14 فعلًا، أضف قسم صغير مهم جدًا:
 
-## 1️⃣ بيانك يقول: “No Database Changes Required”
+**✅ Section: “Use Cases” أو “Who it’s for”**  
+3–4 بطاقات:
 
-هنا عندي تحفظ صغير.
+- Event Organizers
+- Food Trucks
+- Service Vendors
+- Venue Managers
 
-لو كان:
-
-- Logo path لم يكن مطابق سابقًا
-- وتم رفع ملفات في مسارات قديمة
-
-فممكن تحتاج:
-
-- تنظيف bucket
-- أو migration بسيط لإعادة تسمية الملفات
-- أو fallback لقراءة المسار القديم لو موجود
-
-فأنا أقترح تعديل البيان إلى:
-
-> No schema changes required. Storage path alignment required.
-
-حتى لا ينفذ الفريق fix بدون التفكير في الملفات الموجودة سابقًا.
+هذا يرفع التحويل Conversion لأن كل زائر يرى نفسه مباشرة.
 
 ---
 
-## 2️⃣ Auth redirect logic يحتاج حماية إضافية
+### 2) Pricing: لا تكتب “$0 / 14 days” (هذا يربك)
 
-الكود المقترح:
+الأفضل:
 
-```
-currentPath.startsWith('/b3/')
+- **Free**: “$0 forever” + (Trial for Smart AI: 14 days)  
+أو
+- **Free**: “$0”
+- Smart AI: “$49/mo — 14-day free trial”
 
-```
-
-جيد، لكن الأفضل أن تعتمد على:
-
-- `tenantSlug` المستخرج من params
-- وليس على `startsWith` فقط
-
-لأن:
-
-- لو غيرنا structure مستقبلاً
-- أو استخدمنا nested routes
-
-سيكسر logic.
-
-اقتراح أقوى معماريًا:
-
-- استخرج route group من router config بدل string matching.
+لأن “$0 / 14 days” يوحي أنه trial فقط ثم يدفع.
 
 ---
 
-## 3️⃣ Browse route: انتبه لتجربة الرجوع
+### 3) الروابط والـ Routing (Vite SPA)
 
-إذا أصبح `/b3/:tenantSlug/browse` صفحة مستقلة:
+CTA:
 
-تأكد من:
-
-- scroll restoration
-- page title
-- canonical URL (SEO)
-- shareable link behavior
-
-وإلا ستبدو كأنها SPA fragment فقط.
+- Start Free → `/auth?mode=signup` ✅ ممتاز
+- Explore Smart AI Plan → `#pricing` ✅  
+لكن “Sign In” الأفضل يكون:
+- `/auth?mode=login` (بدل /login إذا مشروعك فعلاً داخل auth page واحدة)
 
 ---
 
-## 4️⃣ Brain Edge Function Verification
+### 4) SEO في SPA
 
-ذكرت:
+`useDocumentMeta` ممتاز، بس أضف كمان:
 
-> Verify deployment and secrets
-
-لكن الأفضل تضيف في البيان:
-
-- Add health check call
-- Add user-visible error if edge function unreachable
-- Add fallback disabled state in UI
-
-حتى لا يظهر “AI does nothing” بدون تفسير.
+- `canonical` tag
+- `og:url`
+- `twitter:card`
+- وتحديث meta عند تغيير اللغة (عربي/إنجليزي)
 
 ---
 
-# 🟢 هل الخطة كافية لجعل V3 Production-ready؟
+### 5) i18n: تأكد من اتجاه RTL
 
-تقريبًا نعم، لكن أضيف لك 3 تحسينات تجعلها احترافية جدًا:
+في العربية لازم:
 
-### 🔹 إضافة Loading State واضح في V3
-
-- أثناء تحميل tenant data
-- بدل flash أو blank state
+- `dir="rtl"` على `<html>` أو wrapper حسب نظامكم
+- وتبديل alignment تلقائي في sections (خصوصًا Hero + grids)
 
 ---
 
-### 🔹 إضافة 404 state لـ tenantSlug غير موجود
+### 6) الأداء
 
-حالياً إن لم يوجد tenant:
+أقترح:
 
-- ماذا يحدث؟
-- هل تظهر صفحة فارغة؟
-- هل redirect؟
-
-هذا يجب توضيحه في البيان.
-
----
-
-### 🔹 حماية slug mismatch في auth redirect
-
-إذا:
-
-- المستخدم سجل في tenant A
-- وحاول الدخول على tenant B
-
-هل يتم منعه؟  
-هذه نقطة أمنية مهمة.
+- components بسيطة بدون صور ضخمة
+- لو فيه “mockup illustration”، خليها SVG أو lightweight
+- استخدم `prefers-reduced-motion` لتعطيل الأنيميشن لمن يحتاج
