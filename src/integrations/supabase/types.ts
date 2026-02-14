@@ -2878,6 +2878,12 @@ export type Database = {
         Args: { _booking_id: string; _user_id: string }
         Returns: boolean
       }
+      can_use_feature: {
+        Args: { _feature: string; _workspace_id: string }
+        Returns: boolean
+      }
+      check_booking_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      check_vendor_limit: { Args: { _workspace_id: string }; Returns: boolean }
       cleanup_old_org_events: { Args: never; Returns: undefined }
       cleanup_stale_memory: { Args: never; Returns: undefined }
       get_live_booking_tenant_by_slug: {
@@ -2889,6 +2895,7 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: string
       }
+      get_workspace_usage: { Args: { _workspace_id: string }; Returns: Json }
       has_company_role: {
         Args: {
           _company_id: string
