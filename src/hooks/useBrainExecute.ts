@@ -206,7 +206,6 @@ export function useBrainExecute() {
       }
 
       // Execute requires meaning_object_id (not meaning_payload)
-      // If still has meaning_payload after confirm, something went wrong
       if (!('meaning_object_id' in resolvedDraft.meaning)) {
         toast.error('Meaning must be minted before execution. Please try again.');
         return { success: false };
@@ -222,12 +221,18 @@ export function useBrainExecute() {
 
       const data = await resp.json();
 
+      // Strong idempotency: replayed success comes as 200
+      if (data.success && data.replayed) {
+        setDryRunResults(prev => {
+          const next = { ...prev };
+          delete next[draft.id];
+          return next;
+        });
+        return { success: true, entities: data.entities, replayed: true };
+      }
+
       if (!resp.ok) {
         setExecutionError(data as ExecutionError);
-        // Strong idempotency: server returned replayed success (duplicate)
-        if (data.replayed) {
-          return { success: true, entities: data.entities, replayed: true };
-        }
         if (data.reason?.includes('expired')) toast.error(t('brain.proposalExpired', 'Draft expired. Please regenerate.'));
         else if (data.reason?.includes('role') || data.reason?.includes('permission')) toast.error(t('brain.insufficientRole', 'Insufficient permissions.'));
         else toast.error(data.reason || 'Execution failed');
@@ -241,7 +246,7 @@ export function useBrainExecute() {
         return next;
       });
 
-      return { success: true, entities: data.entities, replayed: data.replayed };
+      return { success: true, entities: data.entities };
     } catch (e) {
       console.error('[BrainExecute] executeDraft error:', e);
       toast.error('Execution failed');

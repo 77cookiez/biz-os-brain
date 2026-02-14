@@ -107,7 +107,6 @@ Deno.test("rejects invalid draft structure", async () => {
 });
 
 // ─── Strong Behavior Tests (require TEST_MODE=true + SERVICE_ROLE_KEY) ───
-// These tests validate real behavior by using TEST_MODE bypass headers
 
 const TEST_MODE_AVAILABLE = Deno.env.get("TEST_MODE") === "true" && !!SERVICE_KEY;
 
@@ -160,6 +159,7 @@ if (TEST_MODE_AVAILABLE) {
   // Teardown test data
   async function teardownTestData() {
     if (!sb) return;
+    await sb.from("draft_confirmations").delete().eq("workspace_id", testWorkspaceId);
     await sb.from("executed_drafts").delete().eq("workspace_id", testWorkspaceId);
     await sb.from("audit_logs").delete().eq("workspace_id", testWorkspaceId);
     await sb.from("org_events").delete().eq("workspace_id", testWorkspaceId);
@@ -172,15 +172,41 @@ if (TEST_MODE_AVAILABLE) {
     await sb.from("profiles").delete().eq("user_id", testUserId);
   }
 
+  // Helper: full confirm->execute flow
+  async function confirmAndExecute(draft: Record<string, unknown>) {
+    // Step 1: confirm
+    const { data: confirmData } = await callFunction(
+      { mode: "confirm", workspace_id: testWorkspaceId, draft },
+      { userId: testUserId, role: "owner" },
+    );
+
+    // Step 2: patch draft with meaning_object_id + expires_at
+    const execDraft = {
+      ...draft,
+      expires_at: confirmData.expires_at,
+      meaning: confirmData.meaning_object_id
+        ? { meaning_object_id: confirmData.meaning_object_id }
+        : draft.meaning,
+    };
+
+    // Step 3: execute
+    return {
+      confirmData,
+      execDraft,
+      execute: () => callFunction(
+        { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
+        { userId: testUserId, role: "owner" },
+      ),
+    };
+  }
+
   Deno.test({
     name: "BEHAVIOR: dry_run does NOT write tasks",
     async fn() {
       await setupTestData();
       try {
-        // Count tasks before
         const { count: beforeCount } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
 
-        // Run dry_run
         const { status, data } = await callFunction(
           { mode: "dry_run", workspace_id: testWorkspaceId, draft: makeDraft() },
           { userId: testUserId, role: "owner" },
@@ -190,7 +216,6 @@ if (TEST_MODE_AVAILABLE) {
         assertEquals(data.can_execute, true);
         assertExists(data.preview);
 
-        // Count tasks after — must be same
         const { count: afterCount } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(beforeCount, afterCount);
       } finally {
@@ -199,38 +224,184 @@ if (TEST_MODE_AVAILABLE) {
     },
   });
 
+  // ─── M4 TEST 1: confirm twice with meaning_payload returns same meaning_object_id ───
+
   Deno.test({
-    name: "BEHAVIOR: confirm mints meaning_object_id when meaning_payload provided",
+    name: "M4: confirm twice returns same meaning_object_id (idempotent)",
     async fn() {
       await setupTestData();
       try {
         const draft = makeDraft();
 
-        const { status, data } = await callFunction(
+        // First confirm
+        const { status: s1, data: d1 } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
           { userId: testUserId, role: "owner" },
         );
+        assertEquals(s1, 200);
+        assertExists(d1.meaning_object_id);
 
-        assertEquals(status, 200);
-        assertExists(data.confirmation_hash);
-        assertExists(data.expires_at);
-        assertExists(data.meaning_object_id);
+        // Count meaning_objects
+        const { count: countAfterFirst } = await sb!.from("meaning_objects").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
 
-        // Verify meaning_objects row exists
-        const { data: mo } = await sb!.from("meaning_objects").select("id").eq("id", data.meaning_object_id).single();
-        assertExists(mo);
+        // Second confirm — same draft
+        const { status: s2, data: d2 } = await callFunction(
+          { mode: "confirm", workspace_id: testWorkspaceId, draft },
+          { userId: testUserId, role: "owner" },
+        );
+        assertEquals(s2, 200);
+
+        // Same meaning_object_id
+        assertEquals(d2.meaning_object_id, d1.meaning_object_id);
+
+        // No new meaning_objects minted
+        const { count: countAfterSecond } = await sb!.from("meaning_objects").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
+        assertEquals(countAfterFirst, countAfterSecond);
       } finally {
         await teardownTestData();
       }
     },
   });
 
+  // ─── M4 TEST 2: execute with meaning_payload should fail 400 ───
+
+  Deno.test({
+    name: "M4: execute with meaning_payload returns 400 VALIDATION_ERROR",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft(); // has meaning_payload
+
+        const { status, data } = await callFunction(
+          { mode: "execute", workspace_id: testWorkspaceId, draft, confirmation_hash: "any-hash" },
+          { userId: testUserId, role: "owner" },
+        );
+        assertEquals(status, 400);
+        assertEquals(data.code, "VALIDATION_ERROR");
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M4 TEST 3: execute with tampered meaning_object_id returns 403 ───
+
+  Deno.test({
+    name: "M4: execute with tampered meaning_object_id returns 403",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft();
+
+        // Confirm to get real meaning + hash
+        const { data: confirmData } = await callFunction(
+          { mode: "confirm", workspace_id: testWorkspaceId, draft },
+          { userId: testUserId, role: "owner" },
+        );
+
+        // Tamper: use a different meaning_object_id
+        const tamperedDraft = {
+          ...draft,
+          expires_at: confirmData.expires_at,
+          meaning: { meaning_object_id: crypto.randomUUID() }, // wrong ID
+        };
+
+        const { status, data } = await callFunction(
+          { mode: "execute", workspace_id: testWorkspaceId, draft: tamperedDraft, confirmation_hash: confirmData.confirmation_hash },
+          { userId: testUserId, role: "owner" },
+        );
+        assertEquals(status, 403);
+        assertEquals(data.code, "EXECUTION_DENIED");
+        assertEquals(data.reason, "Meaning mismatch — draft tampered");
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M4 TEST 4: execute twice — second returns 200 replayed ───
+
+  Deno.test({
+    name: "M4: execute twice returns replayed success on second call",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft();
+        const { execDraft, confirmData, execute } = await confirmAndExecute(draft);
+
+        // First execute — success
+        const { status: s1, data: d1 } = await execute();
+        assertEquals(s1, 200);
+        assertEquals(d1.success, true);
+        assertExists(d1.entities);
+        assertExists(d1.audit_log_id);
+
+        // Second execute — 200 replayed
+        const { status: s2, data: d2 } = await execute();
+        assertEquals(s2, 200);
+        assertEquals(d2.success, true);
+        assertEquals(d2.replayed, true);
+        assertExists(d2.audit_log_id);
+        // Same entities
+        assertEquals(JSON.stringify(d2.entities), JSON.stringify(d1.entities));
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M4 TEST 5: duplicate while reserved returns 409 in-progress ───
+
+  Deno.test({
+    name: "M4: execute while reserved returns 409 in-progress",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft();
+
+        // Confirm
+        const { data: confirmData } = await callFunction(
+          { mode: "confirm", workspace_id: testWorkspaceId, draft },
+          { userId: testUserId, role: "owner" },
+        );
+
+        const execDraft = {
+          ...draft,
+          expires_at: confirmData.expires_at,
+          meaning: { meaning_object_id: confirmData.meaning_object_id },
+        };
+
+        // Simulate: insert reserved row directly
+        await sb!.from("executed_drafts").insert({
+          draft_id: draft.id,
+          workspace_id: testWorkspaceId,
+          agent_type: "teamwork",
+          draft_type: "draft_task_set",
+          executed_by: testUserId,
+          status: "reserved",
+        });
+
+        // Try execute — should get 409 in-progress
+        const { status, data } = await callFunction(
+          { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
+          { userId: testUserId, role: "owner" },
+        );
+        assertEquals(status, 409);
+        assertEquals(data.code, "ALREADY_EXECUTED");
+        assertEquals(data.reason, "Draft execution in progress");
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── Existing tests kept ───
+
   Deno.test({
     name: "BEHAVIOR: confirm does NOT mint if meaning_object_id already present",
     async fn() {
       await setupTestData();
       try {
-        // Count meaning_objects before
         const { count: beforeCount } = await sb!.from("meaning_objects").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
 
         const draft = makeDraft({ meaning: { meaning_object_id: crypto.randomUUID() } });
@@ -244,7 +415,6 @@ if (TEST_MODE_AVAILABLE) {
         assertExists(data.confirmation_hash);
         assertEquals(data.meaning_object_id, undefined);
 
-        // No new meaning_objects
         const { count: afterCount } = await sb!.from("meaning_objects").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(beforeCount, afterCount);
       } finally {
@@ -254,31 +424,14 @@ if (TEST_MODE_AVAILABLE) {
   });
 
   Deno.test({
-    name: "BEHAVIOR: execute with valid hash creates tasks + audit + org_events + executed_drafts",
+    name: "BEHAVIOR: execute with valid hash creates tasks + audit + org_events",
     async fn() {
       await setupTestData();
       try {
         const draft = makeDraft();
+        const { execute, confirmData } = await confirmAndExecute(draft);
 
-        // Step 1: confirm to get hash + meaning_object_id
-        const { data: confirmData } = await callFunction(
-          { mode: "confirm", workspace_id: testWorkspaceId, draft },
-          { userId: testUserId, role: "owner" },
-        );
-
-        // Step 2: patch draft with meaning_object_id + expires_at
-        const execDraft = {
-          ...draft,
-          expires_at: confirmData.expires_at,
-          meaning: { meaning_object_id: confirmData.meaning_object_id },
-        };
-
-        // Step 3: execute
-        const { status, data } = await callFunction(
-          { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
-          { userId: testUserId, role: "owner" },
-        );
-
+        const { status, data } = await execute();
         assertEquals(status, 200);
         assertEquals(data.success, true);
         assertExists(data.entities);
@@ -301,45 +454,7 @@ if (TEST_MODE_AVAILABLE) {
         const { data: reservation } = await sb!.from("executed_drafts").select("*").eq("draft_id", draft.id).single();
         assertExists(reservation);
         assertEquals(reservation.status, "success");
-      } finally {
-        await teardownTestData();
-      }
-    },
-  });
-
-  Deno.test({
-    name: "BEHAVIOR: execute twice returns 409 ALREADY_EXECUTED",
-    async fn() {
-      await setupTestData();
-      try {
-        const draft = makeDraft();
-
-        // Confirm
-        const { data: confirmData } = await callFunction(
-          { mode: "confirm", workspace_id: testWorkspaceId, draft },
-          { userId: testUserId, role: "owner" },
-        );
-
-        const execDraft = {
-          ...draft,
-          expires_at: confirmData.expires_at,
-          meaning: { meaning_object_id: confirmData.meaning_object_id },
-        };
-
-        // First execute — success
-        const { status: s1 } = await callFunction(
-          { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
-          { userId: testUserId, role: "owner" },
-        );
-        assertEquals(s1, 200);
-
-        // Second execute — 409
-        const { status: s2, data: d2 } = await callFunction(
-          { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
-          { userId: testUserId, role: "owner" },
-        );
-        assertEquals(s2, 409);
-        assertEquals(d2.code, "ALREADY_EXECUTED");
+        assertExists(reservation.audit_log_id);
       } finally {
         await teardownTestData();
       }
@@ -353,7 +468,6 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const draft = makeDraft();
 
-        // Confirm
         const { data: confirmData } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
           { userId: testUserId, role: "owner" },
@@ -365,7 +479,6 @@ if (TEST_MODE_AVAILABLE) {
           meaning: { meaning_object_id: confirmData.meaning_object_id },
         };
 
-        // Execute with wrong hash
         const { status, data } = await callFunction(
           { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: "invalid-hash-000" },
           { userId: testUserId, role: "owner" },
@@ -383,13 +496,13 @@ if (TEST_MODE_AVAILABLE) {
     async fn() {
       await setupTestData();
       try {
-        const draft = makeDraft({ expires_at: Date.now() - 60000 }); // expired 1 min ago
+        const draft = makeDraft({ expires_at: Date.now() - 60000 });
 
         const { status, data } = await callFunction(
           {
             mode: "execute",
             workspace_id: testWorkspaceId,
-            draft,
+            draft: { ...draft, meaning: { meaning_object_id: crypto.randomUUID() } },
             confirmation_hash: "any-hash",
           },
           { userId: testUserId, role: "owner" },
@@ -409,10 +522,9 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const draft = makeDraft({ required_role: "owner" });
 
-        // Confirm as member (role override)
         const { data: confirmData } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
-          { userId: testUserId, role: "member" }, // member role
+          { userId: testUserId, role: "member" },
         );
 
         const execDraft = {
@@ -423,7 +535,6 @@ if (TEST_MODE_AVAILABLE) {
             : draft.meaning,
         };
 
-        // Execute as member — should be 403
         const { status, data } = await callFunction(
           { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
           { userId: testUserId, role: "member" },
