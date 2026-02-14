@@ -681,10 +681,20 @@ async function mintMeaningObject(
 
 // ─── Draft Idempotency Reservation ───
 
+interface ExecutedDraftRow {
+  draft_id: string;
+  status: string;
+  entity_refs: unknown[];
+  error: string | null;
+  audit_log_id: string | null;
+  confirmed_meaning_object_id: string | null;
+  request_id: string | null;
+}
+
 async function reserveDraftExecution(
   sb: ReturnType<typeof createClient>,
-  params: { draft_id: string; workspace_id: string; agent_type: string; draft_type: string; executed_by: string },
-): Promise<"ok" | "duplicate" | "error"> {
+  params: { draft_id: string; workspace_id: string; agent_type: string; draft_type: string; executed_by: string; request_id: string },
+): Promise<{ status: "ok" } | { status: "duplicate"; row: ExecutedDraftRow } | { status: "error" }> {
   const { error } = await sb.from("executed_drafts").insert({
     draft_id: params.draft_id,
     workspace_id: params.workspace_id,
@@ -692,15 +702,23 @@ async function reserveDraftExecution(
     draft_type: params.draft_type,
     executed_by: params.executed_by,
     status: "reserved",
+    request_id: params.request_id,
   });
 
   if (error) {
     const isDuplicate = error.code === "23505" || error.message?.includes("duplicate");
-    if (isDuplicate) return "duplicate";
+    if (isDuplicate) {
+      // Fetch existing row for replay
+      const { data: existing } = await sb.from("executed_drafts")
+        .select("draft_id, status, entity_refs, error, audit_log_id, confirmed_meaning_object_id, request_id")
+        .eq("draft_id", params.draft_id)
+        .maybeSingle();
+      return { status: "duplicate", row: existing as ExecutedDraftRow };
+    }
     console.error("[brain-execute] reservation error:", error.message);
-    return "error";
+    return { status: "error" };
   }
-  return "ok";
+  return { status: "ok" };
 }
 
 async function finalizeDraftReservation(
@@ -708,13 +726,52 @@ async function finalizeDraftReservation(
   draftId: string,
   status: "success" | "failed",
   entityRefs: unknown[],
+  auditLogId?: string,
   errorMsg?: string,
 ): Promise<void> {
   await sb.from("executed_drafts").update({
     status,
     entity_refs: entityRefs,
     error: errorMsg || null,
+    audit_log_id: auditLogId || null,
   }).eq("draft_id", draftId);
+}
+
+// ─── Confirm Idempotency (store confirmed meaning) ───
+
+async function getConfirmedMeaning(
+  sb: ReturnType<typeof createClient>,
+  draftId: string,
+): Promise<string | null> {
+  const { data } = await sb.from("executed_drafts")
+    .select("confirmed_meaning_object_id")
+    .eq("draft_id", draftId)
+    .maybeSingle();
+  return data?.confirmed_meaning_object_id || null;
+}
+
+async function storeConfirmedMeaning(
+  sb: ReturnType<typeof createClient>,
+  draftId: string,
+  workspaceId: string,
+  meaningObjectId: string,
+): Promise<void> {
+  // Upsert: create row if not exists (for confirm-before-execute), or update if exists
+  const { error } = await sb.from("executed_drafts").upsert({
+    draft_id: draftId,
+    workspace_id: workspaceId,
+    agent_type: "pending",
+    draft_type: "pending",
+    executed_by: "pending",
+    status: "confirmed",
+    confirmed_meaning_object_id: meaningObjectId,
+  }, { onConflict: "draft_id", ignoreDuplicates: false });
+  if (error) {
+    // If row already exists with different status, just update the meaning column
+    await sb.from("executed_drafts").update({
+      confirmed_meaning_object_id: meaningObjectId,
+    }).eq("draft_id", draftId);
+  }
 }
 
 // ─── Main Handler ───
@@ -842,27 +899,35 @@ serve(async (req) => {
         });
       }
 
-      // ─── MODE: confirm (Milestone 3: mint meaning if payload provided) ───
+      // ─── MODE: confirm (Milestone 3: mint meaning if payload provided, idempotent) ───
       if (mode === "confirm") {
         const expiresAt = draft.expires_at || (Date.now() + DRAFT_CONFIRM_TTL_MS);
 
-        // Mint meaning_object_id if meaning_payload is provided
+        // Mint meaning_object_id if meaning_payload is provided (idempotent)
         let mintedMeaningObjectId: string | undefined;
         if ("meaning_payload" in draft.meaning) {
-          const mintResult = await mintMeaningObject(sbService, {
-            workspace_id: workspaceId,
-            user_id: userId,
-            meaning_payload: draft.meaning.meaning_payload,
-            draft_id: draft.id,
-            intent: draft.intent,
-          });
-          if ("error" in mintResult) {
-            return new Response(
-              JSON.stringify({ code: "MEANING_MINT_FAILED", reason: mintResult.error }),
-              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-            );
+          // Check if we already minted for this draft (idempotent confirm)
+          const existingMeaning = await getConfirmedMeaning(sbService, draft.id);
+          if (existingMeaning) {
+            mintedMeaningObjectId = existingMeaning;
+          } else {
+            const mintResult = await mintMeaningObject(sbService, {
+              workspace_id: workspaceId,
+              user_id: userId,
+              meaning_payload: draft.meaning.meaning_payload,
+              draft_id: draft.id,
+              intent: draft.intent,
+            });
+            if ("error" in mintResult) {
+              return new Response(
+                JSON.stringify({ code: "MEANING_MINT_FAILED", reason: mintResult.error }),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+              );
+            }
+            mintedMeaningObjectId = mintResult.meaning_object_id;
+            // Store for idempotent future confirms
+            await storeConfirmedMeaning(sbService, draft.id, workspaceId, mintedMeaningObjectId);
           }
-          mintedMeaningObjectId = mintResult.meaning_object_id;
         }
 
         const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, expiresAt, draft.payload);
@@ -880,12 +945,20 @@ serve(async (req) => {
         });
       }
 
-      // ─── MODE: execute (Milestone 3: idempotency via executed_drafts) ───
+      // ─── MODE: execute (Milestone 3+: strong idempotency + meaning_object_id required) ───
       if (mode === "execute") {
         const confirmationHash = (body as { confirmation_hash?: string }).confirmation_hash;
         if (!confirmationHash) {
           return new Response(
             JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing confirmation_hash", suggested_action: "call confirm first" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // Enforce: execute requires meaning_object_id (not meaning_payload)
+        if (!("meaning_object_id" in draft.meaning)) {
+          return new Response(
+            JSON.stringify({ code: "VALIDATION_ERROR", reason: "Execute requires meaning_object_id. Call confirm first to mint meaning." }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -916,23 +989,50 @@ serve(async (req) => {
           );
         }
 
-        // ── Idempotency reservation (Milestone 3) ──
+        // ── Strong Idempotency reservation ──
         const reserveResult = await reserveDraftExecution(sbService, {
           draft_id: draft.id,
           workspace_id: workspaceId,
           agent_type: agentType,
           draft_type: draft.type,
           executed_by: userId,
+          request_id: requestId,
         });
 
-        if (reserveResult === "duplicate") {
+        if (reserveResult.status === "duplicate") {
+          const prev = reserveResult.row;
+          // Strong idempotency: replay previous successful result
+          if (prev && prev.status === "success") {
+            return new Response(
+              JSON.stringify({
+                success: true,
+                entities: prev.entity_refs || [],
+                audit_log_id: prev.audit_log_id,
+                replayed: true,
+              }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          // Previous execution failed → return 409 with previous error
+          if (prev && prev.status === "failed") {
+            return new Response(
+              JSON.stringify({
+                code: "ALREADY_EXECUTED",
+                reason: "Draft previously failed",
+                previous_error: prev.error,
+                status: "failed",
+              }),
+              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          // Reserved but not finalized (in-flight) → conflict
           return new Response(
-            JSON.stringify({ code: "ALREADY_EXECUTED", reason: "Draft already executed" }),
+            JSON.stringify({ code: "ALREADY_EXECUTED", reason: "Draft execution in progress" }),
             { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
-        if (reserveResult === "error") {
+        if (reserveResult.status === "error") {
           return new Response(
             JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "retry" }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -941,15 +1041,6 @@ serve(async (req) => {
 
         // Execute agent
         const result = await agent.execute(draft, ctx);
-
-        // Finalize reservation
-        await finalizeDraftReservation(
-          sbService,
-          draft.id,
-          result.success ? "success" : "failed",
-          result.entities,
-          result.error,
-        );
 
         // Audit + org_events
         const auditLogId = await writeAudit(sbService, {
@@ -981,6 +1072,16 @@ serve(async (req) => {
             request_id: requestId,
           },
         });
+
+        // Finalize reservation with audit_log_id
+        await finalizeDraftReservation(
+          sbService,
+          draft.id,
+          result.success ? "success" : "failed",
+          result.entities,
+          auditLogId,
+          result.error,
+        );
 
         if (!result.success) {
           return new Response(
