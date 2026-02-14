@@ -22,6 +22,19 @@ export interface DraftInsight {
 /* ── Deterministic Draft Generator (no LLM) ─────── */
 
 export function buildDraftInsights(insights: GrowthInsights): DraftInsight[] {
+  if (import.meta.env.VITE_FORCE_BRAIN_DRAFTS === 'true') {
+    return [
+      {
+        id: 'dev_test_draft',
+        titleKey: 'brainDraft.drafts.dev_test.title',
+        bodyKey: 'brainDraft.drafts.dev_test.body',
+        severity: 'info',
+        tags: ['dev'],
+        actions: [],
+      },
+    ];
+  }
+
   const drafts: DraftInsight[] = [];
   const u = insights.usage;
   const util = insights.utilization_percent;
