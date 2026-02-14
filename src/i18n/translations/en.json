@@ -1661,5 +1661,168 @@
       "view_usage": "View Usage",
       "sendToCommand": "Ask Brain"
     }
+  },
+  "bookivo": {
+    "landing": {
+      "meta": {
+        "title": "Bookivo — The Intelligent Booking OS",
+        "description": "AI-powered booking platform for modern service businesses. Launch booking pages, manage vendors, and grow with AI."
+      },
+      "nav": {
+        "features": "Features",
+        "pricing": "Pricing",
+        "faq": "FAQ"
+      },
+      "hero": {
+        "badge": "AI-Powered Booking OS",
+        "title": "Run Your Booking Business with AI.",
+        "subtitle": "Launch stunning booking pages, manage vendors, receive service requests, and let AI help you grow — all from one powerful platform.",
+        "cta": "Start Free",
+        "explorePlan": "Explore Smart AI Plan",
+        "trust": "No credit card required."
+      },
+      "social": {
+        "trusted": "Trusted by 500+ service businesses",
+        "bookings": "10,000+ bookings managed"
+      },
+      "problem": {
+        "title": "Still Managing Bookings the Old Way?",
+        "subtitle": "These pain points cost you time, money, and customers every day.",
+        "pain1": "Manual WhatsApp Bookings",
+        "pain1Desc": "Scattered conversations, lost requests, and no tracking.",
+        "pain2": "No Vendor Management",
+        "pain2Desc": "No structured way to onboard, track, or manage vendors.",
+        "pain3": "Zero Analytics",
+        "pain3Desc": "No insight into revenue, conversion rates, or customer behavior.",
+        "pain4": "No Online Presence",
+        "pain4Desc": "No professional booking page or storefront for your business."
+      },
+      "solution": {
+        "title": "Meet Bookivo. Your Complete Booking OS.",
+        "subtitle": "Everything you need to launch, manage, and grow your booking business — in one platform.",
+        "storefront": "Hosted Storefront (V1 & Premium V3)",
+        "vendorPortal": "Vendor Portal",
+        "adminDash": "Admin Dashboard",
+        "quotes": "Quote Request Management",
+        "multiLang": "Multi-language Support",
+        "pwa": "PWA & Native App Support",
+        "livePreview": "Live Preview"
+      },
+      "ai": {
+        "title": "Not Just Booking — Intelligent Booking.",
+        "subtitle": "AI built into every layer of your booking workflow.",
+        "pricing": "AI Pricing Suggestions",
+        "pricingDesc": "Get smart pricing recommendations based on market data and your performance.",
+        "vendorInsights": "Vendor Performance Insights",
+        "vendorInsightsDesc": "Track vendor metrics, response times, and customer satisfaction scores.",
+        "growth": "Growth Recommendations",
+        "growthDesc": "Receive actionable tips to increase bookings and revenue.",
+        "analytics": "Booking Analytics",
+        "analyticsDesc": "Deep insights into conversion rates, peak times, and revenue trends.",
+        "automation": "Smart Automation",
+        "automationDesc": "Automate follow-ups, reminders, and status updates effortlessly."
+      },
+      "aibizos": {
+        "title": "Powered by AiBizOS",
+        "subtitle": "Built on a modular business operating system designed for scale.",
+        "modular": "Modular Architecture",
+        "future": "Future-ready Ecosystem",
+        "security": "Shared Identity & Security",
+        "ai": "Upgradeable AI Layer",
+        "enterprise": "Enterprise Scalability"
+      },
+      "features": {
+        "title": "Everything You Need",
+        "global": "Global-ready Architecture",
+        "globalDesc": "Built to work anywhere in the world.",
+        "lang": "Multi-language by Design",
+        "langDesc": "Speak your customers' language automatically.",
+        "currency": "Multi-currency Support",
+        "currencyDesc": "Accept payments in USD, EUR, GBP, AED, and more.",
+        "aiWorkflows": "AI-driven Workflows",
+        "aiWorkflowsDesc": "Automate scheduling, quotes, and communication.",
+        "whiteLabel": "White-label Capability",
+        "whiteLabelDesc": "Your brand, your domain, your rules.",
+        "secure": "Secure Multi-tenant",
+        "secureDesc": "Enterprise-grade data isolation and access controls.",
+        "trial": "14-day Free Trial",
+        "trialDesc": "Full-featured trial. No credit card required.",
+        "privacy": "Privacy-first",
+        "privacyDesc": "Your data belongs to you. Always."
+      },
+      "useCases": {
+        "title": "Who It's For",
+        "subtitle": "Bookivo adapts to your industry and workflow.",
+        "events": "Event Organizers",
+        "eventsDesc": "Manage vendors, venues, and bookings for any event.",
+        "food": "Food Trucks & Catering",
+        "foodDesc": "Accept orders, schedule slots, and track revenue.",
+        "services": "Service Vendors",
+        "servicesDesc": "Professional booking pages for any service business.",
+        "venues": "Venue Managers",
+        "venuesDesc": "Coordinate bookings, availability, and vendor partnerships."
+      },
+      "howItWorks": {
+        "title": "Go Live in 3 Simple Steps",
+        "subtitle": "From setup to launch in under 10 minutes.",
+        "step1": "Set Up",
+        "step1Desc": "Choose your theme, upload your logo, and configure your brand in minutes.",
+        "step2": "Customize",
+        "step2Desc": "Set pricing, policies, currencies, and invite your vendors.",
+        "step3": "Launch",
+        "step3Desc": "Go live with one click. Share your booking link or download your app pack."
+      },
+      "pricing": {
+        "title": "Simple, Transparent Pricing",
+        "subtitle": "Start free, upgrade when you grow.",
+        "popular": "Most Popular",
+        "cta": "Get Started",
+        "freeName": "Free",
+        "freePeriod": "forever",
+        "freeF1": "Full platform access",
+        "freeF2": "Up to 3 vendors",
+        "freeF3": "PWA included",
+        "freeF4": "Multi-language",
+        "smartName": "Smart AI",
+        "smartPeriod": "/mo — 14-day free trial",
+        "smartF1": "Unlimited vendors",
+        "smartF2": "Native App Pack",
+        "smartF3": "AI Booking Assistant",
+        "smartF4": "Priority support",
+        "bizName": "Business",
+        "bizPrice": "Custom",
+        "bizF1": "Dedicated app in stores",
+        "bizF2": "Custom domain",
+        "bizF3": "SLA & onboarding",
+        "bizF4": "White-label branding"
+      },
+      "faq": {
+        "title": "Frequently Asked Questions",
+        "q1": "Is there a free trial?",
+        "a1": "Yes! The Free plan is free forever. Smart AI includes a 14-day free trial with full access.",
+        "q2": "What languages are supported?",
+        "a2": "Bookivo supports English, Arabic, French, Spanish, German, and more via our Universal Language Layer.",
+        "q3": "Can I use my own domain?",
+        "a3": "Yes, on the Business plan you can connect your custom domain for a fully branded experience.",
+        "q4": "How does AI help my business?",
+        "a4": "AI provides pricing suggestions, vendor performance insights, growth recommendations, and automated workflows.",
+        "q5": "Is my data secure?",
+        "a5": "Absolutely. We use enterprise-grade security with strict data isolation and Row Level Security policies.",
+        "q6": "Can I cancel anytime?",
+        "a6": "Yes. You can cancel or downgrade your plan at any time with no hidden fees."
+      },
+      "cta": {
+        "title": "Ready to modernize your booking business?",
+        "subtitle": "Join service businesses worldwide running on Bookivo."
+      },
+      "footer": {
+        "desc": "The Intelligent Booking OS for modern service businesses.",
+        "links": "Quick Links",
+        "legal": "Legal",
+        "privacy": "Privacy Policy",
+        "terms": "Terms of Service",
+        "poweredBy": "A Product by AiBizOS."
+      }
+    }
   }
 }
