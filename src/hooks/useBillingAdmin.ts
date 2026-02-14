@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { getErrorMessage } from '@/lib/errorMapper';
 
 export interface UpgradeRequest {
   id: string;
@@ -68,7 +69,7 @@ export function useBillingAdmin() {
       queryClient.invalidateQueries({ queryKey: ['billing-upgrade-requests'] });
       toast.success(t('billing.upgradeRequested', 'Upgrade request submitted'));
     },
-    onError: () => toast.error(t('billing.upgradeRequestFailed', 'Failed to submit upgrade request')),
+    onError: (err) => toast.error(getErrorMessage(err, t('billing.upgradeRequestFailed', 'Failed to submit upgrade request'))),
   });
 
   // Approve upgrade via atomic server-side RPC (admin only)
@@ -87,7 +88,7 @@ export function useBillingAdmin() {
       queryClient.invalidateQueries({ queryKey: ['billing-subscription'] });
       toast.success(t('billing.upgradeApproved', 'Upgrade approved'));
     },
-    onError: () => toast.error(t('billing.upgradeApproveFailed', 'Failed to approve upgrade')),
+    onError: (err) => toast.error(getErrorMessage(err, t('billing.upgradeApproveFailed', 'Failed to approve upgrade'))),
   });
 
   // Reject upgrade via atomic server-side RPC (admin only)
@@ -105,7 +106,7 @@ export function useBillingAdmin() {
       queryClient.invalidateQueries({ queryKey: ['billing-upgrade-requests'] });
       toast.success(t('billing.upgradeRejected', 'Upgrade request rejected'));
     },
-    onError: () => toast.error(t('billing.upgradeRejectFailed', 'Failed to reject')),
+    onError: (err) => toast.error(getErrorMessage(err, t('billing.upgradeRejectFailed', 'Failed to reject'))),
   });
 
   return {
