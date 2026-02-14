@@ -141,6 +141,189 @@ export type Database = {
           },
         ]
       }
+      billing_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string | null
+          notes: string | null
+          paid_at: string | null
+          payment_method: string | null
+          period_end: string
+          period_start: string
+          status: string
+          subscription_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          subscription_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string | null
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          subscription_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "billing_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_invoices_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_plans: {
+        Row: {
+          billing_cycles: string[]
+          bookings_limit: number | null
+          created_at: string
+          currency: string
+          display_order: number
+          features: Json
+          id: string
+          is_active: boolean
+          modules: string[]
+          name: string
+          price_monthly: number
+          price_yearly: number
+          quotes_limit: number | null
+          seats_limit: number | null
+          services_limit: number | null
+          vendors_limit: number | null
+        }
+        Insert: {
+          billing_cycles?: string[]
+          bookings_limit?: number | null
+          created_at?: string
+          currency?: string
+          display_order?: number
+          features?: Json
+          id: string
+          is_active?: boolean
+          modules?: string[]
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          quotes_limit?: number | null
+          seats_limit?: number | null
+          services_limit?: number | null
+          vendors_limit?: number | null
+        }
+        Update: {
+          billing_cycles?: string[]
+          bookings_limit?: number | null
+          created_at?: string
+          currency?: string
+          display_order?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          modules?: string[]
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          quotes_limit?: number | null
+          seats_limit?: number | null
+          services_limit?: number | null
+          vendors_limit?: number | null
+        }
+        Relationships: []
+      }
+      billing_subscriptions: {
+        Row: {
+          billing_cycle: string
+          billing_provider: string
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string
+          external_subscription_id: string | null
+          id: string
+          plan_id: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          billing_cycle?: string
+          billing_provider?: string
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          external_subscription_id?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          billing_cycle?: string
+          billing_provider?: string
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string
+          external_subscription_id?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_subscriptions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_availability_rules: {
         Row: {
           created_at: string
@@ -322,6 +505,60 @@ export type Database = {
           },
           {
             foreignKeyName: "booking_bookings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_commission_ledger: {
+        Row: {
+          booking_amount: number
+          booking_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_id: string | null
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          booking_amount: number
+          booking_id: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id?: string | null
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          booking_amount?: number
+          booking_id?: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_id?: string | null
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_commission_ledger_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "booking_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_commission_ledger_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"

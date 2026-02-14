@@ -6,7 +6,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { LogoUpload } from '@/components/booking/LogoUpload';
-import { StripeConnectCard } from '@/components/booking/StripeConnectCard';
+// StripeConnectCard removed — BookEvo SaaS uses offline payments only
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -397,8 +397,7 @@ export default function BookingSettingsPage() {
         </Card>
       )}
 
-      {/* ========== Stripe Connect ========== */}
-      <StripeConnectCard />
+      {/* Payment mode: offline only — no Stripe Connect in BookEvo SaaS */}
 
       {/* Logo quick-edit when live */}
       {settings?.is_live && currentWorkspace && (
