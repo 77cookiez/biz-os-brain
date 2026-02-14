@@ -75,6 +75,8 @@ import VendorProfilePage from "@/pages/vendor/v2/VendorProfilePage";
 import VendorQuotesPageV2 from "@/pages/vendor/v2/VendorQuotesPageV2";
 import PublicMyBookingsV2 from "@/pages/public/booking/v2/PublicMyBookingsV2";
 import BookingAdminPage from "@/pages/admin/BookingAdminPage";
+// V3 layout
+import PublicBookingLayoutV3 from "@/pages/public/booking/v3/PublicBookingLayoutV3";
 
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PrivacySettingsPage from "@/pages/settings/PrivacySettingsPage";
@@ -265,6 +267,13 @@ const AppRoutes = () => (
       <Route path="calendar" element={<VendorCalendarPage />} />
       <Route path="profile" element={<VendorProfilePage />} />
       <Route path="chat" element={<VendorChatPage />} />
+    </Route>
+    {/* V3 Public Booking (world-class storefront) */}
+    <Route path="/b3/:tenantSlug" element={<PublicBookingLayoutV3 />}>
+      <Route path="v/:vendorId" element={<PublicVendorDetailPage />} />
+      <Route path="request" element={<PublicRequestQuotePage />} />
+      <Route path="my" element={<PublicMyBookingsV2 />} />
+      <Route path="auth" element={<PublicAuthPage />} />
     </Route>
     {/* Admin Backoffice (protected) */}
     <Route
