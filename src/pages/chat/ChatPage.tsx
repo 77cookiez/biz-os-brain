@@ -78,7 +78,7 @@ export default function ChatPage() {
 
   // Determine admin status from workspace membership role
   const { members: teamMembers } = useTeamMembers();
-  const isAdmin = teamMembers.some(m => m.user_id === user?.id && (m.team_role === 'owner'));
+  const isAdmin = teamMembers.some(m => m.user_id === user?.id && m.team_role === 'owner');
 
   const selectedThread = threads.find(t => t.id === selectedThreadId);
   const threadTitle = selectedThread?.title || (selectedThread?.type === 'direct' ? 'Direct Message' : 'Group Chat');
