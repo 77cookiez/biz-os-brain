@@ -1460,5 +1460,17 @@
       "quotes": "Quotes",
       "seats": "Seats"
     }
+  },
+  "upgradeFunnel": {
+    "title": "Upgrade Recommended",
+    "headline": "You're close to your plan limits",
+    "ctaRequest": "Request Upgrade to {{plan}}",
+    "ctaViewPlans": "View All Plans",
+    "notNow": "Not now — remind me later",
+    "requestSuccess": "Upgrade request submitted! Your admin will review it shortly.",
+    "currentPlan": "Current",
+    "recommended": "Recommended",
+    "free": "Free",
+    "month": "mo"
   }
 }
