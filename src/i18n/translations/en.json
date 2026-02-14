@@ -1542,7 +1542,8 @@
       "open_vendors": "Manage Vendors",
       "view_plans": "View Plans",
       "open_team": "Invite Team",
-      "view_usage": "View Usage"
+      "view_usage": "View Usage",
+      "sendToCommand": "Ask Brain"
     }
   }
 }
