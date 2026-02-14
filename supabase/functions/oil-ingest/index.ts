@@ -87,17 +87,31 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Validate workspace exists
+    // ─── CRITICAL: Workspace membership guard (cross-tenant prevention) ───
     const { data: ws } = await supabase
       .from("workspaces")
-      .select("id")
+      .select("company_id")
       .eq("id", workspace_id)
-      .single();
+      .maybeSingle();
 
-    if (!ws) {
+    if (!ws?.company_id) {
       return new Response(
         JSON.stringify({ error: "Invalid workspace_id" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: membership } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("company_id", ws.company_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!membership) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

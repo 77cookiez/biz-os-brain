@@ -1914,6 +1914,38 @@ export type Database = {
           },
         ]
       }
+      executed_proposals: {
+        Row: {
+          entity_id: string
+          entity_type: string
+          executed_at: string
+          proposal_id: string
+          workspace_id: string
+        }
+        Insert: {
+          entity_id: string
+          entity_type: string
+          executed_at?: string
+          proposal_id: string
+          workspace_id: string
+        }
+        Update: {
+          entity_id?: string
+          entity_type?: string
+          executed_at?: string
+          proposal_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executed_proposals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
