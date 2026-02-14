@@ -13,15 +13,15 @@ export default function AiBizOSSection() {
   ];
 
   return (
-    <section className="py-12 border-y border-border/50" aria-labelledby="aibizos-heading">
+    <section className="py-10 border-y border-border/50" aria-labelledby="aibizos-heading">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h2 id="aibizos-heading" className="text-sm font-medium tracking-wide uppercase text-muted-foreground mb-6">
           {t('bookivo.landing.aibizos.title', 'Powered by AiBizOS')}
         </h2>
         <div className="flex flex-wrap items-center justify-center gap-8">
           {points.map((p, i) => (
-            <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground/70">
-              <p.icon className="h-3.5 w-3.5" />
+            <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+              <p.icon className="h-4 w-4" />
               <span>{p.label}</span>
             </div>
           ))}

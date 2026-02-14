@@ -15,13 +15,13 @@ export default function BookivoHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/60 backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-2xl">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <span className="text-lg font-semibold tracking-tight text-foreground">Bookivo</span>
+        <span className="text-xl font-bold tracking-tight text-primary">Bookivo</span>
 
-        <nav className="hidden md:flex items-center gap-10">
+        <nav className="hidden md:flex items-center gap-8">
           {navLinks.map((l) => (
-            <a key={l.href} href={l.href} className="text-sm font-light text-muted-foreground hover:text-foreground transition-colors">
+            <a key={l.href} href={l.href} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               {l.label}
             </a>
           ))}

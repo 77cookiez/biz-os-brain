@@ -14,20 +14,20 @@ export default function FAQSection() {
   ];
 
   return (
-    <section id="faq" className="py-24 sm:py-32 border-y border-border/50" aria-labelledby="faq-heading">
+    <section id="faq" className="py-16 sm:py-20 border-y border-border/50" aria-labelledby="faq-heading">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 id="faq-heading" className="text-3xl sm:text-4xl font-bold mb-4">
+        <div className="text-center mb-12">
+          <h2 id="faq-heading" className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
             {t('bookivo.landing.faq.title', 'Frequently Asked Questions')}
           </h2>
         </div>
         <Accordion type="single" collapsible className="space-y-0">
           {faqs.map((faq, i) => (
             <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border px-0">
-              <AccordionTrigger className="text-start hover:no-underline py-5 text-sm font-medium">
+              <AccordionTrigger className="text-start hover:no-underline py-5 text-sm font-semibold">
                 {faq.q}
               </AccordionTrigger>
-              <AccordionContent className="text-sm text-muted-foreground pb-5">
+              <AccordionContent className="text-sm text-muted-foreground pb-5 leading-relaxed">
                 {faq.a}
               </AccordionContent>
             </AccordionItem>

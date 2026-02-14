@@ -6,12 +6,12 @@ export default function FinalCTA() {
   const { t } = useTranslation();
 
   return (
-    <section className="py-24 sm:py-32" aria-labelledby="cta-heading">
+    <section className="py-20 sm:py-24" aria-labelledby="cta-heading">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 id="cta-heading" className="text-3xl sm:text-4xl font-bold mb-6">
+        <h2 id="cta-heading" className="text-3xl sm:text-4xl font-bold mb-6 leading-tight">
           {t('bookivo.landing.cta.title', 'Ready to modernize your booking business?')}
         </h2>
-        <p className="text-muted-foreground mb-8">
+        <p className="text-muted-foreground mb-8 leading-relaxed">
           {t('bookivo.landing.cta.subtitle', 'Join service businesses worldwide running on Bookivo.')}
         </p>
         <Link to="/auth?mode=signup">

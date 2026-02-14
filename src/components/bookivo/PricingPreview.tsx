@@ -44,13 +44,13 @@ export default function PricingPreview() {
   ];
 
   return (
-    <section id="pricing" className="py-24 sm:py-32" aria-labelledby="pricing-heading">
+    <section id="pricing" className="py-16 sm:py-20" aria-labelledby="pricing-heading">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 id="pricing-heading" className="text-3xl sm:text-4xl font-bold mb-4">
+        <div className="text-center mb-12">
+          <h2 id="pricing-heading" className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
             {t('bookivo.landing.pricing.title', 'Simple, Transparent Pricing')}
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground leading-relaxed">
             {t('bookivo.landing.pricing.subtitle', 'Start free, upgrade when you grow.')}
           </p>
         </div>
@@ -58,19 +58,19 @@ export default function PricingPreview() {
           {tiers.map((tier, idx) => (
             <div key={idx} className={`relative p-8 rounded-lg border ${tier.popular ? 'border-primary' : 'border-border'}`}>
               {tier.popular && (
-                <div className="absolute -top-3 start-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-xs">
+                <div className="absolute -top-3 start-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-xs font-medium">
                   {t('bookivo.landing.pricing.popular', 'Most Popular')}
                 </div>
               )}
               <h3 className="text-lg font-semibold mb-1">{tier.name}</h3>
               <div className="mb-6">
-                <span className="text-4xl font-bold">{tier.price}</span>
+                <span className="text-5xl font-bold">{tier.price}</span>
                 {tier.period && <span className="text-muted-foreground text-sm ms-1">{tier.period}</span>}
               </div>
               <ul className="space-y-3 mb-8">
                 {tier.features.map((f, i) => (
                   <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <Check className="h-4 w-4 text-primary shrink-0" />
                     {f}
                   </li>
                 ))}

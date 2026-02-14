@@ -13,13 +13,13 @@ export default function AISmartSection() {
   ];
 
   return (
-    <section className="py-24 sm:py-32" aria-labelledby="ai-heading">
+    <section className="py-16 sm:py-20" aria-labelledby="ai-heading">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 id="ai-heading" className="text-3xl sm:text-4xl font-bold mb-4">
+        <div className="text-center mb-12">
+          <h2 id="ai-heading" className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
             {t('bookivo.landing.ai.title', 'Not Just Booking — Intelligent Booking.')}
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
             {t('bookivo.landing.ai.subtitle', 'AI built into every layer of your booking workflow.')}
           </p>
         </div>
@@ -28,10 +28,10 @@ export default function AISmartSection() {
           {features.map((f, i) => (
             <div key={i} className="p-5 rounded-lg border border-border hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-3 mb-3">
-                <f.icon className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium">{f.title}</h3>
+                <f.icon className="h-9 w-9 text-primary" strokeWidth={1.5} />
+                <h3 className="font-semibold text-base">{f.title}</h3>
               </div>
-              <p className="text-sm text-muted-foreground">{f.desc}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
