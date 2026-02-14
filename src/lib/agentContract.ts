@@ -5,6 +5,30 @@
  * Flow: Ask → Plan → Dry-Run Preview → Confirm → Execute
  */
 
+// ─── Role Types ───
+
+/** Workspace roles that exist in the system. Extend to include 'admin' when added to DB. */
+export type WorkspaceRole = 'member' | 'owner';
+
+// ─── Meaning Types ───
+
+/**
+ * ULL Meaning anchor for drafts.
+ * - Persisted/surfaced drafts MUST have a meaning_object_id (minted at draft creation).
+ * - Ephemeral previews (never stored, never shown as items) may omit meaning.
+ */
+export type DraftMeaning =
+  | { meaning_object_id: string }
+  | { meaning_payload: MeaningPayload };
+
+export interface MeaningPayload {
+  type: string;
+  subject: string;
+  description?: string;
+  source_lang: string;
+  workspace_id: string;
+}
+
 // ─── Draft Object Types ───
 
 export type DraftType =
@@ -33,7 +57,7 @@ export interface DraftObject {
   /** Structured payload for the agent */
   payload: Record<string, unknown>;
   /** Role required to execute */
-  required_role: 'member' | 'admin' | 'owner';
+  required_role: WorkspaceRole;
   /** What the draft intends to do */
   intent: string;
   /** Affected entities (for preview) */
@@ -47,11 +71,11 @@ export interface DraftObject {
   /** Expiry timestamp (set by server) */
   expires_at?: number;
   /**
-   * ULL meaning_object_id — required for any draft that will be stored
-   * or surfaced as user-facing content. Set during execution by the agent.
-   * Drafts without this are transient previews only.
+   * ULL Meaning anchor. Required for any draft that is persisted or surfaced.
+   * Meaning is minted at draft creation time, NOT at execution time.
+   * Ephemeral previews (never stored) may omit this.
    */
-  meaning_object_id?: string;
+  meaning: DraftMeaning;
 }
 
 export interface DraftScope {

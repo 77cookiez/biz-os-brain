@@ -27,7 +27,6 @@ const typeIcons: Record<string, string> = {
 
 const roleBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive'> = {
   member: 'secondary',
-  admin: 'default',
   owner: 'destructive',
 };
 

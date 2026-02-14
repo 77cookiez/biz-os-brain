@@ -9,7 +9,7 @@ export interface BrainProposal {
   type: 'task' | 'goal' | 'plan' | 'idea' | 'update';
   title: string;
   payload: Record<string, unknown>;
-  required_role: 'member' | 'admin' | 'owner';
+  required_role: 'member' | 'owner';
   confirmation_hash?: string;
   expires_at?: number;
 }
