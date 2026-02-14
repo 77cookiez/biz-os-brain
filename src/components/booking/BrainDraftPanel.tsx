@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Brain, ChevronDown, ChevronUp, ArrowRight, Shield } from 'lucide-react';
-import { useGrowthInsights } from '@/hooks/useGrowthInsights';
+import { Brain, ChevronDown, ChevronUp, ArrowRight, Shield, Sparkles } from 'lucide-react';
+import { useGrowthInsights, GrowthInsights } from '@/hooks/useGrowthInsights';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
+import { useBrainCommand } from '@/contexts/BrainCommandContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { buildDraftInsights, DraftInsight, DraftAction } from '@/lib/brainDrafts';
+import { buildCommandPrompt } from '@/lib/brainDraftToCommand';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +50,8 @@ export function BrainDraftPanel() {
   const { currentWorkspace } = useWorkspace();
   const wid = currentWorkspace?.id;
   const { insights, isLoading } = useGrowthInsights();
+  const { setPendingMessage } = useBrainCommand();
+  const { currentLanguage } = useLanguage();
   const [expanded, setExpanded] = useState(false);
 
   const drafts = useMemo(() => {
@@ -95,6 +100,26 @@ export function BrainDraftPanel() {
     [logActionClick, navigate],
   );
 
+  const handleSendToCommand = useCallback(
+    (draft: DraftInsight) => {
+      if (!insights || !wid) return;
+      const locale = currentLanguage.code === 'ar' ? 'ar' : 'en';
+      const prompt = buildCommandPrompt(draft, insights, locale);
+
+      // Log the event
+      supabase.rpc('log_growth_event', {
+        _workspace_id: wid,
+        _event_type: 'BRAIN_DRAFT_TO_COMMAND',
+        _meta: { draftId: draft.id, analyticsCode: `COMMAND_${draft.id.toUpperCase()}` } as any,
+      });
+
+      // Send to Brain via command bar pattern
+      setPendingMessage(prompt);
+      navigate('/brain');
+    },
+    [insights, wid, currentLanguage, setPendingMessage, navigate],
+  );
+
   if (isLoading || !insights || drafts.length === 0) return null;
 
   const visible = expanded ? drafts : drafts.slice(0, 3);
@@ -119,6 +144,7 @@ export function BrainDraftPanel() {
             key={draft.id}
             draft={draft}
             onAction={handleAction}
+            onSendToCommand={handleSendToCommand}
           />
         ))}
 
@@ -150,9 +176,11 @@ export function BrainDraftPanel() {
 function DraftCard({
   draft,
   onAction,
+  onSendToCommand,
 }: {
   draft: DraftInsight;
   onAction: (action: DraftAction, draftId: string) => void;
+  onSendToCommand: (draft: DraftInsight) => void;
 }) {
   const { t } = useTranslation();
   const config = severityConfig[draft.severity];
@@ -182,6 +210,15 @@ function DraftCard({
             <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-xs border-primary/30 text-primary hover:bg-primary/10"
+          onClick={() => onSendToCommand(draft)}
+        >
+          <Sparkles className="h-3 w-3 mr-1" />
+          {t('brainDraft.actions.sendToCommand')}
+        </Button>
       </div>
     </div>
   );

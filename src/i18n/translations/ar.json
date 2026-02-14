@@ -1346,7 +1346,8 @@
       "open_vendors": "إدارة المزوّدين",
       "view_plans": "عرض الخطط",
       "open_team": "دعوة الفريق",
-      "view_usage": "عرض الاستخدام"
+      "view_usage": "عرض الاستخدام",
+      "sendToCommand": "اسأل العقل"
     }
   }
 }
