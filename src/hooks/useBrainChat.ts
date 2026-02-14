@@ -267,6 +267,10 @@ export function useBrainChat() {
       // Normalize CRLF to LF for cross-gateway compatibility
       const normalize = (s: string) => s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
+      // Carry buffer: accumulates JSON fragments split across SSE event boundaries
+      let jsonCarry = '';
+      const JSON_CARRY_MAX = 20_000;
+
       const processEvent = (eventBlock: string): boolean => {
         if (!eventBlock.trim()) return false;
         const dataLines: string[] = [];
@@ -276,13 +280,20 @@ export function useBrainChat() {
         }
         if (dataLines.length === 0) return false;
         // Join with newline for safety if JSON was split across data: lines
-        const jsonStr = dataLines.join('\n').trim();
-        if (jsonStr === '[DONE]') return true;
+        const payload = dataLines.join('\n').trim();
+        if (payload === '[DONE]') { jsonCarry = ''; return true; }
+
+        // Try with carry (accumulated from previous failed parse)
+        const candidate = (jsonCarry + payload).trim();
         try {
-          const parsed = JSON.parse(jsonStr);
+          const parsed = JSON.parse(candidate);
+          jsonCarry = ''; // success — clear carry
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) upsertAssistant(content);
-        } catch { /* incomplete — ignored at boundary level */ }
+        } catch {
+          // Store candidate as carry for next event (cap size to prevent memory leak)
+          jsonCarry = candidate.length > JSON_CARRY_MAX ? candidate.slice(-JSON_CARRY_MAX) : candidate;
+        }
         return false;
       };
 
