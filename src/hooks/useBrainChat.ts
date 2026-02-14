@@ -261,54 +261,45 @@ export function useBrainChat() {
       let textBuffer = '';
       let streamDone = false;
 
-      // SSE parser: splits on \n. If JSON.parse fails, accumulates for next chunk.
-      // NOTE (Fix E): This works for standard SSE. If gateways send multi-line data
-      // or split JSON across chunks, consider \n\n boundary parsing or an SSE library.
+      // ─── PART B: Robust SSE parser using \n\n event boundaries ───
+      // SSE spec: events separated by \n\n. Each event may have multiple data: lines.
+      // This handles gateways that split JSON across chunks or send multi-line data.
+      const processEvent = (eventBlock: string): boolean => {
+        if (!eventBlock.trim()) return false;
+        const dataLines: string[] = [];
+        for (const line of eventBlock.split('\n')) {
+          const trimmed = line.endsWith('\r') ? line.slice(0, -1) : line;
+          if (trimmed.startsWith(':') || trimmed.trim() === '') continue;
+          if (trimmed.startsWith('data: ')) dataLines.push(trimmed.slice(6));
+        }
+        if (dataLines.length === 0) return false;
+        const jsonStr = dataLines.join('').trim();
+        if (jsonStr === '[DONE]') return true; // signal done
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) upsertAssistant(content);
+        } catch { /* incomplete — ignored at boundary level */ }
+        return false;
+      };
+
       while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
         textBuffer += decoder.decode(value, { stream: true });
 
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') {
-            streamDone = true;
-            break;
-          }
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) upsertAssistant(content);
-          } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
-          }
+        let boundaryIndex: number;
+        while ((boundaryIndex = textBuffer.indexOf('\n\n')) !== -1) {
+          const eventBlock = textBuffer.slice(0, boundaryIndex);
+          textBuffer = textBuffer.slice(boundaryIndex + 2);
+          if (processEvent(eventBlock)) { streamDone = true; break; }
         }
       }
 
-      // Final flush
+      // Final flush: process remaining data (may lack trailing \n\n)
       if (textBuffer.trim()) {
-        for (let raw of textBuffer.split('\n')) {
-          if (!raw) continue;
-          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
-          if (raw.startsWith(':') || raw.trim() === '') continue;
-          if (!raw.startsWith('data: ')) continue;
-          const jsonStr = raw.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) upsertAssistant(content);
-          } catch { /* ignore */ }
+        for (const eventBlock of textBuffer.split('\n\n')) {
+          processEvent(eventBlock);
         }
       }
 
