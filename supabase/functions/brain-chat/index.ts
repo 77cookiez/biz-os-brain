@@ -154,13 +154,12 @@ async function assertWorkspaceAccess(
       .maybeSingle();
     if (wsErr || !ws?.company_id) return { allowed: false, role: "none" };
 
-    // Step 2: Verify membership via company_members
+    // Step 2: Verify membership via user_roles (company_members does not exist)
     const { data: membership, error: memErr } = await sb
-      .from("company_members")
+      .from("user_roles")
       .select("role")
       .eq("company_id", ws.company_id)
       .eq("user_id", userId)
-      .eq("status", "accepted")
       .maybeSingle();
     if (memErr || !membership) return { allowed: false, role: "none" };
 
