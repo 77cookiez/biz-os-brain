@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOIL } from '@/hooks/useOIL';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { getErrorMessage } from '@/lib/errorMapper';
 
 export interface BookingVendor {
   id: string;
@@ -87,7 +88,7 @@ export function useBookingVendors() {
         metadata: { vendor_id: vendorId },
       });
     },
-    onError: () => toast.error(t('booking.vendors.actionFailed')),
+    onError: (err) => toast.error(getErrorMessage(err, t('booking.vendors.actionFailed'))),
   });
 
   const suspendVendor = useMutation({

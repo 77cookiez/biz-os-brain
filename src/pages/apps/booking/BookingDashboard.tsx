@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Store, Package, MessageSquare, BookOpen, Clock } from 'lucide-react';
+import { Store, Package, BookOpen, Clock } from 'lucide-react';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
+import { WorkspaceUsagePanel } from '@/components/booking/WorkspaceUsagePanel';
 import { useBookingVendors } from '@/hooks/useBookingVendors';
 import { useBookingServices } from '@/hooks/useBookingServices';
 import { useBookingQuotes } from '@/hooks/useBookingQuotes';
@@ -50,6 +51,8 @@ export default function BookingDashboard() {
           </Card>
         ))}
       </div>
+
+      <WorkspaceUsagePanel />
 
       {pendingCount > 0 && (
         <Card>

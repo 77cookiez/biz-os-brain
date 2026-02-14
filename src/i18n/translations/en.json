@@ -1397,6 +1397,23 @@
       "linkCopied": "Link copied to clipboard"
     }
   },
+  "usage": {
+    "title": "Usage & Limits",
+    "tabUsage": "Usage",
+    "tabActivity": "Activity",
+    "vendors": "Vendors",
+    "services": "Services",
+    "bookingsMonth": "Bookings",
+    "quotesMonth": "Quotes",
+    "seats": "Seats",
+    "monthly": "this month",
+    "unlimited": "Unlimited",
+    "noData": "No usage data available.",
+    "noEvents": "No limit events recorded yet.",
+    "eventDetail": "{{current}} / {{limit}} used",
+    "warning80": "⚠️ {{resource}} usage at {{percent}}% — approaching your plan limit.",
+    "warning95": "🚨 {{resource}} usage at {{percent}}% — nearly at your plan limit! Consider upgrading."
+  },
   "errors": {
     "limits": {
       "vendorLimitReached": "Vendor limit reached for your current plan. Please upgrade.",

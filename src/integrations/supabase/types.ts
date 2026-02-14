@@ -378,6 +378,38 @@ export type Database = {
           },
         ]
       }
+      billing_usage_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          meta: Json
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          meta?: Json
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          meta?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_usage_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_availability_rules: {
         Row: {
           created_at: string
@@ -2993,6 +3025,10 @@ export type Database = {
       is_workspace_member: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
+      }
+      log_usage_event: {
+        Args: { _event_type: string; _meta?: Json; _workspace_id: string }
+        Returns: undefined
       }
       request_upgrade: {
         Args: { _notes?: string; _plan_id: string; _workspace_id: string }
