@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Store, Package, BookOpen, Clock } from 'lucide-react';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { WorkspaceUsagePanel } from '@/components/booking/WorkspaceUsagePanel';
+import { GrowthAdvisorPanel } from '@/components/booking/GrowthAdvisorPanel';
 import { useBookingVendors } from '@/hooks/useBookingVendors';
 import { useBookingServices } from '@/hooks/useBookingServices';
 import { useBookingQuotes } from '@/hooks/useBookingQuotes';
@@ -53,6 +54,7 @@ export default function BookingDashboard() {
       </div>
 
       <WorkspaceUsagePanel />
+      <GrowthAdvisorPanel />
 
       {pendingCount > 0 && (
         <Card>

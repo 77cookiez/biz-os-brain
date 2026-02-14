@@ -2993,6 +2993,10 @@ export type Database = {
         Args: { _workspace_id: string }
         Returns: string
       }
+      get_workspace_growth_insights: {
+        Args: { _workspace_id: string }
+        Returns: Json
+      }
       get_workspace_usage: { Args: { _workspace_id: string }; Returns: Json }
       has_company_role: {
         Args: {
