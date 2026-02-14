@@ -124,7 +124,7 @@ const MODULE_ACTIONS: Record<string, { name: string; actions: { key: string; tit
     ],
   },
   // ─── PART C: Aurelius = Experience/Presentation Layer ───
-  // Aurelius is a workspace-installed module (app_id='leadership') that controls
+  // Aurelius is a workspace-installed module (app_id='aurelius') that controls
   // presentation preferences. It does NOT compute indicators (that's OIL).
   // Brain outputs DRAFT proposals only — persistence via Ask → Draft → Confirm → Execute.
   aurelius: {
@@ -694,12 +694,14 @@ async function buildOILSection(sb: any, workspaceId: string): Promise<string> {
 }
 
 // ─── Get User Workspace Role ───
+// getUserWorkspaceRole is DEPRECATED — role is now returned by assertWorkspaceAccess.
+// Kept as fallback but uses correct table (user_roles).
 async function getUserWorkspaceRole(sb: any, userId: string, workspaceId: string): Promise<string> {
   try {
     const { data: ws } = await sb.from("workspaces").select("company_id").eq("id", workspaceId).maybeSingle();
     if (!ws?.company_id) return "member";
-    const { data: membership } = await sb.from("company_members")
-      .select("role").eq("company_id", ws.company_id).eq("user_id", userId).eq("status", "accepted").maybeSingle();
+    const { data: membership } = await sb.from("user_roles")
+      .select("role").eq("company_id", ws.company_id).eq("user_id", userId).maybeSingle();
     return membership?.role || "member";
   } catch {
     return "member";
