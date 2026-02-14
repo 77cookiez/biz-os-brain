@@ -79,9 +79,9 @@ interface WizardData {
 
 const STEP_ICONS = [LayoutGrid, Palette, Banknote, ShieldCheck, SmartphoneIcon, Rocket];
 
-export default function BookingSetupWizard({ onComplete }: { onComplete?: () => void }) {
+export default function BookingSetupWizard({ onComplete, siteId }: { onComplete?: () => void; siteId?: string }) {
   const { t } = useTranslation();
-  const { settings, upsertSettings } = useBookingSettings();
+  const { settings, upsertSettings } = useBookingSettings(siteId);
   const { currentWorkspace } = useWorkspace();
   const [step, setStep] = useState(0);
   const totalSteps = 6;
