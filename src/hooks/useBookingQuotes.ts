@@ -9,6 +9,7 @@ import { createMeaningObject, buildMeaningFromText } from '@/lib/meaningObject';
 import { guardMeaningInsert } from '@/lib/meaningGuard';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { getErrorMessage } from '@/lib/errorMapper';
 
 export interface BookingQuoteRequest {
   id: string;
@@ -169,7 +170,7 @@ export function useBookingQuotes() {
         meaning_object_id: meaningId,
       });
     },
-    onError: () => toast.error(t('booking.quotes.requestFailed')),
+    onError: (err) => toast.error(getErrorMessage(err, t('booking.quotes.requestFailed'))),
   });
 
   // Send quote (vendor action)
@@ -240,7 +241,7 @@ export function useBookingQuotes() {
         meaning_object_id: meaningId,
       });
     },
-    onError: () => toast.error(t('booking.quotes.quoteFailed')),
+    onError: (err) => toast.error(getErrorMessage(err, t('booking.quotes.quoteFailed'))),
   });
 
   // Accept quote (atomic server-side RPC — prevents race conditions)
@@ -265,7 +266,7 @@ export function useBookingQuotes() {
         metadata: { booking_id: bookingId },
       });
     },
-    onError: (err: Error) => toast.error(err.message || t('booking.quotes.quoteAcceptFailed')),
+    onError: (err: Error) => toast.error(getErrorMessage(err, t('booking.quotes.quoteAcceptFailed'))),
   });
 
   return {

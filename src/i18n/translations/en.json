@@ -1396,5 +1396,18 @@
       "copyLink": "Copy Link",
       "linkCopied": "Link copied to clipboard"
     }
+  },
+  "errors": {
+    "limits": {
+      "vendorLimitReached": "Vendor limit reached for your current plan. Please upgrade.",
+      "bookingLimitReached": "Monthly booking limit reached. Please upgrade your plan.",
+      "servicesLimitReached": "Services limit reached for your current plan. Please upgrade.",
+      "quotesLimitReached": "Monthly quotes limit reached. Please upgrade your plan.",
+      "planLimitReached": "You have reached a plan limit. Please upgrade.",
+      "upgradeAction": "Request Upgrade"
+    },
+    "permissions": {
+      "forbidden": "You do not have permission to perform this action."
+    }
   }
 }

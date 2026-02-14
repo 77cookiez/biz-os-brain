@@ -2918,9 +2918,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_quote_atomic:
-        | { Args: { _quote_id: string }; Returns: string }
-        | { Args: { _quote_id: string; _user_id: string }; Returns: string }
+      accept_quote_atomic: { Args: { _quote_id: string }; Returns: string }
       booking_notify: {
         Args: {
           _data_json: Json
