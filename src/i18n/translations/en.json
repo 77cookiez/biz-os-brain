@@ -1499,5 +1499,50 @@
         "body": "You have available seats. Invite team members to help manage bookings and respond faster."
       }
     }
+  },
+  "brainDraft": {
+    "title": "AI Business Brain",
+    "subtitle": "Suggestions are drafts. You stay in control.",
+    "showMore": "Show {{count}} more",
+    "showLess": "Show less",
+    "severity": {
+      "info": "Tip",
+      "warning": "Attention",
+      "critical": "Urgent"
+    },
+    "drafts": {
+      "improve_conversion": {
+        "title": "Improve Quote Conversion",
+        "body": "Your quote-to-booking ratio is high. Follow up with customers to improve conversions."
+      },
+      "add_services": {
+        "title": "Expand Your Service Catalog",
+        "body": "You have fewer than 3 services. Adding more increases visibility and attracts customers."
+      },
+      "vendor_cleanup": {
+        "title": "Manage Vendor Capacity",
+        "body": "You're approaching the vendor limit. Consider suspending inactive vendors or upgrading your plan."
+      },
+      "invite_team": {
+        "title": "Invite Your Team",
+        "body": "You have available seats. Invite team members to manage bookings faster."
+      },
+      "projected_breach": {
+        "title": "Plan Limits Approaching",
+        "body": "At your current pace, you'll exceed your plan's booking or quote limits this month."
+      },
+      "frequent_hits": {
+        "title": "Frequent Limit Hits Detected",
+        "body": "You've hit plan limits multiple times recently. Consider upgrading or optimizing workflows."
+      }
+    },
+    "actions": {
+      "open_quotes": "View Quotes",
+      "open_services": "Add Services",
+      "open_vendors": "Manage Vendors",
+      "view_plans": "View Plans",
+      "open_team": "Invite Team",
+      "view_usage": "View Usage"
+    }
   }
 }
