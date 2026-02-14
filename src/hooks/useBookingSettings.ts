@@ -41,6 +41,8 @@ export interface BookingSettings {
   publishing_progress: Record<string, Record<string, boolean>> | null;
   stripe_account_id: string | null;
   stripe_onboarding_completed: boolean;
+  payment_mode: string;
+  offline_methods: string[];
   created_at: string;
   updated_at: string;
 }
@@ -92,5 +94,11 @@ export function useBookingSettings() {
     },
   });
 
-  return { settings, isLoading, upsertSettings };
+  const isStripeEnabled = settings?.payment_mode === 'stripe_connect'
+    && settings?.stripe_onboarding_completed
+    && !!settings?.stripe_account_id;
+
+  const isOfflineOnly = !settings || settings.payment_mode === 'offline_only';
+
+  return { settings, isLoading, upsertSettings, isStripeEnabled, isOfflineOnly };
 }
