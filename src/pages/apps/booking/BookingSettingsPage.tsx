@@ -6,6 +6,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { SubscriptionBanner } from '@/components/booking/SubscriptionBanner';
 import { BookingStatusBadge } from '@/components/booking/BookingStatusBadge';
 import { LogoUpload } from '@/components/booking/LogoUpload';
+import { StripeConnectCard } from '@/components/booking/StripeConnectCard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -395,6 +396,9 @@ export default function BookingSettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* ========== Stripe Connect ========== */}
+      <StripeConnectCard />
 
       {/* Logo quick-edit when live */}
       {settings?.is_live && currentWorkspace && (
