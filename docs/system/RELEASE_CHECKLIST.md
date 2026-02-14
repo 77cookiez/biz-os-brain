@@ -66,6 +66,14 @@
 - [x] ULL compliance: meaning_object_id on content tables
 - [x] Subscription gate on write operations (`is_booking_subscription_active`)
 
+### H. Security Audit (run `docs/system/SECURITY_AUDIT.sql` before every release)
+- [x] No function overloads in public schema
+- [x] All `trg_*`, `check_*`, `can_*`, `log_*` are SECURITY DEFINER with `search_path`
+- [x] `anon` cannot EXECUTE: cleanup_old_org_events, cleanup_stale_memory, booking_notify, can_manage_booking, all trg_* functions
+- [x] `anon` CAN execute: get_live_booking_tenant_by_slug, RLS helpers (is_workspace_member, etc.)
+- [x] No tables in public schema with RLS disabled
+- [x] `billing_usage_events` has INSERT/UPDATE/DELETE revoked from authenticated/anon
+
 ## Post-Launch Monitoring
 - [ ] Monitor `audit_logs` for anomalous patterns
 - [ ] Check `org_events` for OIL metric correctness
