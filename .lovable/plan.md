@@ -1,221 +1,291 @@
-# Bookivo Landing Page -- Minimal Investor-Grade Rebuild
+You are a senior staff full-stack engineer. Implement Phase 2 “Brain Liberation” exactly as specified below. NO UI changes. Backend/logic only. Keep investor-grade minimalism. Maintain Ask→Draft→Preview→Confirm→Execute (NO auto execution). Backwards compatible with current hardcoded action strings.
 
-## Vision
+SCOPE
 
-Transform the current landing page from a generic SaaS template into a **Stripe/Linear-inspired minimal masterpiece**. The design philosophy: every pixel earns its place. No decoration for decoration's sake. Typography drives hierarchy, whitespace creates breathing room, and subtle transitions replace flashy animations.
+- Major rewrite: supabase/functions/brain-chat/index.ts
 
-## Design Philosophy
+- Enhance: src/hooks/useBrainChat.ts
 
-- **Dark-mode-first** with deep slate backgrounds
-- **Electric Blue** (#3B82F6) as primary -- used sparingly for maximum impact
-- **Emerald** (#10B981) as accent -- only on differentiation/success moments
-- **No glow orbs, no dot grids, no flashy gradients** -- clean, flat, confident
-- **Typography-driven hierarchy** -- large bold headings, generous line-height
-- **Whitespace as a design element** -- sections breathe with py-24 to py-32 spacing
-- **Hover transitions only** -- subtle border-color and opacity shifts, nothing more
+- Expand: src/hooks/useSmartCapabilities.ts
 
-## Current State vs Target
+No new DB tables. No new edge functions. Everything integrated inside brain-chat.
 
-The existing components are functional but feel template-like:
+GOALS
 
-- Glow orbs and dot grids in Hero (remove)
-- Destructive-red pain cards (soften to muted warnings)
-- Dense feature grids with heavy icon boxes (lighten)
-- Standard SaaS pricing cards (refine to premium)
+1) Add Intent Classification layer that runs BEFORE the main brain response.
 
-## Components to Rewrite (13 files)
+2) Expand systemContext payload: installed modules + capabilities, user role, available actions, merged decision signals, recent thread summaries.
 
-All components exist and will be rewritten in-place. No new files needed.
+3) Replace hardcoded actions validation with dynamic action registry built from installed apps capabilities (but keep legacy 13 actions supported).
 
-### 1. BookivoHeader.tsx -- Refined Glass Header
+4) Add Simulation protocol when intent=simulate.
 
-- Remove heavy border-b, use ultra-subtle `border-border/50`
-- Increase backdrop blur for premium glass feel
-- Logo: clean wordmark, no icon clutter
-- Nav: lighter text weight, wider spacing
-- CTAs: ghost "Sign In" + solid small "Start Free"
-- Mobile menu: clean slide-down, no border clutter
+5) Integrate Passive Insight Engine (decision signals merged into brain-chat context).
 
-### 2. HeroSection.tsx -- Clean & Powerful
+6) Cross-module awareness: prompt sections injected only for installed apps.
 
-- **Remove**: glow orbs, dot grid overlay, gradient backgrounds
-- **Keep**: centered layout, strong headline
-- Background: simple `bg-background` -- let content speak
-- Badge: simpler pill with just text, subtle border
-- Headline: tighter tracking, `text-5xl sm:text-6xl lg:text-7xl`
-- Subheadline: slightly muted, max-w-2xl
-- CTAs: primary button (no arrow icon) + outline "View Pricing"
-- Trust line: smaller, more subtle
-- Overall: breathe with more vertical padding
+7) Add internal metadata block BRAIN_META appended to assistant responses (not UI-visible). Frontend extracts it and logs to org_events.
 
-### 3. SocialProofStrip.tsx -- Understated Trust
+HARD CONSTRAINTS
 
-- Thinner section, py-6
-- Remove star icons -- just text metrics
-- Three inline stats separated by subtle dividers: "500+ businesses", "10,000+ bookings", "4.9 rating"
-- Muted text, no avatar cluster (too generic)
+- No auto-execution. Brain must only propose or draft. Any “execute” must require explicit confirmation workflow (existing).
 
-### 4. ProblemSection.tsx -- Refined Pain Points
+- No UI changes.
 
-- Change from destructive-red cards to clean bordered cards
-- Subtle left-border accent (muted-foreground) instead of red
-- Icons: smaller, inline with title
-- Remove heavy bg-destructive tinting
-- Cleaner typography hierarchy
+- Graceful fallback: if intent classifier fails, continue old behavior.
 
-### 5. SolutionSection.tsx -- Elegant Split Layout
+- Security: server-side classification only, role checked, meta not exposed to unauthorized.
 
-- Keep 2-column layout
-- Left: clean checklist with simple checkmarks (not boxed icons)
-- Right: simplify mockup to a cleaner wireframe with thinner lines
-- Remove colorful traffic light dots -- use simple `rounded-sm` shapes
-- More whitespace between items
+IMPLEMENTATION DETAILS
 
-### 6. AISmartSection.tsx -- Minimal Feature Cards
+A) brain-chat/index.ts (Major rewrite)
 
-- Reduce from 5 to 5 items but in cleaner layout
-- Cards: no heavy colored icon backgrounds
-- Icon: small, inline, text-muted-foreground
-- Title + short description
-- Emerald accent only on hover border
-- Grid: 2-col on mobile, 3-col on desktop
+A1) Add Intent Classifier (fast)
 
-### 7. AiBizOSSection.tsx -- Subtle Differentiator
+- Implement classifyIntent({message, conversationContext, systemContext}) -> IntentResult.
 
-- Keep existing minimal style -- it is already good
-- Slightly refine spacing and typography weight
-- This section stays understated by design
+- Use a fast model (gemini-2.5-flash-lite) for classification.
 
-### 8. FeatureGrid.tsx -- Lightweight Grid
+- Output MUST be strict JSON:
 
-- Remove Card wrapper -- use simple div with border
-- Smaller icons, no colored backgrounds
-- 2x4 grid on desktop, 2x2 on tablet, 1-col mobile
-- Tighter text, less padding per card
+  {
 
-### 9. UseCasesSection.tsx -- Clean Persona Cards
+    "intent": "guide|suggest|architect|design|simulate|diagnose|detect_risk|strategic_think|delegate|clarify|casual",
 
-- Remove heavy rounded-2xl styling
-- Simple border cards with icon + title + one-liner
-- No hover color change on icon background
-- Centered text removed -- align left for readability
+    "confidence": number (0..1),
 
-### 10. HowItWorks.tsx -- Minimal Steps
+    "risk_level": "low|medium|high",
 
-- Keep 3-step layout
-- Larger step numbers (text-6xl) but even more faded (primary/10)
-- Remove ArrowRight connectors -- let the grid flow naturally
-- Cleaner card styling
+    "modules_relevant": string[],
 
-### 11. PricingPreview.tsx -- Premium Pricing
+    "requires_simulation": boolean
 
-- Refine card borders -- "Most Popular" card gets `border-primary` only (no ring)
-- Badge: smaller, above card title inside
-- Price typography: larger, bolder
-- Feature list: simpler checkmarks, no colored icons
-- CTA buttons: primary for popular, ghost for others
+  }
 
-### 12. FAQSection.tsx -- Clean Accordion
+- Add robust parsing:
 
-- Use existing Accordion components
-- Remove rounded-xl border on items -- use simple bottom border
-- Cleaner trigger styling
-- Remove `data-[state=open]:border-primary/30` -- too flashy
+  - Strip code fences
 
-### 13. FinalCTA.tsx -- Confident Close
+  - JSON.parse with try/catch
 
-- Remove gradient background overlay
-- Simple centered section with large heading
-- Single primary CTA button (no outline secondary)
-- Maximum confidence, minimum clutter
+  - Validate keys & enums; if invalid, throw to fallback
 
-### 14. BookivoFooter.tsx -- Minimal Footer
+- Latency target: minimal; no streaming required here.
 
-- Keep 3-column layout
-- Lighten typography weights
-- Ensure "A Product by AiBizOS" is subtle
-- Clean link hover states
+A2) Build Rich System Context (replace installedApps: string[])
 
-### 15. BookivoPage.tsx -- Orchestrator Update
+- Create buildSystemContext(workspaceId, userId) that returns:
 
-- Add `canonical` and `og:url` to useDocumentMeta
-- Add `twitter:card` meta tag
-- Keep section order but remove HowItWorks (merged visual flow into Solution)
-- Final order: Header, Hero, SocialProof, Problem, Solution, AI Smart, AiBizOS, Features, UseCases, Pricing, FAQ, FinalCTA, Footer
+  {
 
-## useDocumentMeta Enhancement
+    user_role: "owner|admin|member",
 
-- Add `canonical` support
-- Add `og:url` support  
-- Add `twitter:card` meta tag
+    installed_modules: [
 
-## i18n
+      { id, name, version?, actions: [{key, title, description, risk?}] }
 
-- All existing keys under `bookivo.landing.*` remain valid
-- Minor text refinements in default fallback strings for more premium copywriting
-- No new keys needed -- all sections already have i18n keys
+    ],
 
-## Accessibility
+    available_actions: [{key, title, description, source_module}],
 
-- All sections keep `aria-labelledby` with proper heading IDs
-- FAQ uses Radix Accordion (already keyboard accessible)
-- Mobile menu toggle keeps `aria-label`
-- RTL compatibility maintained via Tailwind logical properties (`start`, `end`, `ms`, `me`)
+    recent_activity: {
 
-## Files Modified
+      tasks_created_7d, tasks_completed_7d, blocked_tasks_count, overdue_count
 
+    },
 
-| File                                          | Scope                               |
-| --------------------------------------------- | ----------------------------------- |
-| `src/hooks/useDocumentMeta.ts`                | Add canonical, og:url, twitter:card |
-| `src/pages/BookivoPage.tsx`                   | Update meta, remove HowItWorks      |
-| `src/components/bookivo/BookivoHeader.tsx`    | Refine glass effect, spacing        |
-| `src/components/bookivo/HeroSection.tsx`      | Remove orbs/grid, clean layout      |
-| `src/components/bookivo/SocialProofStrip.tsx` | Simplify to text metrics            |
-| `src/components/bookivo/ProblemSection.tsx`   | Remove red, clean cards             |
-| `src/components/bookivo/SolutionSection.tsx`  | Cleaner mockup, checkmarks          |
-| `src/components/bookivo/AISmartSection.tsx`   | Minimal card style                  |
-| `src/components/bookivo/AiBizOSSection.tsx`   | Minor spacing refinement            |
-| `src/components/bookivo/FeatureGrid.tsx`      | Lighter grid cards                  |
-| `src/components/bookivo/UseCasesSection.tsx`  | Left-align, simplify                |
-| `src/components/bookivo/HowItWorks.tsx`       | Minimal step cards                  |
-| `src/components/bookivo/PricingPreview.tsx`   | Premium card refinement             |
-| `src/components/bookivo/FAQSection.tsx`       | Cleaner accordion style             |
-| `src/components/bookivo/FinalCTA.tsx`         | Remove gradient, simplify           |
-| `src/components/bookivo/BookivoFooter.tsx`    | Lighten, refine                     |
+    decision_signals: { ...merged recent signals... },
 
+    chat_summaries: [{thread_id, summary, last_activity_at}]  // if feasible; else empty
 
-## No Database Changes
+  }
 
-Frontend-only visual rebuild. No migrations, no RLS, no edge functions.
+- Use existing patterns for workspace role (getUserWorkspaceRole).
 
-&nbsp;
+- For installed modules actions:
 
-## 3 ملاحظات مهمة (تصحيح/تدقيق)
+  - If there is an app manifest/capabilities map already in code, use it.
 
-### 1) تعارض: قلت “13 files” ثم عددت 15
+  - If not, implement a local registry mapping module id -> actions list (Workboard/OIL/Booking/Chat/Brain core).
 
-أنت كتبت: *Components to Rewrite (13 files)* لكن بعدها:
+  - MUST be dynamic: only include actions for installed modules.
 
-- 14 BookivoFooter
-- 15 BookivoPage
+- Ensure RLS-safe: only fetch workspace-scoped data.
 
-- useDocumentMeta  
-يعني فعليًا **15–16 ملف** حسب ما تحسب.  
-✅ الحل: غيّر العنوان إلى: **“15 files”** أو “15 component/page files + 1 hook”.
+A3) Action Mapping Engine (dynamic)
 
-### 2) قلت “Keep section order لكن remove HowItWorks”
+- Replace hardcoded action validation with:
 
-لكن في جدول الملفات ما زلت واضع `HowItWorks.tsx` ضمن التعديلات.  
-✅ إمّا:
+  - dynamicRegistry = actions derived from systemContext.installed_modules
 
-- تحذفه من قائمة التعديلات (إذا ما عاد يُستخدم)  
-أو
-- تبقيه لكن لا تستدعيه (بس ما له قيمة الآن)
+  - plus legacyActions (existing 13 strings) for backwards compatibility
 
-### 3) “No new keys needed” — ممتاز، لكن يلزم التأكد
+- When model returns an action:
 
-بما أنك قللت/دمجت قسم HowItWorks داخل Solution، لازم تتأكد أن:
+  - If in dynamicRegistry OR legacyActions -> accept
 
-- SolutionSection فعلاً يملك نصوص تغطي “Setup → Customize → Launch” أو شيء مشابه  
-وإلا راح ينقص narrative.
+  - Else -> coerce to “none” or “draft_only” (do not error hard)
+
+A4) Prompt Builder (composable sections)
+
+- Refactor monolithic system prompt to:
+
+  buildPrompt({
+
+    core_identity,
+
+    non_negotiable_principles,
+
+    system_context_summary,
+
+    intent_section,
+
+    module_sections,
+
+    action_registry_section,
+
+    passive_insights_section,
+
+    simulation_protocol_section (only when intent=simulate)
+
+  })
+
+- Core identity remains unchanged.
+
+- Include only relevant sections:
+
+  - module_sections only for installed modules
+
+  - simulation_protocol only when intent=simulate OR requires_simulation=true
+
+  - passive_insights always present but instructions say “surface only if contextually relevant”
+
+- Action registry section MUST list only available_actions (plus mention legacy supported actions internally but don’t encourage usage).
+
+A5) Decision Signals Integration (Passive Insight Engine)
+
+- Inline fetch decision signals inside brain-chat (reuse logic from decision-signals).
+
+- Add to systemContext and inject prompt section:
+
+  PASSIVE_INSIGHTS:
+
+  - Provide 3–7 top signals with short explanation, confidence, recommended questions to ask user.
+
+  - Instruct Brain: only mention insights if directly helpful to user’s current intent; keep it calm; no spam.
+
+A6) Simulation Protocol
+
+- If intent=simulate:
+
+  - Instruct Brain to produce a “Simulation Report”:
+
+    - Assumptions
+
+    - Inputs used (tasks/goals/OIL/decision signals)
+
+    - Impact summary (deadlines, delivery risk, OIL indicators)
+
+    - Risks + confidence
+
+    - “Not a commitment” disclaimer
+
+  - DO NOT propose execution; only show what-if results.
+
+- If user wants changes applied, Brain must output a Draft (not execute).
+
+A7) BRAIN_META output (internal metadata)
+
+- Append at end of assistant content (always) a fenced block:
+
+  ```BRAIN_META
+
+  {"intent":"...","confidence":0.85,"risk_level":"medium","modules_consulted":["workboard","oil"],"simulation_used":false}
+
+Keep it machine-readable JSON (single object).
+
+Ensure it is ALWAYS appended, even in fallback mode (use best available values).
+
+Ensure frontend can strip it from UI display if currently rendered.
+
+A8) Graceful fallback
+
+If classifier fails: set intent="suggest" confidence=0.4 risk_level="low" modules_relevant=[]
+
+Continue with old prompt path, but still include systemContext + BRAIN_META.
+
+B) src/hooks/useBrainChat.ts (Enhancement)
+
+B1) Build/Send systemContext
+
+Add a builder that fetches:
+
+user role in workspace
+
+installed apps list
+
+map installed apps to actions/capabilities (same registry used server-side if possible; else client sends installed app ids + server builds actions)
+
+recent activity summary (counts only)
+
+Send this as part of brain-chat request payload.
+
+B2) Extract BRAIN_META
+
+Parse assistant response for BRAIN_META ...
+
+Remove it from display text (do not show in UI).
+
+Store meta internally (react-query cache or local state).
+
+Log meta to org_events (OIL ingestion):
+
+event_name: "brain_meta"
+
+payload: meta + workspace_id + message_id
+
+C) src/hooks/useSmartCapabilities.ts (New capability cards)
+
+Add new capabilities with intent mapping and scoring:
+
+Simulate (intent: simulate)
+
+Diagnose (intent: diagnose)
+
+Detect Risks (intent: detect_risk)
+
+Architecture (intent: architect)
+
+Strategic Think (intent: strategic_think)
+
+Score based on workspace state:
+
+if blocked_tasks_count>0 -> boost Diagnose
+
+if overdue_count>0 -> boost Detect Risks
+
+if OIL delivery risk high -> boost Simulate/Detect Risks
+
+Keep UI unchanged (just capability data).
+
+TESTS / VERIFICATION
+
+Ensure brain-chat returns valid response + BRAIN_META always.
+
+Ensure classifier failures do not break chat.
+
+Ensure actions returned are filtered by registry.
+
+Ensure simulate intent uses simulation report format.
+
+Ensure passive insights are not spammy; only show if relevant.
+
+DELIVERABLE
+
+Provide final code changes in the three files.
+
+Provide a short checklist of how to verify locally (manual steps).
+
+Do not change any UI components beyond stripping BRAIN_META from visible text in hook parsing.
+
+Proceed to implement now.
