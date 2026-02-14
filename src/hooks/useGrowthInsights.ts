@@ -9,6 +9,7 @@ export interface GrowthReason {
   projected?: number;
   limit?: number;
   hits?: number;
+  count?: number;
 }
 
 export interface GrowthInsights {
