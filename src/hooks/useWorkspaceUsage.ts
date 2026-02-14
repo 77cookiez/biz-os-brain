@@ -147,9 +147,11 @@ export function useWorkspaceUsage() {
       for (const threshold of [95, 80]) {
         if (m.percent >= threshold) {
           const key = getWarningStorageKey(workspaceId, m.key, threshold);
-          if (!warnedRef.current.has(key) && !localStorage.getItem(key)) {
+          const alreadyWarned = warnedRef.current.has(key) || 
+            (typeof window !== 'undefined' && localStorage.getItem(key));
+          if (!alreadyWarned) {
             warnedRef.current.add(key);
-            localStorage.setItem(key, '1');
+            if (typeof window !== 'undefined') localStorage.setItem(key, '1');
             const msg = threshold >= 95
               ? t('usage.warning95', { resource: t(m.labelKey), percent: m.percent })
               : t('usage.warning80', { resource: t(m.labelKey), percent: m.percent });

@@ -50,10 +50,19 @@ function UsageBar({ metric }: { metric: UsageMetric }) {
   );
 }
 
+const RESOURCE_I18N: Record<string, string> = {
+  vendors: 'usage.vendors',
+  services: 'usage.services',
+  bookings: 'usage.bookingsMonth',
+  quotes: 'usage.quotesMonth',
+  seats: 'usage.seats',
+};
+
 function EventRow({ event }: { event: UsageEvent }) {
   const { t } = useTranslation();
   const meta = event.meta as Record<string, unknown>;
   const resource = (meta?.resource as string) || '';
+  const resourceLabel = resource && RESOURCE_I18N[resource] ? t(RESOURCE_I18N[resource]) : resource;
   const ts = new Date(event.created_at);
 
   return (
@@ -63,8 +72,8 @@ function EventRow({ event }: { event: UsageEvent }) {
           <Badge variant="outline" className="text-xs shrink-0">
             {event.event_type}
           </Badge>
-          {resource && (
-            <span className="text-xs text-muted-foreground truncate">{resource}</span>
+          {resourceLabel && (
+            <span className="text-xs text-muted-foreground truncate">{resourceLabel}</span>
           )}
         </div>
         {meta?.current !== undefined && meta?.limit !== undefined && (
