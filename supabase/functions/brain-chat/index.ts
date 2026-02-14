@@ -123,9 +123,54 @@ const MODULE_ACTIONS: Record<string, { name: string; actions: { key: string; tit
       { key: "team_dynamics", title: "Team Dynamics", description: "Analyze team dynamics and alignment" },
     ],
   },
+  // ─── PART C: Aurelius = Experience/Presentation Layer ───
+  // Aurelius is a workspace-installed module (app_id='leadership') that controls
+  // presentation preferences. It does NOT compute indicators (that's OIL).
+  // Brain outputs DRAFT proposals only — persistence via Ask → Draft → Confirm → Execute.
+  aurelius: {
+    name: "Aurelius Experience",
+    actions: [
+      { key: "configure_theme", title: "Configure Theme", description: "Set executive dashboard visual preferences", risk: "low" },
+      { key: "configure_audio", title: "Configure Audio", description: "Set audio/notification preferences", risk: "low" },
+      { key: "set_response_style", title: "Set Response Style", description: "Adjust Brain response tone and depth", risk: "low" },
+    ],
+  },
 };
 
-// ─── Fix A: Server-Side Installed Apps Fetch ───
+// ─── PART A: Workspace Access Guard (CRITICAL SECURITY) ───
+// Verifies user belongs to workspace before ANY service-role query.
+// Without this, service-role bypasses RLS → cross-tenant data leak.
+async function assertWorkspaceAccess(
+  sb: any,
+  userId: string,
+  workspaceId: string,
+): Promise<{ allowed: boolean; role: string }> {
+  try {
+    // Step 1: Get company_id from workspace
+    const { data: ws, error: wsErr } = await sb
+      .from("workspaces")
+      .select("company_id")
+      .eq("id", workspaceId)
+      .maybeSingle();
+    if (wsErr || !ws?.company_id) return { allowed: false, role: "none" };
+
+    // Step 2: Verify membership via company_members
+    const { data: membership, error: memErr } = await sb
+      .from("company_members")
+      .select("role")
+      .eq("company_id", ws.company_id)
+      .eq("user_id", userId)
+      .eq("status", "accepted")
+      .maybeSingle();
+    if (memErr || !membership) return { allowed: false, role: "none" };
+
+    return { allowed: true, role: membership.role || "member" };
+  } catch {
+    return { allowed: false, role: "none" };
+  }
+}
+
+// ─── Server-Side Installed Apps Fetch ───
 async function fetchInstalledApps(sb: any, workspaceId: string): Promise<string[]> {
   try {
     const { data, error } = await sb
@@ -485,10 +530,18 @@ Rules: Valid JSON only. English for structured fields. Natural language in user'
     prompt += `\n${JSON.stringify({ ...summary, tasks, goals })}`;
   }
 
-  // ═══ OIL CONTEXT (injected if available) ═══
+  // ═══ OIL CONTEXT (consumed, never computed by Brain) ═══
   if (oilPromptSection) {
     prompt += oilPromptSection;
   }
+
+  // ═══ AURELIUS vs OIL SEPARATION (ARCHITECTURE CONTRACT) ═══
+  prompt += `\n\n═══ AURELIUS vs OIL ═══
+Aurelius = Experience/Presentation Layer (audio, themes, response style preferences).
+OIL = Organizational Intelligence compute layer (org_events → org_indicators → company_memory).
+Brain consumes OIL outputs ONLY and NEVER replicates OIL logic.
+Aurelius preferences (if installed) affect HOW you present information, NOT WHAT you compute.
+You do NOT compute indicators, trends, scores, or analytics — that is OIL's exclusive domain.`;
 
   // ═══ Fix F: PASSIVE INSIGHTS (compact JSON) ═══
   if (decisionSignals.length > 0) {
@@ -727,7 +780,19 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
 
-    // ─── Fix A: Server-side installed apps (ignore client-sent installedApps) ───
+    // ─── PART A: Workspace Access Guard (MUST run before any service-role workspace reads) ───
+    let verifiedRole = "member";
+    if (workspaceId) {
+      const access = await assertWorkspaceAccess(sb, user.id, workspaceId);
+      if (!access.allowed) {
+        return new Response(JSON.stringify({ error: "Forbidden: not a member of this workspace" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      verifiedRole = access.role;
+    }
+
+    // ─── Server-side installed apps (only after access verified) ───
     const installedAppIds = workspaceId
       ? await fetchInstalledApps(sb, workspaceId)
       : ["brain"];
@@ -758,16 +823,16 @@ serve(async (req) => {
     };
     const langLabel = langMap[userLang || ""] || (userLang ? `Language: ${userLang}` : "English");
 
-    // ─── Fix B: Resolve intent (override OR classifier) ───
+    // ─── Resolve intent (override OR classifier) ───
     const lastUserMsg = [...messages].reverse().find(m => m.role === "user")?.content || "";
 
-    // Parallel fetches: intent (only if no override), OIL, signals, role
+    // Parallel fetches: intent (only if no override), OIL, signals
+    // NOTE: userRole already verified above via assertWorkspaceAccess — no separate getUserWorkspaceRole needed
     const overrideResult = resolveIntentOverride(intentOverride);
-    const [classifiedIntent, oilSection, decisionSignals, userRole] = await Promise.all([
+    const [classifiedIntent, oilSection, decisionSignals] = await Promise.all([
       overrideResult ? Promise.resolve(overrideResult) : classifyIntent(lastUserMsg, messages, LOVABLE_API_KEY),
       workspaceId ? buildOILSection(sb, workspaceId) : Promise.resolve(""),
       workspaceId ? fetchDecisionSignals(sb, workspaceId) : Promise.resolve([]),
-      workspaceId ? getUserWorkspaceRole(sb, user.id, workspaceId) : Promise.resolve(systemContext?.user_role || "member"),
     ]);
 
     const intentResult = overrideResult || classifiedIntent;
@@ -783,7 +848,7 @@ serve(async (req) => {
       actionRegistry,
       decisionSignals,
       oilPromptSection: oilSection,
-      userRole,
+      userRole: verifiedRole,
     });
 
     // ─── Stream Response ───
