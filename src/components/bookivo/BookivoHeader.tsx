@@ -15,14 +15,13 @@ export default function BookivoHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <span className="text-xl font-bold text-primary">Bookivo</span>
+    <header className="sticky top-0 z-50 border-b border-border/50 bg-background/60 backdrop-blur-2xl">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <span className="text-lg font-semibold tracking-tight text-foreground">Bookivo</span>
 
-        {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-10">
           {navLinks.map((l) => (
-            <a key={l.href} href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <a key={l.href} href={l.href} className="text-sm font-light text-muted-foreground hover:text-foreground transition-colors">
               {l.label}
             </a>
           ))}
@@ -30,28 +29,26 @@ export default function BookivoHeader() {
 
         <div className="hidden md:flex items-center gap-3">
           <Link to="/auth?mode=login">
-            <Button variant="ghost" size="sm">{t('auth.signIn')}</Button>
+            <Button variant="ghost" size="sm" className="text-muted-foreground">{t('auth.signIn')}</Button>
           </Link>
           <Link to="/auth?mode=signup">
             <Button size="sm">{t('bookivo.landing.hero.cta', 'Start Free')}</Button>
           </Link>
         </div>
 
-        {/* Mobile toggle */}
         <button className="md:hidden text-foreground" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-border bg-background px-4 pb-4 space-y-3">
+        <div className="md:hidden bg-background/95 backdrop-blur-xl px-4 pb-4 space-y-2">
           {navLinks.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setMobileOpen(false)} className="block py-2 text-sm text-muted-foreground hover:text-foreground">
               {l.label}
             </a>
           ))}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-3">
             <Link to="/auth?mode=login" className="flex-1">
               <Button variant="ghost" size="sm" className="w-full">{t('auth.signIn')}</Button>
             </Link>

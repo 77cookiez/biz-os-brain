@@ -12,23 +12,21 @@ export default function UseCasesSection() {
   ];
 
   return (
-    <section className="py-20 sm:py-28" aria-labelledby="usecases-heading">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-24 sm:py-32" aria-labelledby="usecases-heading">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 id="usecases-heading" className="text-3xl sm:text-4xl font-bold mb-4">
             {t('bookivo.landing.useCases.title', 'Who It\'s For')}
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-xl mx-auto">
             {t('bookivo.landing.useCases.subtitle', 'Bookivo adapts to your industry and workflow.')}
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {cases.map((c, i) => (
-            <div key={i} className="p-6 rounded-2xl border border-border bg-card hover:border-primary/40 transition-all text-center group">
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 mx-auto group-hover:bg-primary/20 transition-colors">
-                <c.icon className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">{c.title}</h3>
+            <div key={i} className="p-5 rounded-lg border border-border hover:border-muted-foreground/30 transition-colors text-start">
+              <c.icon className="h-5 w-5 text-muted-foreground mb-3" />
+              <h3 className="font-medium mb-1">{c.title}</h3>
               <p className="text-sm text-muted-foreground">{c.desc}</p>
             </div>
           ))}
