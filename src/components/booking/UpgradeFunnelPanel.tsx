@@ -34,7 +34,6 @@ export function UpgradeFunnelPanel() {
   } = useUpgradeFunnel();
 
   const [dismissed, setDismissed] = useState(false);
-  const [tipsLogged, setTipsLogged] = useState(false);
 
   // Log funnel view on mount
   useEffect(() => {
@@ -46,13 +45,12 @@ export function UpgradeFunnelPanel() {
     if (priceSuggestion.show && shouldShow && !dismissed) logPriceSuggestionView();
   }, [priceSuggestion.show, shouldShow, dismissed, logPriceSuggestionView]);
 
-  // Log tips once
+  // Log tips (dedup handled inside hook via localStorage)
   useEffect(() => {
-    if (tips.length > 0 && !tipsLogged) {
+    if (tips.length > 0 && shouldShow && !dismissed) {
       logTipsView(tips.map(t => t.code));
-      setTipsLogged(true);
     }
-  }, [tips, tipsLogged, logTipsView]);
+  }, [tips, shouldShow, dismissed, logTipsView]);
 
   const onRequestUpgrade = useCallback(async () => {
     if (!recommendedPlan || !insights) return;
@@ -63,7 +61,7 @@ export function UpgradeFunnelPanel() {
       utilization_percent: insights.utilization_percent,
       projected_end_of_month_usage: insights.projected_end_of_month_usage,
       reasons: insights.reasons.map(r => r.code),
-    });
+    }).slice(0, 1800);
     try {
       await requestUpgrade.mutateAsync({ planId: recommendedPlan.id, notes });
       logRequestSubmit(recommendedPlan.id);

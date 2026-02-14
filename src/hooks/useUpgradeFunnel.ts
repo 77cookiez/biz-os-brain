@@ -9,11 +9,14 @@ import { toast } from 'sonner';
 
 /* ── localStorage helpers (SSR-safe) ──────────────── */
 
-function todayKey(wid: string): string {
+function utcDay(): string {
   const d = new Date();
-  return `upgrade_funnel_seen_${wid}_${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
+function todayKey(wid: string): string { return `upgrade_funnel_seen_${wid}_${utcDay()}`; }
 function snoozeKey(wid: string) { return `upgrade_funnel_snooze_${wid}`; }
+function priceSuggestionDayKey(wid: string) { return `price_suggestion_seen_${wid}_${utcDay()}`; }
+function tipsDayKey(wid: string) { return `tips_seen_${wid}_${utcDay()}`; }
 
 function isSnoozed(wid: string): boolean {
   if (typeof window === 'undefined') return false;
@@ -228,6 +231,9 @@ export function useUpgradeFunnel() {
 
   const logPriceSuggestionView = useCallback(() => {
     if (!wid || !priceSuggestion.show) return;
+    const key = priceSuggestionDayKey(wid);
+    if (typeof window !== 'undefined' && localStorage.getItem(key)) return;
+    if (typeof window !== 'undefined') localStorage.setItem(key, '1');
     logEvent.mutate({
       eventType: 'PRICE_SUGGESTION_VIEW',
       meta: { recommended_plan_id: priceSuggestion.planId, triggers: priceSuggestion.triggers },
@@ -236,6 +242,9 @@ export function useUpgradeFunnel() {
 
   const logTipsView = useCallback((tipCodes: string[]) => {
     if (!wid) return;
+    const key = tipsDayKey(wid);
+    if (typeof window !== 'undefined' && localStorage.getItem(key)) return;
+    if (typeof window !== 'undefined') localStorage.setItem(key, '1');
     logEvent.mutate({ eventType: 'PLAN_RECOMMENDED', meta: { tip_codes: tipCodes } });
   }, [wid, logEvent]);
 
