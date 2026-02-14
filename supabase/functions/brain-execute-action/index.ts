@@ -737,41 +737,45 @@ async function finalizeDraftReservation(
   }).eq("draft_id", draftId);
 }
 
-// ─── Confirm Idempotency (store confirmed meaning) ───
+// ─── Confirm Idempotency via draft_confirmations (Plan B) ───
 
-async function getConfirmedMeaning(
-  sb: ReturnType<typeof createClient>,
-  draftId: string,
-): Promise<string | null> {
-  const { data } = await sb.from("executed_drafts")
-    .select("confirmed_meaning_object_id")
-    .eq("draft_id", draftId)
-    .maybeSingle();
-  return data?.confirmed_meaning_object_id || null;
+interface DraftConfirmationRow {
+  draft_id: string;
+  confirmed_meaning_object_id: string;
+  confirmation_hash: string;
+  expires_at: number;
 }
 
-async function storeConfirmedMeaning(
+async function getConfirmation(
   sb: ReturnType<typeof createClient>,
   draftId: string,
-  workspaceId: string,
-  meaningObjectId: string,
+): Promise<DraftConfirmationRow | null> {
+  const { data } = await sb.from("draft_confirmations")
+    .select("draft_id, confirmed_meaning_object_id, confirmation_hash, expires_at")
+    .eq("draft_id", draftId)
+    .maybeSingle();
+  return data as DraftConfirmationRow | null;
+}
+
+async function storeConfirmation(
+  sb: ReturnType<typeof createClient>,
+  params: {
+    draft_id: string;
+    workspace_id: string;
+    confirmed_meaning_object_id: string;
+    confirmed_by: string;
+    confirmation_hash: string;
+    expires_at: number;
+  },
 ): Promise<void> {
-  // Upsert: create row if not exists (for confirm-before-execute), or update if exists
-  const { error } = await sb.from("executed_drafts").upsert({
-    draft_id: draftId,
-    workspace_id: workspaceId,
-    agent_type: "pending",
-    draft_type: "pending",
-    executed_by: "pending",
-    status: "confirmed",
-    confirmed_meaning_object_id: meaningObjectId,
-  }, { onConflict: "draft_id", ignoreDuplicates: false });
-  if (error) {
-    // If row already exists with different status, just update the meaning column
-    await sb.from("executed_drafts").update({
-      confirmed_meaning_object_id: meaningObjectId,
-    }).eq("draft_id", draftId);
-  }
+  await sb.from("draft_confirmations").upsert({
+    draft_id: params.draft_id,
+    workspace_id: params.workspace_id,
+    confirmed_meaning_object_id: params.confirmed_meaning_object_id,
+    confirmed_by: params.confirmed_by,
+    confirmation_hash: params.confirmation_hash,
+    expires_at: params.expires_at,
+  }, { onConflict: "draft_id", ignoreDuplicates: true });
 }
 
 // ─── Main Handler ───
@@ -899,50 +903,78 @@ serve(async (req) => {
         });
       }
 
-      // ─── MODE: confirm (Milestone 3: mint meaning if payload provided, idempotent) ───
+      // ─── MODE: confirm (M4: idempotent via draft_confirmations) ───
       if (mode === "confirm") {
         const expiresAt = draft.expires_at || (Date.now() + DRAFT_CONFIRM_TTL_MS);
 
-        // Mint meaning_object_id if meaning_payload is provided (idempotent)
-        let mintedMeaningObjectId: string | undefined;
-        if ("meaning_payload" in draft.meaning) {
-          // Check if we already minted for this draft (idempotent confirm)
-          const existingMeaning = await getConfirmedMeaning(sbService, draft.id);
-          if (existingMeaning) {
-            mintedMeaningObjectId = existingMeaning;
-          } else {
-            const mintResult = await mintMeaningObject(sbService, {
-              workspace_id: workspaceId,
-              user_id: userId,
-              meaning_payload: draft.meaning.meaning_payload,
-              draft_id: draft.id,
-              intent: draft.intent,
-            });
-            if ("error" in mintResult) {
-              return new Response(
-                JSON.stringify({ code: "MEANING_MINT_FAILED", reason: mintResult.error }),
-                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-              );
-            }
-            mintedMeaningObjectId = mintResult.meaning_object_id;
-            // Store for idempotent future confirms
-            await storeConfirmedMeaning(sbService, draft.id, workspaceId, mintedMeaningObjectId);
-          }
+        // If meaning_object_id already present, skip minting entirely
+        if ("meaning_object_id" in draft.meaning) {
+          const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, expiresAt, draft.payload);
+          // Store confirmation for binding check at execute time
+          await storeConfirmation(sbService, {
+            draft_id: draft.id,
+            workspace_id: workspaceId,
+            confirmed_meaning_object_id: draft.meaning.meaning_object_id,
+            confirmed_by: userId,
+            confirmation_hash: hash,
+            expires_at: expiresAt,
+          });
+          return new Response(
+            JSON.stringify({ confirmation_hash: hash, expires_at: expiresAt }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // meaning_payload path: idempotent minting
+        const existing = await getConfirmation(sbService, draft.id);
+        if (existing) {
+          // Already confirmed — replay same response (idempotent)
+          const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, existing.expires_at, draft.payload);
+          return new Response(
+            JSON.stringify({
+              confirmation_hash: hash,
+              expires_at: existing.expires_at,
+              meaning_object_id: existing.confirmed_meaning_object_id,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // First confirm: mint meaning
+        const mintResult = await mintMeaningObject(sbService, {
+          workspace_id: workspaceId,
+          user_id: userId,
+          meaning_payload: (draft.meaning as { meaning_payload: MeaningPayload }).meaning_payload,
+          draft_id: draft.id,
+          intent: draft.intent,
+        });
+        if ("error" in mintResult) {
+          return new Response(
+            JSON.stringify({ code: "MEANING_MINT_FAILED", reason: mintResult.error }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
         }
 
         const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, expiresAt, draft.payload);
 
-        const response: Record<string, unknown> = {
+        // Store confirmation for idempotency + binding
+        await storeConfirmation(sbService, {
+          draft_id: draft.id,
+          workspace_id: workspaceId,
+          confirmed_meaning_object_id: mintResult.meaning_object_id,
+          confirmed_by: userId,
           confirmation_hash: hash,
           expires_at: expiresAt,
-        };
-        if (mintedMeaningObjectId) {
-          response.meaning_object_id = mintedMeaningObjectId;
-        }
-
-        return new Response(JSON.stringify(response), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+
+        return new Response(
+          JSON.stringify({
+            confirmation_hash: hash,
+            expires_at: expiresAt,
+            meaning_object_id: mintResult.meaning_object_id,
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       // ─── MODE: execute (Milestone 3+: strong idempotency + meaning_object_id required) ───
@@ -960,6 +992,21 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ code: "VALIDATION_ERROR", reason: "Execute requires meaning_object_id. Call confirm first to mint meaning." }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // ── Meaning binding check: server verifies client-sent meaning_object_id ──
+        const confirmation = await getConfirmation(sbService, draft.id);
+        if (!confirmation) {
+          return new Response(
+            JSON.stringify({ code: "VALIDATION_ERROR", reason: "Draft must be confirmed before execute", suggested_action: "call confirm" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        if (confirmation.confirmed_meaning_object_id !== (draft.meaning as { meaning_object_id: string }).meaning_object_id) {
+          return new Response(
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Meaning mismatch — draft tampered", suggested_action: "reconfirm" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 

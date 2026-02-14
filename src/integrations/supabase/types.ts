@@ -1914,6 +1914,39 @@ export type Database = {
           },
         ]
       }
+      draft_confirmations: {
+        Row: {
+          confirmation_hash: string
+          confirmed_at: string
+          confirmed_by: string
+          confirmed_meaning_object_id: string
+          draft_id: string
+          expires_at: number
+          request_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          confirmation_hash: string
+          confirmed_at?: string
+          confirmed_by: string
+          confirmed_meaning_object_id: string
+          draft_id: string
+          expires_at: number
+          request_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          confirmation_hash?: string
+          confirmed_at?: string
+          confirmed_by?: string
+          confirmed_meaning_object_id?: string
+          draft_id?: string
+          expires_at?: number
+          request_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       executed_drafts: {
         Row: {
           agent_type: string
