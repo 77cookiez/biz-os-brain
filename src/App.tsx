@@ -270,6 +270,7 @@ const AppRoutes = () => (
     </Route>
     {/* V3 Public Booking (world-class storefront) */}
     <Route path="/b3/:tenantSlug" element={<PublicBookingLayoutV3 />}>
+      <Route path="browse" element={<PublicBrowsePage />} />
       <Route path="v/:vendorId" element={<PublicVendorDetailPage />} />
       <Route path="request" element={<PublicRequestQuotePage />} />
       <Route path="my" element={<PublicMyBookingsV2 />} />
