@@ -1914,6 +1914,50 @@ export type Database = {
           },
         ]
       }
+      executed_drafts: {
+        Row: {
+          agent_type: string
+          created_at: string
+          draft_id: string
+          draft_type: string
+          entity_refs: Json
+          error: string | null
+          executed_by: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          agent_type: string
+          created_at?: string
+          draft_id: string
+          draft_type: string
+          entity_refs?: Json
+          error?: string | null
+          executed_by: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          agent_type?: string
+          created_at?: string
+          draft_id?: string
+          draft_type?: string
+          entity_refs?: Json
+          error?: string | null
+          executed_by?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "executed_drafts_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       executed_proposals: {
         Row: {
           entity_id: string

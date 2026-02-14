@@ -4,13 +4,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-test-user-id, x-test-workspace-id, x-test-role",
 };
 
 // ─── Constants ───
 const SIGNING_SECRET = () => Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PROPOSAL_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const DRAFT_CONFIRM_TTL_MS = 20 * 60 * 1000; // 20 minutes
+const IS_TEST_MODE = () => Deno.env.get("TEST_MODE") === "true";
 
 // ─── Types ───
 
@@ -147,7 +148,7 @@ async function verifyProposal(
   return toHex(sig) === hash;
 }
 
-// ─── Draft Confirmation Hash (new Milestone 2) ───
+// ─── Draft Confirmation Hash (Milestone 2) ───
 
 function stableStringify(obj: unknown): string {
   if (obj === null || obj === undefined) return "";
@@ -186,7 +187,6 @@ async function verifyDraftConfirmation(
   providedHash: string,
 ): Promise<boolean> {
   const expected = await signDraftConfirmation(hmacKey, draftId, workspaceId, userId, expiresAt, payload);
-  // Constant-time comparison
   if (expected.length !== providedHash.length) return false;
   let result = 0;
   for (let i = 0; i < expected.length; i++) {
@@ -296,7 +296,7 @@ const teamworkAgent: AgentModule = {
         can_execute: true,
         preview: {
           affected_modules: ["teamwork"],
-          affected_entities: tasks.map((t, i) => ({
+          affected_entities: tasks.map((_t, _i) => ({
             entity_type: "task",
             action: "create" as const,
             entity_id: undefined,
@@ -323,7 +323,6 @@ const teamworkAgent: AgentModule = {
       };
     }
 
-    // Fallback for legacy types routed here
     return {
       can_execute: true,
       preview: draft.scope,
@@ -368,7 +367,7 @@ const teamworkAgent: AgentModule = {
     if (draft.type === "draft_task_set") {
       const tasks = (draft.payload.tasks as Array<Record<string, unknown>>) || [];
       for (const t of tasks) {
-        const { data, error } = await ctx.sbUser
+        const { data, error } = await ctx.sbService
           .from("tasks")
           .insert({
             workspace_id: ctx.workspace_id,
@@ -390,7 +389,7 @@ const teamworkAgent: AgentModule = {
     }
 
     if (draft.type === "draft_plan") {
-      const { data, error } = await ctx.sbUser
+      const { data, error } = await ctx.sbService
         .from("plans")
         .insert({
           workspace_id: ctx.workspace_id,
@@ -489,7 +488,7 @@ const brainAgent: AgentModule = {
       meaningObjectId = mo.id;
     }
 
-    const { data, error } = await ctx.sbUser
+    const { data, error } = await ctx.sbService
       .from("ideas")
       .insert({
         workspace_id: ctx.workspace_id,
@@ -647,6 +646,77 @@ async function emitOrgEvent(
   if (error) console.warn("[brain-execute] org_event write warning:", error.message);
 }
 
+// ─── Meaning Minting (for confirm step) ───
+
+async function mintMeaningObject(
+  sb: ReturnType<typeof createClient>,
+  params: { workspace_id: string; user_id: string; meaning_payload: MeaningPayload; draft_id: string; intent: string },
+): Promise<{ meaning_object_id: string } | { error: string }> {
+  const mp = params.meaning_payload;
+  const meaningJson = {
+    version: "v1",
+    type: mp.type,
+    intent: params.intent,
+    subject: mp.subject,
+    description: mp.description || "",
+    constraints: {},
+    metadata: { created_from: "draft_confirm", draft_id: params.draft_id },
+  };
+
+  const { data, error } = await sb
+    .from("meaning_objects")
+    .insert({
+      workspace_id: params.workspace_id,
+      created_by: params.user_id,
+      type: mp.type,
+      source_lang: mp.source_lang,
+      meaning_json: meaningJson,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) return { error: `Meaning mint failed: ${error?.message}` };
+  return { meaning_object_id: data.id };
+}
+
+// ─── Draft Idempotency Reservation ───
+
+async function reserveDraftExecution(
+  sb: ReturnType<typeof createClient>,
+  params: { draft_id: string; workspace_id: string; agent_type: string; draft_type: string; executed_by: string },
+): Promise<"ok" | "duplicate" | "error"> {
+  const { error } = await sb.from("executed_drafts").insert({
+    draft_id: params.draft_id,
+    workspace_id: params.workspace_id,
+    agent_type: params.agent_type,
+    draft_type: params.draft_type,
+    executed_by: params.executed_by,
+    status: "reserved",
+  });
+
+  if (error) {
+    const isDuplicate = error.code === "23505" || error.message?.includes("duplicate");
+    if (isDuplicate) return "duplicate";
+    console.error("[brain-execute] reservation error:", error.message);
+    return "error";
+  }
+  return "ok";
+}
+
+async function finalizeDraftReservation(
+  sb: ReturnType<typeof createClient>,
+  draftId: string,
+  status: "success" | "failed",
+  entityRefs: unknown[],
+  errorMsg?: string,
+): Promise<void> {
+  await sb.from("executed_drafts").update({
+    status,
+    entity_refs: entityRefs,
+    error: errorMsg || null,
+  }).eq("draft_id", draftId);
+}
+
 // ─── Main Handler ───
 
 serve(async (req) => {
@@ -655,34 +725,42 @@ serve(async (req) => {
   }
 
   try {
-    // ─── Auth ───
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing authorization", suggested_action: "login" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sbService = createClient(supabaseUrl, serviceKey);
 
-    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // ─── Auth (with TEST_MODE bypass) ───
+    let userId: string;
+    let authHeader: string;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await authClient.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ code: "EXECUTION_DENIED", reason: "Invalid token", suggested_action: "login" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    if (IS_TEST_MODE() && req.headers.get("x-test-user-id")) {
+      userId = req.headers.get("x-test-user-id")!;
+      authHeader = `Bearer test-token-${userId}`;
+    } else {
+      authHeader = req.headers.get("Authorization") || "";
+      if (!authHeader.startsWith("Bearer ")) {
+        return new Response(
+          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing authorization", suggested_action: "login" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const authClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user }, error: userError } = await authClient.auth.getUser(token);
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Invalid token", suggested_action: "login" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      userId = user.id;
     }
 
-    const userId = user.id;
-    const sbService = createClient(supabaseUrl, serviceKey);
     const body = await req.json();
 
     if (!body.workspace_id) {
@@ -695,7 +773,7 @@ serve(async (req) => {
     const hmacKey = await getHmacKey();
 
     // ═══════════════════════════════════════════
-    // DRAFT MODE ROUTING (Milestone 2)
+    // DRAFT MODE ROUTING (Milestone 2+3)
     // ═══════════════════════════════════════════
     if (isDraftRequest(body)) {
       const mode = body.mode as string;
@@ -711,8 +789,14 @@ serve(async (req) => {
       }
       const draft = validation.draft;
 
-      // Check workspace membership
-      const userRole = await getUserWorkspaceRole(sbService, userId, workspaceId);
+      // Check workspace membership (TEST_MODE can use x-test-role header)
+      let userRole: WorkspaceRole | null;
+      if (IS_TEST_MODE() && req.headers.get("x-test-role")) {
+        userRole = req.headers.get("x-test-role") as WorkspaceRole;
+      } else {
+        userRole = await getUserWorkspaceRole(sbService, userId, workspaceId);
+      }
+
       if (!userRole) {
         return new Response(
           JSON.stringify({ code: "EXECUTION_DENIED", reason: "Not a workspace member", suggested_action: "request access" }),
@@ -734,10 +818,11 @@ serve(async (req) => {
       const { data: profile } = await sbService.from("profiles").select("preferred_locale").eq("user_id", userId).maybeSingle();
       const sourceLang = profile?.preferred_locale || "en";
 
-      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
+      const userClient = IS_TEST_MODE()
+        ? sbService // In test mode, use service client as user client
+        : createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
 
+      const requestId = crypto.randomUUID();
       const ctx: AgentContext = {
         sbService,
         sbUser: userClient,
@@ -745,7 +830,7 @@ serve(async (req) => {
         user_id: userId,
         role: userRole,
         nowISO: new Date().toISOString(),
-        request_id: crypto.randomUUID(),
+        request_id: requestId,
         source_lang: sourceLang,
       };
 
@@ -757,17 +842,45 @@ serve(async (req) => {
         });
       }
 
-      // ─── MODE: confirm ───
+      // ─── MODE: confirm (Milestone 3: mint meaning if payload provided) ───
       if (mode === "confirm") {
         const expiresAt = draft.expires_at || (Date.now() + DRAFT_CONFIRM_TTL_MS);
+
+        // Mint meaning_object_id if meaning_payload is provided
+        let mintedMeaningObjectId: string | undefined;
+        if ("meaning_payload" in draft.meaning) {
+          const mintResult = await mintMeaningObject(sbService, {
+            workspace_id: workspaceId,
+            user_id: userId,
+            meaning_payload: draft.meaning.meaning_payload,
+            draft_id: draft.id,
+            intent: draft.intent,
+          });
+          if ("error" in mintResult) {
+            return new Response(
+              JSON.stringify({ code: "MEANING_MINT_FAILED", reason: mintResult.error }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+          mintedMeaningObjectId = mintResult.meaning_object_id;
+        }
+
         const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, expiresAt, draft.payload);
-        return new Response(
-          JSON.stringify({ confirmation_hash: hash, expires_at: expiresAt }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+
+        const response: Record<string, unknown> = {
+          confirmation_hash: hash,
+          expires_at: expiresAt,
+        };
+        if (mintedMeaningObjectId) {
+          response.meaning_object_id = mintedMeaningObjectId;
+        }
+
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      // ─── MODE: execute ───
+      // ─── MODE: execute (Milestone 3: idempotency via executed_drafts) ───
       if (mode === "execute") {
         const confirmationHash = (body as { confirmation_hash?: string }).confirmation_hash;
         if (!confirmationHash) {
@@ -803,8 +916,40 @@ serve(async (req) => {
           );
         }
 
-        // Execute
+        // ── Idempotency reservation (Milestone 3) ──
+        const reserveResult = await reserveDraftExecution(sbService, {
+          draft_id: draft.id,
+          workspace_id: workspaceId,
+          agent_type: agentType,
+          draft_type: draft.type,
+          executed_by: userId,
+        });
+
+        if (reserveResult === "duplicate") {
+          return new Response(
+            JSON.stringify({ code: "ALREADY_EXECUTED", reason: "Draft already executed" }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        if (reserveResult === "error") {
+          return new Response(
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "retry" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // Execute agent
         const result = await agent.execute(draft, ctx);
+
+        // Finalize reservation
+        await finalizeDraftReservation(
+          sbService,
+          draft.id,
+          result.success ? "success" : "failed",
+          result.entities,
+          result.error,
+        );
 
         // Audit + org_events
         const auditLogId = await writeAudit(sbService, {
@@ -819,6 +964,7 @@ serve(async (req) => {
             draft_type: draft.type,
             entities: result.entities,
             error: result.error || null,
+            request_id: requestId,
           },
         });
 
@@ -832,6 +978,7 @@ serve(async (req) => {
             entity_count: result.entities.length,
             risks_count: draft.risks.length,
             error: result.error || null,
+            request_id: requestId,
           },
         });
 
