@@ -436,17 +436,27 @@ serve(async (req) => {
         );
       }
 
-      // 4. Idempotency check — prevent duplicate execution
-      const { data: existing } = await sbService
-        .from("executed_proposals")
-        .select("proposal_id")
-        .eq("proposal_id", proposal.id)
-        .maybeSingle();
+      // 4. Reservation-first idempotency — PK lock BEFORE execution
+      const { error: reserveErr } = await sbService.from("executed_proposals").insert({
+        proposal_id: proposal.id,
+        workspace_id: workspace_id,
+        entity_type: proposal.type,
+        entity_id: "",  // placeholder until execution succeeds
+      });
 
-      if (existing) {
+      if (reserveErr) {
+        // Duplicate PK = already executed; any other error = server failure
+        const isDuplicate = reserveErr.code === "23505" || reserveErr.message?.includes("duplicate");
+        if (isDuplicate) {
+          return new Response(
+            JSON.stringify({ code: "ALREADY_EXECUTED", reason: "This proposal has already been executed", suggested_action: "none" }),
+            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        console.error("[brain-execute] reservation error:", reserveErr.message);
         return new Response(
-          JSON.stringify({ code: "ALREADY_EXECUTED", reason: "This proposal has already been executed", suggested_action: "none" }),
-          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "regenerate proposal" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -465,21 +475,21 @@ serve(async (req) => {
 
       const result = await executeProposal(userClient, proposal, userId, workspace_id, sourceLang);
 
-      // 7. Record idempotency + Audit log
+      // 7. Finalize or rollback reservation
       if (result.success && result.result && typeof result.result === "object") {
         const r = result.result as Record<string, string>;
         const entityId = String(r.id || "");
-        if (entityId) {
-          // Race-safe: PK uniqueness prevents duplicates even under concurrency
-          const { error: idempErr } = await sbService.from("executed_proposals").insert({
-            proposal_id: proposal.id,
-            workspace_id: workspace_id,
-            entity_type: r.type || proposal.type,
-            entity_id: entityId,
-          });
-          // If PK duplicate → entity was already created (shouldn't happen here since we checked above)
-          if (idempErr) console.warn("[brain-execute] idempotency insert warning:", idempErr.message);
-        }
+        // Update placeholder with real entity_id
+        await sbService.from("executed_proposals")
+          .update({ entity_id: entityId, entity_type: r.type || proposal.type })
+          .eq("proposal_id", proposal.id)
+          .then(() => {}, (e: Error) => console.warn("[brain-execute] reservation update warning:", e.message));
+      } else {
+        // Execution failed — remove reservation so user can retry
+        await sbService.from("executed_proposals")
+          .delete()
+          .eq("proposal_id", proposal.id)
+          .then(() => {}, (e: Error) => console.warn("[brain-execute] reservation cleanup warning:", e.message));
       }
 
       await sbService.from("audit_logs").insert({
