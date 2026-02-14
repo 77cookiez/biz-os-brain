@@ -436,7 +436,21 @@ serve(async (req) => {
         );
       }
 
-      // 4. Determine source language from user profile
+      // 4. Idempotency check — prevent duplicate execution
+      const { data: existing } = await sbService
+        .from("executed_proposals")
+        .select("proposal_id")
+        .eq("proposal_id", proposal.id)
+        .maybeSingle();
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ code: "ALREADY_EXECUTED", reason: "This proposal has already been executed", suggested_action: "none" }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // 5. Determine source language from user profile
       const { data: profile } = await sbService
         .from("profiles")
         .select("preferred_locale")
@@ -444,14 +458,25 @@ serve(async (req) => {
         .maybeSingle();
       const sourceLang = profile?.preferred_locale || "en";
 
-      // 5. Execute with user-scoped client (RLS enforced)
+      // 6. Execute with user-scoped client (RLS enforced)
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
 
       const result = await executeProposal(userClient, proposal, userId, workspace_id, sourceLang);
 
-      // 6. Audit log (service client — always succeeds)
+      // 7. Record idempotency + Audit log
+      if (result.success && result.result && typeof result.result === "object") {
+        const r = result.result as Record<string, string>;
+        // Race-safe: PK uniqueness prevents duplicates even under concurrency
+        await sbService.from("executed_proposals").insert({
+          proposal_id: proposal.id,
+          workspace_id: workspace_id,
+          entity_type: r.type || proposal.type,
+          entity_id: r.id || proposal.id,
+        }).then(() => {}, () => {}); // ignore duplicate key errors
+      }
+
       await sbService.from("audit_logs").insert({
         workspace_id,
         actor_user_id: userId,

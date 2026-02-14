@@ -117,24 +117,18 @@ const MODULE_ACTIONS: Record<string, { name: string; actions: { key: string; tit
     ],
   },
   leadership: {
-    name: "Executive Intelligence",
+    name: "Aurelius — Executive Intelligence",
     actions: [
       { key: "leadership_coaching", title: "Leadership Coaching", description: "AI-powered executive coaching" },
       { key: "team_dynamics", title: "Team Dynamics", description: "Analyze team dynamics and alignment" },
-    ],
-  },
-  // ─── PART C: Aurelius = Experience/Presentation Layer ───
-  // Aurelius is a workspace-installed module (app_id='aurelius') that controls
-  // presentation preferences. It does NOT compute indicators (that's OIL).
-  // Brain outputs DRAFT proposals only — persistence via Ask → Draft → Confirm → Execute.
-  aurelius: {
-    name: "Aurelius Experience",
-    actions: [
       { key: "configure_theme", title: "Configure Theme", description: "Set executive dashboard visual preferences", risk: "low" },
       { key: "configure_audio", title: "Configure Audio", description: "Set audio/notification preferences", risk: "low" },
       { key: "set_response_style", title: "Set Response Style", description: "Adjust Brain response tone and depth", risk: "low" },
     ],
   },
+  // ─── Aurelius experience actions are part of the leadership module ───
+  // Presentation preferences (themes, audio, response style) are capabilities
+  // of the leadership module, NOT a separate app_id.
 };
 
 // ─── PART A: Workspace Access Guard (CRITICAL SECURITY) ───
@@ -186,9 +180,9 @@ async function fetchInstalledApps(sb: any, workspaceId: string): Promise<string[
   }
 }
 
-/** Auto-detect whether Aurelius is installed as a module in this workspace */
+/** Auto-detect whether Aurelius (leadership module) is installed in this workspace */
 function hasAurelius(installedAppIds: string[]): boolean {
-  return installedAppIds.includes("aurelius");
+  return installedAppIds.includes("leadership");
 }
 
 // ─── Intent Classifier ───
