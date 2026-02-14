@@ -1447,16 +1447,10 @@
     "ctaOptimize": "View Usage Details",
     "nudgeUpgrade": "Your workspace is approaching its limits. Consider upgrading your plan.",
     "reasons": {
-      "frequentLimitHits": "You hit plan limits {{hits}} times in the last 30 days",
-      "projectedBreach": "{{metric}} projected to reach {{projected}} (limit: {{limit}})",
-      "highUtilization": "{{metric}} at {{percent}}% utilization"
-    },
-    "metrics": {
-      "bookings": "Bookings",
-      "quotes": "Quotes",
-      "vendors": "Vendors",
-      "services": "Services",
-      "seats": "Seats"
+      "title": "Why we recommend this",
+      "FREQUENT_LIMIT_HITS": "You hit your plan limits {{count}} times in the last 30 days.",
+      "PROJECTED_BREACH": "Based on your current growth, you are projected to exceed your limits before the end of the month.",
+      "HIGH_UTILIZATION": "Your usage is above 80% in one or more areas."
     }
   }
 }

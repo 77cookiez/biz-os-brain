@@ -1251,16 +1251,10 @@
     "ctaOptimize": "عرض تفاصيل الاستخدام",
     "nudgeUpgrade": "مساحة عملك تقترب من حدودها. فكّر في ترقية خطتك.",
     "reasons": {
-      "frequentLimitHits": "وصلت لحدود الخطة {{hits}} مرة خلال آخر 30 يوم",
-      "projectedBreach": "{{metric}} متوقع يوصل {{projected}} (الحد: {{limit}})",
-      "highUtilization": "{{metric}} عند {{percent}}% من الاستخدام"
-    },
-    "metrics": {
-      "bookings": "الحجوزات",
-      "quotes": "عروض الأسعار",
-      "vendors": "المزودين",
-      "services": "الخدمات",
-      "seats": "المقاعد"
+      "title": "سبب التوصية",
+      "FREQUENT_LIMIT_HITS": "لقد وصلت إلى حدود خطتك {{count}} مرة خلال آخر 30 يومًا.",
+      "PROJECTED_BREACH": "بناءً على معدل نموك الحالي، من المتوقع أن تتجاوز حدود خطتك قبل نهاية الشهر.",
+      "HIGH_UTILIZATION": "استخدامك تجاوز 80% في أحد الموارد."
     }
   }
 }
