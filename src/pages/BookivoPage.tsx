@@ -5,6 +5,8 @@ import HeroSection from '@/components/bookivo/HeroSection';
 import SocialProofStrip from '@/components/bookivo/SocialProofStrip';
 import ProblemSection from '@/components/bookivo/ProblemSection';
 import SolutionSection from '@/components/bookivo/SolutionSection';
+import IntelligenceBookingSection from '@/components/bookivo/IntelligenceBookingSection';
+import VendorMapSection from '@/components/bookivo/VendorMapSection';
 import AISmartSection from '@/components/bookivo/AISmartSection';
 import AiBizOSSection from '@/components/bookivo/AiBizOSSection';
 import FeatureGrid from '@/components/bookivo/FeatureGrid';
@@ -28,13 +30,15 @@ export default function BookivoPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground scroll-smooth">
       <BookivoHeader />
       <main>
         <HeroSection />
         <SocialProofStrip />
         <ProblemSection />
         <SolutionSection />
+        <IntelligenceBookingSection />
+        <VendorMapSection />
         <AISmartSection />
         <AiBizOSSection />
         <FeatureGrid />

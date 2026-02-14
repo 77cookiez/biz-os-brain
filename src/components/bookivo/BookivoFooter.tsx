@@ -9,8 +9,8 @@ export default function BookivoFooter() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
           <div>
-            <span className="text-sm font-semibold text-foreground">Bookivo</span>
-            <p className="text-xs text-muted-foreground mt-2 max-w-xs leading-relaxed">
+            <span className="text-base font-bold text-primary">Bookivo</span>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xs leading-relaxed">
               {t('bookivo.landing.footer.desc', 'The Intelligent Booking OS for modern service businesses.')}
             </p>
           </div>

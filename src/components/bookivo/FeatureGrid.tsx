@@ -16,19 +16,19 @@ export default function FeatureGrid() {
   ];
 
   return (
-    <section id="features" className="py-24 sm:py-32 border-y border-border/50" aria-labelledby="features-heading">
+    <section id="features" className="py-16 sm:py-20 border-y border-border/50" aria-labelledby="features-heading">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 id="features-heading" className="text-3xl sm:text-4xl font-bold mb-4">
+        <div className="text-center mb-12">
+          <h2 id="features-heading" className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">
             {t('bookivo.landing.features.title', 'Everything You Need')}
           </h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {features.map((f, i) => (
-            <div key={i} className="p-4 rounded-lg border border-border hover:border-muted-foreground/30 transition-colors">
-              <f.icon className="h-4 w-4 text-muted-foreground mb-3" />
-              <h3 className="text-sm font-medium mb-1">{f.title}</h3>
-              <p className="text-xs text-muted-foreground">{f.desc}</p>
+            <div key={i} className="p-5 rounded-lg border border-border hover:border-muted-foreground/30 transition-colors">
+              <f.icon className="h-9 w-9 text-muted-foreground mb-3" strokeWidth={1.5} />
+              <h3 className="text-sm font-semibold mb-1">{f.title}</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">{f.desc}</p>
             </div>
           ))}
         </div>
