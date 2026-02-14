@@ -250,7 +250,6 @@ export function useBookingQuotes() {
 
       const { data, error } = await supabase.rpc('accept_quote_atomic', {
         _quote_id: quoteId,
-        _user_id: user.id,
       });
       if (error) throw error;
       return data as string; // booking_id

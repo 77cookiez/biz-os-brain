@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
@@ -19,7 +18,6 @@ export interface UpgradeRequest {
 
 export function useBillingAdmin() {
   const { currentWorkspace } = useWorkspace();
-  const { user } = useAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const workspaceId = currentWorkspace?.id;
@@ -54,19 +52,17 @@ export function useBillingAdmin() {
     enabled: !!workspaceId,
   });
 
-  // Request upgrade (any member)
+  // Request upgrade via server-side RPC (any member)
   const requestUpgrade = useMutation({
     mutationFn: async ({ planId, notes }: { planId: string; notes?: string }) => {
-      if (!workspaceId || !user) throw new Error('Not authenticated');
-      const { error } = await supabase
-        .from('billing_upgrade_requests')
-        .insert({
-          workspace_id: workspaceId,
-          requested_plan_id: planId,
-          requested_by: user.id,
-          notes: notes || null,
-        } as any);
+      if (!workspaceId) throw new Error('No workspace');
+      const { data, error } = await supabase.rpc('request_upgrade', {
+        _workspace_id: workspaceId,
+        _plan_id: planId,
+        _notes: notes || null,
+      });
       if (error) throw error;
+      return data as string;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-upgrade-requests'] });
@@ -75,57 +71,16 @@ export function useBillingAdmin() {
     onError: () => toast.error(t('billing.upgradeRequestFailed', 'Failed to submit upgrade request')),
   });
 
-  // Approve upgrade (admin only)
+  // Approve upgrade via atomic server-side RPC (admin only)
   const approveUpgrade = useMutation({
-    mutationFn: async ({ requestId, planId }: { requestId: string; planId: string }) => {
-      if (!workspaceId || !user) throw new Error('Not authenticated');
-
-      // Update the request
-      await supabase
-        .from('billing_upgrade_requests')
-        .update({
-          status: 'approved',
-          decided_by: user.id,
-          decided_at: new Date().toISOString(),
-        } as any)
-        .eq('id', requestId);
-
-      // Update or create subscription
-      const { data: existing } = await supabase
-        .from('billing_subscriptions')
-        .select('id')
-        .eq('workspace_id', workspaceId)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from('billing_subscriptions')
-          .update({
-            plan_id: planId,
-            status: 'active',
-            current_period_start: new Date().toISOString(),
-          } as any)
-          .eq('id', existing.id);
-      } else {
-        await supabase
-          .from('billing_subscriptions')
-          .insert({
-            workspace_id: workspaceId,
-            plan_id: planId,
-            status: 'active',
-            billing_provider: 'offline_invoice',
-          } as any);
-      }
-
-      // Audit
-      await supabase.from('audit_logs').insert({
-        workspace_id: workspaceId,
-        actor_user_id: user.id,
-        action: 'billing.upgrade_approved',
-        entity_type: 'billing_upgrade_request',
-        entity_id: requestId,
-        metadata: { plan_id: planId },
-      } as any);
+    mutationFn: async ({ requestId, notes }: { requestId: string; notes?: string }) => {
+      const { data, error } = await supabase.rpc('decide_upgrade', {
+        _request_id: requestId,
+        _decision: 'approved',
+        _notes: notes || null,
+      });
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-upgrade-requests'] });
@@ -135,27 +90,16 @@ export function useBillingAdmin() {
     onError: () => toast.error(t('billing.upgradeApproveFailed', 'Failed to approve upgrade')),
   });
 
-  // Reject upgrade (admin only)
+  // Reject upgrade via atomic server-side RPC (admin only)
   const rejectUpgrade = useMutation({
     mutationFn: async ({ requestId, notes }: { requestId: string; notes?: string }) => {
-      if (!workspaceId || !user) throw new Error('Not authenticated');
-      await supabase
-        .from('billing_upgrade_requests')
-        .update({
-          status: 'rejected',
-          decided_by: user.id,
-          decided_at: new Date().toISOString(),
-          notes: notes || null,
-        } as any)
-        .eq('id', requestId);
-
-      await supabase.from('audit_logs').insert({
-        workspace_id: workspaceId,
-        actor_user_id: user.id,
-        action: 'billing.upgrade_rejected',
-        entity_type: 'billing_upgrade_request',
-        entity_id: requestId,
-      } as any);
+      const { data, error } = await supabase.rpc('decide_upgrade', {
+        _request_id: requestId,
+        _decision: 'rejected',
+        _notes: notes || null,
+      });
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-upgrade-requests'] });

@@ -174,7 +174,7 @@ export default function BillingPage() {
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => approveUpgrade.mutate({ requestId: req.id, planId: req.requested_plan_id })}
+                    onClick={() => approveUpgrade.mutate({ requestId: req.id })}
                     disabled={approveUpgrade.isPending}
                   >
                     <CheckCircle2 className="h-4 w-4 me-1" />
