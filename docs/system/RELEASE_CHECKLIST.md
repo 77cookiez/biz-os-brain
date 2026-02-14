@@ -32,6 +32,11 @@
 - [x] `billing_subscriptions` table with offline_invoice default
 - [x] `billing_invoices` for manual invoice tracking
 - [x] All billing tables have proper RLS (admin-only management, member viewing)
+- [x] Feature guard: `can_use_feature()` RPC checks plan features
+- [x] Limit enforcement: `check_vendor_limit()`, `check_booking_limit()` RPCs
+- [x] Usage stats: `get_workspace_usage()` RPC for live counters
+- [x] `useFeatureGuard` hook exposes `canAddVendor`, `canAddBooking`, `canUseFeature` etc.
+- [x] Admin Billing Page at `/apps/booking/billing` with plan comparison, usage bars, invoices
 
 ### E. Internationalization
 - [x] All booking screens use i18n keys (no hardcoded strings)

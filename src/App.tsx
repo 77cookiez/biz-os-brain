@@ -52,6 +52,7 @@ import BookingCalendarPage from "@/pages/apps/booking/BookingCalendarPage";
 import BookingQuotesPage from "@/pages/apps/booking/BookingQuotesPage";
 import BookingBookingsPage from "@/pages/apps/booking/BookingBookingsPage";
 import BookingSettingsPage from "@/pages/apps/booking/BookingSettingsPage";
+import BillingPage from "@/pages/apps/booking/BillingPage";
 import { AppInstalledGate } from "@/components/apps/AppInstalledGate";
 import PublicBookingLayout from "@/pages/public/booking/PublicBookingLayout";
 import PublicBrowsePage from "@/pages/public/booking/PublicBrowsePage";
@@ -226,6 +227,7 @@ const AppRoutes = () => (
         <Route path="quotes" element={<BookingQuotesPage />} />
         <Route path="bookings" element={<BookingBookingsPage />} />
         <Route path="settings" element={<BookingSettingsPage />} />
+        <Route path="billing" element={<BillingPage />} />
       </Route>
       <Route path="/apps/leadership" element={<AppInstalledGate appId="leadership"><LeadershipPage /></AppInstalledGate>} />
       <Route path="/apps/leadership/settings" element={<AppInstalledGate appId="leadership"><LeadershipSettingsPage /></AppInstalledGate>} />
