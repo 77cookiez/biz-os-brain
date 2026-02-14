@@ -39,6 +39,8 @@ export interface BookingSettings {
   app_version: string | null;
   app_build_number: number | null;
   publishing_progress: Record<string, Record<string, boolean>> | null;
+  stripe_account_id: string | null;
+  stripe_onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
 }
