@@ -1,38 +1,57 @@
 /**
- * Snapshot Provider Engine — Core Contract
+ * Snapshot Provider Engine v2 — Core Contract
  *
- * SafeBack never knows app tables directly.
- * All snapshot data flows through registered SnapshotProviders.
- *
- * NOTE: Provider capture/restore is now server-side only (RPCs).
- * These types remain for registry metadata (describe()) used by UI.
+ * Providers are registry-driven. Client holds descriptors only.
+ * All capture/restore logic is server-side (RPCs).
  */
+
+export type SnapshotPolicy = 'none' | 'metadata_only' | 'full' | 'full_plus_files';
+
+export interface ProviderDescriptor {
+  provider_id: string;
+  name: string;
+  description: string;
+  critical: boolean;
+  default_policy: SnapshotPolicy;
+  is_enabled: boolean;
+}
+
+export interface EffectiveProvider extends ProviderDescriptor {
+  effective_policy: SnapshotPolicy;
+  include_files: boolean;
+  limits: Record<string, unknown>;
+}
 
 export interface ProviderFragment {
   provider_id: string;
   version: number;
+  policy: SnapshotPolicy;
   data: unknown;
   metadata?: {
     entity_count?: number;
+    skipped?: boolean;
     size_estimate?: number;
   };
 }
 
-export interface ProviderDescriptor {
+export interface PreviewProviderSummary {
+  provider_id: string;
   name: string;
-  description: string;
   critical: boolean;
+  policy: SnapshotPolicy;
+  entity_count: number;
+  skipped: boolean;
 }
 
-/**
- * SnapshotProvider interface — UI-side only.
- * capture() and restore() are no longer called from client.
- * They exist for type compatibility; actual work is in server RPCs.
- */
-export interface SnapshotProvider {
-  id: string;
-  version: number;
-  describe(): ProviderDescriptor;
+export interface PreviewResult {
+  confirmation_token: string;
+  summary: {
+    providers: PreviewProviderSummary[];
+    snapshot_created_at: string;
+    snapshot_type: string;
+    engine_version: number;
+  };
+  expires_in_seconds: number;
 }
 
 export interface SnapshotPayload {

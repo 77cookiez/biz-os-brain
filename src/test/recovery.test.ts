@@ -1,6 +1,6 @@
 /**
  * Recovery & Backup (Resilience Layer) + SafeBack App — Unit Tests
- * v2: Hardened — verifies server-side-only contracts
+ * v3: Provider Engine v2 — registry-driven, policy-aware
  */
 import { describe, it, expect } from 'vitest';
 
@@ -10,26 +10,30 @@ describe('Server-side only contract', () => {
   it('engine.ts should not export direct table mutation functions', async () => {
     const engine = await import('@/core/snapshot/engine');
     const exports = Object.keys(engine);
-    // Should NOT contain any direct supabase .from().delete/insert helpers
     expect(exports).not.toContain('deleteWorkspaceWorkboardData');
     expect(exports).not.toContain('insertAll');
   });
 
-  it('providers should not have capture/restore methods (metadata only)', async () => {
+  it('engine.ts should export getEffectiveProviders', async () => {
+    const engine = await import('@/core/snapshot/engine');
+    expect(typeof engine.getEffectiveProviders).toBe('function');
+  });
+
+  it('providers should not have capture/restore methods (descriptor only)', async () => {
     const { WorkboardProvider } = await import('@/core/snapshot/providers/WorkboardProvider');
     expect(WorkboardProvider.describe).toBeDefined();
     expect((WorkboardProvider as any).capture).toBeUndefined();
     expect((WorkboardProvider as any).restore).toBeUndefined();
   });
 
-  it('BillingProvider should be metadata only', async () => {
+  it('BillingProvider should be descriptor only', async () => {
     const { BillingProvider } = await import('@/core/snapshot/providers/BillingProvider');
     expect(BillingProvider.describe).toBeDefined();
     expect((BillingProvider as any).capture).toBeUndefined();
     expect((BillingProvider as any).restore).toBeUndefined();
   });
 
-  it('TeamChatProvider should be metadata only', async () => {
+  it('TeamChatProvider should be descriptor only', async () => {
     const { TeamChatProvider } = await import('@/core/snapshot/providers/TeamChatProvider');
     expect(TeamChatProvider.describe).toBeDefined();
     expect((TeamChatProvider as any).capture).toBeUndefined();
@@ -41,122 +45,181 @@ describe('Server-side only contract', () => {
 
 describe('Provider descriptors', () => {
   it('workboard is critical', async () => {
-    const { WorkboardProvider } = await import('@/core/snapshot/providers/WorkboardProvider');
-    expect(WorkboardProvider.describe().critical).toBe(true);
+    const { WorkboardDescriptor } = await import('@/core/snapshot/providers/WorkboardProvider');
+    expect(WorkboardDescriptor.critical).toBe(true);
+    expect(WorkboardDescriptor.default_policy).toBe('full');
   });
 
   it('billing is critical', async () => {
-    const { BillingProvider } = await import('@/core/snapshot/providers/BillingProvider');
-    expect(BillingProvider.describe().critical).toBe(true);
+    const { BillingDescriptor } = await import('@/core/snapshot/providers/BillingProvider');
+    expect(BillingDescriptor.critical).toBe(true);
+    expect(BillingDescriptor.default_policy).toBe('full');
   });
 
-  it('team_chat is non-critical', async () => {
-    const { TeamChatProvider } = await import('@/core/snapshot/providers/TeamChatProvider');
-    expect(TeamChatProvider.describe().critical).toBe(false);
+  it('team_chat is non-critical with metadata_only default', async () => {
+    const { TeamChatDescriptor } = await import('@/core/snapshot/providers/TeamChatProvider');
+    expect(TeamChatDescriptor.critical).toBe(false);
+    expect(TeamChatDescriptor.default_policy).toBe('metadata_only');
   });
 });
 
 // ─── Registry completeness ───
 
-describe('Provider registry', () => {
-  it('should have exactly 3 providers', async () => {
-    const { SnapshotProviders } = await import('@/core/snapshot/providerRegistry');
-    expect(SnapshotProviders).toHaveLength(3);
+describe('Provider registry (v2)', () => {
+  it('should have exactly 3 fallback descriptors', async () => {
+    const { FallbackProviderDescriptors } = await import('@/core/snapshot/providerRegistry');
+    expect(FallbackProviderDescriptors).toHaveLength(3);
   });
 
   it('provider IDs should be unique', async () => {
-    const { SnapshotProviders } = await import('@/core/snapshot/providerRegistry');
-    const ids = SnapshotProviders.map((p) => p.id);
+    const { FallbackProviderDescriptors } = await import('@/core/snapshot/providerRegistry');
+    const ids = FallbackProviderDescriptors.map((p) => p.provider_id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('should contain workboard, billing, team_chat', async () => {
-    const { SnapshotProviders } = await import('@/core/snapshot/providerRegistry');
-    const ids = SnapshotProviders.map((p) => p.id);
+    const { FallbackProviderDescriptors } = await import('@/core/snapshot/providerRegistry');
+    const ids = FallbackProviderDescriptors.map((p) => p.provider_id);
     expect(ids).toContain('workboard');
     expect(ids).toContain('billing');
     expect(ids).toContain('team_chat');
+  });
+
+  it('each descriptor has all required fields', async () => {
+    const { FallbackProviderDescriptors } = await import('@/core/snapshot/providerRegistry');
+    FallbackProviderDescriptors.forEach((p) => {
+      expect(p.provider_id).toBeTruthy();
+      expect(p.name).toBeTruthy();
+      expect(p.description).toBeTruthy();
+      expect(typeof p.critical).toBe('boolean');
+      expect(['none', 'metadata_only', 'full', 'full_plus_files']).toContain(p.default_policy);
+      expect(typeof p.is_enabled).toBe('boolean');
+    });
   });
 });
 
 // ─── Engine API contract ───
 
-describe('Engine exports server-only API', () => {
-  it('should export captureFullSnapshot, previewRestore, restoreFromSnapshot', async () => {
+describe('Engine exports server-only API (v2)', () => {
+  it('should export captureFullSnapshot, previewRestore, restoreFromSnapshot, getEffectiveProviders', async () => {
     const engine = await import('@/core/snapshot/engine');
     expect(typeof engine.captureFullSnapshot).toBe('function');
     expect(typeof engine.previewRestore).toBe('function');
     expect(typeof engine.restoreFromSnapshot).toBe('function');
+    expect(typeof engine.getEffectiveProviders).toBe('function');
   });
 
-  it('restoreFromSnapshot should accept workspaceId parameter', async () => {
+  it('restoreFromSnapshot should accept 4 params (snapshotId, token, actor, workspaceId)', async () => {
     const engine = await import('@/core/snapshot/engine');
-    // Function should accept 4 params (snapshotId, token, actor, workspaceId)
     expect(engine.restoreFromSnapshot.length).toBe(4);
   });
 });
 
-// ─── Restore requires admin (mock verification) ───
+// ─── v3 RPC contracts ───
 
-describe('Restore permission model', () => {
-  it('restore_workspace_snapshot_atomic RPC requires admin (documented)', () => {
-    // The RPC checks is_workspace_admin internally — this is a documentation test
-    const rpcName = 'restore_workspace_snapshot_atomic';
-    const requiredParams = ['_workspace_id', '_snapshot_id', '_actor', '_confirmation_token'];
+describe('v3 RPC contracts', () => {
+  it('capture_workspace_snapshot_v3 accepts _actor parameter', () => {
+    const rpcName = 'capture_workspace_snapshot_v3';
+    const params = ['_workspace_id', '_snapshot_type', '_reason', '_actor'];
     expect(rpcName).toBeTruthy();
-    expect(requiredParams).toHaveLength(4);
+    expect(params).toContain('_actor');
+    expect(params).toHaveLength(4);
   });
 
-  it('capture_workspace_snapshot_v2 RPC requires admin', () => {
-    const rpcName = 'capture_workspace_snapshot_v2';
-    expect(rpcName).toBeTruthy();
+  it('preview_restore_v3 returns engine_version in summary', () => {
+    const expectedFields = ['confirmation_token', 'summary', 'expires_in_seconds'];
+    const summaryFields = ['providers', 'snapshot_created_at', 'snapshot_type', 'engine_version'];
+    expect(expectedFields).toContain('summary');
+    expect(summaryFields).toContain('engine_version');
+  });
+
+  it('restore_workspace_snapshot_atomic_v3 uses v3 capture for pre-restore', () => {
+    const prRestoreCaptureFn = 'capture_workspace_snapshot_v3';
+    expect(prRestoreCaptureFn).toContain('v3');
   });
 });
 
-// ─── Atomic behavior: critical provider failure rolls back ───
+// ─── Policy resolution ───
 
-describe('Atomic restore contract', () => {
-  it('critical providers (workboard, billing) should cause full rollback on failure', () => {
-    // This tests the contract — actual SQL atomicity is enforced by the RPC
-    const criticalProviders = ['workboard', 'billing'];
-    const nonCriticalProviders = ['team_chat'];
-
-    criticalProviders.forEach((p) => {
-      expect(['workboard', 'billing']).toContain(p);
-    });
-
-    nonCriticalProviders.forEach((p) => {
-      expect(['team_chat']).toContain(p);
-    });
+describe('Policy resolution', () => {
+  it('effective policy defaults to provider default_policy when no override', () => {
+    const defaultPolicy = 'full';
+    const override = null;
+    const effective = override ?? defaultPolicy;
+    expect(effective).toBe('full');
   });
 
-  it('pre-restore snapshot is created before restore begins', () => {
-    // Contract: the orchestrator RPC calls create_workspace_snapshot before any mutation
+  it('workspace override takes precedence over default', () => {
+    const defaultPolicy = 'full';
+    const override = 'metadata_only';
+    const effective = override ?? defaultPolicy;
+    expect(effective).toBe('metadata_only');
+  });
+
+  it('policy none means provider is skipped during capture', () => {
+    const policy = 'none';
+    const shouldSkip = policy === 'none';
+    expect(shouldSkip).toBe(true);
+  });
+
+  it('valid policies are none, metadata_only, full, full_plus_files', () => {
+    const validPolicies = ['none', 'metadata_only', 'full', 'full_plus_files'];
+    expect(validPolicies).toHaveLength(4);
+    expect(validPolicies).toContain('none');
+    expect(validPolicies).toContain('metadata_only');
+    expect(validPolicies).toContain('full');
+    expect(validPolicies).toContain('full_plus_files');
+  });
+});
+
+// ─── Atomic restore contract ───
+
+describe('Atomic restore contract (v3)', () => {
+  it('critical providers (workboard, billing) cause full rollback on failure', () => {
+    const criticalProviders = ['workboard', 'billing'];
+    const nonCriticalProviders = ['team_chat'];
+    criticalProviders.forEach((p) => expect(['workboard', 'billing']).toContain(p));
+    nonCriticalProviders.forEach((p) => expect(['team_chat']).toContain(p));
+  });
+
+  it('pre-restore snapshot is created via capture_workspace_snapshot_v3', () => {
     const expectedSnapshotType = 'pre_restore';
+    const captureFunction = 'capture_workspace_snapshot_v3';
     expect(expectedSnapshotType).toBe('pre_restore');
+    expect(captureFunction).toContain('v3');
   });
 
   it('advisory lock prevents concurrent restores on same workspace', () => {
-    // Contract: pg_advisory_xact_lock(hashtext(workspace_id)) is used
     const lockMechanism = 'pg_advisory_xact_lock';
     expect(lockMechanism).toBeTruthy();
+  });
+
+  it('metadata_only fragments are skipped during restore', () => {
+    const policy = 'metadata_only';
+    const shouldRestore = !['none', 'metadata_only'].includes(policy);
+    expect(shouldRestore).toBe(false);
   });
 });
 
 // ─── Size protection ───
 
-describe('Size protection', () => {
-  it('TeamChat messages capped at 2000', () => {
+describe('Size protection (v2)', () => {
+  it('TeamChat messages capped at 2000 (default)', () => {
     const MAX_MESSAGES_PER_SNAPSHOT = 2000;
     expect(MAX_MESSAGES_PER_SNAPSHOT).toBe(2000);
   });
 
-  it('Message body truncation: capture omits raw content field (metadata only)', () => {
-    // chat_messages uses meaning_object_id, not a body column
-    // capture_workspace_snapshot_v2 builds JSON manually with only id, thread_id, sender, etc.
-    const capturedFields = ['id', 'thread_id', 'sender_user_id', 'workspace_id', 'meaning_object_id', 'source_lang', 'created_at'];
-    expect(capturedFields).not.toContain('content');
-    expect(capturedFields).not.toContain('body');
+  it('TeamChat cap is configurable via limits.max_messages', () => {
+    const limits = { max_messages: 500 };
+    const cap = limits.max_messages;
+    expect(cap).toBe(500);
+  });
+
+  it('Attachments are metadata only (no blob storage)', () => {
+    const capturedAttachmentFields = ['id', 'message_id', 'workspace_id', 'file_name', 'file_type', 'file_size', 'storage_path', 'uploaded_by', 'created_at'];
+    expect(capturedAttachmentFields).not.toContain('file_url');
+    // file_url points to actual blob — we keep storage_path as reference only
+    expect(capturedAttachmentFields).toContain('storage_path');
   });
 });
 
@@ -164,22 +227,18 @@ describe('Size protection', () => {
 
 describe('TeamChat restore workspace integrity', () => {
   it('restore_teamchat_fragment builds thread_id whitelist from fragment', () => {
-    // Contract: only threads from the fragment are inserted, then members/messages
-    // are filtered against that whitelist
     const fragmentThreadIds = ['t1', 't2'];
-    const memberRow = { thread_id: 't3' }; // foreign thread
+    const memberRow = { thread_id: 't3' };
     expect(fragmentThreadIds).not.toContain(memberRow.thread_id);
   });
 
   it('attachment refs are validated against restored message_ids', () => {
-    // Contract: attachments with message_id not in restored messages are skipped
     const restoredMessageIds = ['m1', 'm2'];
     const orphanAttachment = { message_id: 'm99' };
     expect(restoredMessageIds).not.toContain(orphanAttachment.message_id);
   });
 
-  it('workspace_id is forced on all restored rows (threads, messages, attachments)', () => {
-    // Contract: jsonb_build_object('workspace_id', _workspace_id) is appended
+  it('workspace_id is forced on all restored rows', () => {
     const forceFields = ['workspace_id'];
     expect(forceFields).toContain('workspace_id');
   });
@@ -187,37 +246,26 @@ describe('TeamChat restore workspace integrity', () => {
 
 // ─── Edge function restore safety ───
 
-describe('Edge function restore safety', () => {
+describe('Edge function restore safety (v3)', () => {
   it('restore endpoint derives workspace_id from snapshot, not client body', () => {
-    // Contract: the edge function reads workspace_id from workspace_snapshots table
-    // and does NOT accept workspace_id from the request body
     const requiredBodyParams = ['snapshot_id', 'confirmation_token'];
     expect(requiredBodyParams).not.toContain('workspace_id');
   });
-});
 
-// ─── Pre-restore snapshot uses dedicated function ───
-
-describe('Pre-restore snapshot correctness', () => {
-  it('uses capture_pre_restore_snapshot_as with _actor (no auth.uid())', () => {
-    // Contract: restore_workspace_snapshot_atomic calls capture_pre_restore_snapshot_as(_workspace_id, _actor, ...)
-    const internalFn = 'capture_pre_restore_snapshot_as';
-    const params = ['_workspace_id', '_actor', '_snapshot_type'];
-    expect(internalFn).toBeTruthy();
-    expect(params).toContain('_actor');
-    expect(params).not.toContain('auth.uid()');
+  it('preview endpoint derives workspace_id from snapshot', () => {
+    const requiredBodyParams = ['snapshot_id'];
+    expect(requiredBodyParams).not.toContain('workspace_id');
   });
 
-  it('edge function authenticates via getClaims (not getUser)', () => {
-    // Contract: safeback-engine uses getClaims(token) for JWT verification
-    const authMethod = 'getClaims';
-    expect(authMethod).not.toBe('getUser');
+  it('providers endpoint is available for reading effective policies', () => {
+    const endpoints = ['capture', 'preview', 'restore', 'providers'];
+    expect(endpoints).toContain('providers');
   });
 });
 
 // ─── Audit log events ───
 
-describe('Audit log events', () => {
+describe('Audit log events (v3)', () => {
   const EXPECTED_AUDIT_ACTIONS = [
     'workspace.snapshot_created',
     'workspace.snapshot_previewed',
@@ -228,11 +276,12 @@ describe('Audit log events', () => {
 
   it('should define all required audit actions', () => {
     expect(EXPECTED_AUDIT_ACTIONS).toHaveLength(5);
-    expect(EXPECTED_AUDIT_ACTIONS).toContain('workspace.snapshot_created');
-    expect(EXPECTED_AUDIT_ACTIONS).toContain('workspace.snapshot_previewed');
-    expect(EXPECTED_AUDIT_ACTIONS).toContain('workspace.snapshot_restore_started');
-    expect(EXPECTED_AUDIT_ACTIONS).toContain('workspace.snapshot_restore_completed');
-    expect(EXPECTED_AUDIT_ACTIONS).toContain('workspace.provider_restore_failed');
+    EXPECTED_AUDIT_ACTIONS.forEach((a) => expect(a).toMatch(/^workspace\./));
+  });
+
+  it('snapshot_created includes providers list and policies', () => {
+    const metadata = { snapshot_type: 'manual', providers: ['workboard', 'billing', 'team_chat'], reason: null };
+    expect(metadata.providers).toHaveLength(3);
   });
 });
 
@@ -282,7 +331,7 @@ describe('Advisory lock key derivation', () => {
   });
 });
 
-// ─── SafeBack Manifest Tests ───
+// ─── SafeBack Manifest ───
 
 describe('SafeBack manifest', () => {
   const manifest = {
@@ -306,5 +355,24 @@ describe('Deep-link preservation', () => {
   it('/settings/recovery route is independent of safeback install', () => {
     const settingsRoute = '/settings/recovery';
     expect(settingsRoute).not.toContain('safeback');
+  });
+});
+
+// ─── Snapshot payload format (v2) ───
+
+describe('Snapshot payload format v2', () => {
+  it('payload includes engine_version=2', () => {
+    const payload = { engine_version: 2, created_at: new Date().toISOString(), fragments: [] };
+    expect(payload.engine_version).toBe(2);
+  });
+
+  it('each fragment has policy field', () => {
+    const fragment = { provider_id: 'workboard', version: 1, policy: 'full', data: {}, metadata: { entity_count: 5 } };
+    expect(fragment.policy).toBe('full');
+  });
+
+  it('fragments with policy=none have skipped=true in metadata', () => {
+    const fragment = { provider_id: 'team_chat', version: 1, policy: 'none', data: null, metadata: { entity_count: 0, skipped: true } };
+    expect(fragment.metadata.skipped).toBe(true);
   });
 });

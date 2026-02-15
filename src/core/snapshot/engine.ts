@@ -1,30 +1,11 @@
 /**
- * Snapshot Engine v1 — Server-Side Only
+ * Snapshot Engine v2 — Thin HTTP Client
  *
- * All capture/preview/restore goes through the safeback-engine Edge Function
- * or server-side RPCs. No direct table mutations from client.
+ * All capture/preview/restore goes through the safeback-engine Edge Function.
+ * No direct table mutations from client.
  */
 import { supabase } from '@/integrations/supabase/client';
-
-// ─── Types ───
-
-export interface PreviewProviderSummary {
-  provider_id: string;
-  name: string;
-  description: string;
-  critical: boolean;
-  entity_count: number;
-}
-
-export interface PreviewResult {
-  confirmation_token: string;
-  summary: {
-    providers: PreviewProviderSummary[];
-    snapshot_created_at: string;
-    snapshot_type: string;
-  };
-  expires_in_seconds: number;
-}
+import type { PreviewResult, EffectiveProvider } from './types';
 
 // ─── Edge Function Caller ───
 
@@ -82,4 +63,11 @@ export async function restoreFromSnapshot(
     confirmation_token: confirmationToken,
   });
   return result.restored_counts || {};
+}
+
+export async function getEffectiveProviders(
+  workspaceId: string,
+): Promise<EffectiveProvider[]> {
+  const result = await callEngine('providers', { workspace_id: workspaceId });
+  return result.providers || [];
 }
