@@ -18,7 +18,7 @@ interface AppItem {
   description: string;
   icon: string;
   pricing: 'free' | 'paid' | 'subscription';
-  status: 'active' | 'available' | 'coming_soon';
+  status: 'active' | 'available' | 'coming_soon' | 'deprecated';
   capabilities: string[];
 }
 
@@ -65,6 +65,7 @@ export default function Marketplace() {
       .from('app_registry')
       .select('*')
       .not('id', 'in', `(${HIDDEN_FROM_MARKETPLACE.join(',')})`)
+      .in('status', ['available', 'active'])
       .order('name');
     setApps((data as AppItem[]) || []);
   };

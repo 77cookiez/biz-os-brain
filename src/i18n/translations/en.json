@@ -1850,7 +1850,8 @@
       "title": "SafeBack Available",
       "body": "For advanced backup management, open SafeBack",
       "button": "Open SafeBack"
-    }
+    },
+    "includedNote": "Snapshots currently include: Tasks, Goals, Plans, Ideas, and Billing state. Other app data (Booking, Chat, files) is not yet included."
   },
   "apps": {
     "safeback": {
@@ -1874,6 +1875,26 @@
       "createSnapshot": "Create Snapshot",
       "viewSchedules": "View Schedules",
       "exportLatest": "Export Latest"
+    },
+    "included": {
+      "title": "What's included in snapshots",
+      "subtitle": "Current version captures:",
+      "items": {
+        "tasks": "Tasks",
+        "goals": "Goals",
+        "plans": "Plans",
+        "ideas": "Ideas",
+        "billing": "Billing subscription state"
+      }
+    },
+    "excluded": {
+      "title": "Not included yet:",
+      "items": {
+        "apps": "Installed apps data (Booking, Chat, etc.)",
+        "files": "Uploaded files & media",
+        "secrets": "API keys & secrets",
+        "queues": "Runtime queues & notifications"
+      }
     },
     "onboarding": {
       "title": "Getting Started",

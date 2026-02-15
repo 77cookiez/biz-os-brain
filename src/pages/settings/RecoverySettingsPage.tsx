@@ -17,7 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Shield, Loader2, Plus, ExternalLink } from 'lucide-react';
+import { Shield, Loader2, Plus, ExternalLink, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ScheduleSettings from '@/apps/safeback/components/ScheduleSettings';
 import SnapshotsList from '@/apps/safeback/components/SnapshotsList';
@@ -116,6 +116,14 @@ export default function RecoverySettingsPage() {
         <h1 className="text-2xl font-bold text-foreground">{t('recovery.title', 'Recovery & Backup')}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t('recovery.subtitle', 'Manage workspace snapshots and restore points')}</p>
       </div>
+
+      {/* Snapshot scope info */}
+      <Alert variant="default">
+        <Info className="h-4 w-4" />
+        <AlertDescription className="text-xs text-muted-foreground">
+          {t('recovery.includedNote', 'Snapshots currently include: Tasks, Goals, Plans, Ideas, and Billing state. Other app data (Booking, Chat, files) is not yet included.')}
+        </AlertDescription>
+      </Alert>
 
       <ScheduleSettings
         settings={settings}
