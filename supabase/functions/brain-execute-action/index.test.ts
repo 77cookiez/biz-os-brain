@@ -1054,9 +1054,8 @@ if (TEST_MODE_AVAILABLE) {
   });
 
   Deno.test({
-    name: "M9: snapshot create and restore RPCs work",
+    name: "M9: snapshot create works with explicit _actor param",
     async fn() {
-      // This test requires admin role - skip if no service key
       if (!sb) return;
 
       await setupM9TestData();
@@ -1064,20 +1063,36 @@ if (TEST_MODE_AVAILABLE) {
       await sb!.from("user_roles").update({ role: "owner" }).eq("user_id", m9TestUserId).eq("company_id", m9TestCompanyId);
 
       try {
-        // Create a snapshot via RPC (service role, since auth.uid() won't be the test user)
+        // Create a snapshot via RPC with explicit _actor (fixes service role auth.uid()=null)
         const { data: snapId, error: snapErr } = await sb!.rpc("create_workspace_snapshot", {
           _workspace_id: m9TestWorkspaceId,
+          _actor: m9TestUserId,
           _snapshot_type: "test",
         });
 
-        // Snapshot creation may fail due to auth.uid() being null in service role context
-        // This is expected - the RPC requires auth.uid()
-        if (snapErr) {
-          // Expected: auth.uid() is null when calling with service role
-          assertEquals(typeof snapErr.message, "string");
-        } else {
-          assertExists(snapId);
-        }
+        // Should succeed now with explicit _actor
+        assertEquals(snapErr, null);
+        assertExists(snapId);
+
+        // Verify snapshot exists
+        const { data: snap } = await sb!.from("workspace_snapshots").select("*").eq("id", snapId).single();
+        assertExists(snap);
+        assertEquals(snap.workspace_id, m9TestWorkspaceId);
+        assertEquals(snap.snapshot_type, "test");
+
+        // Test preview_restore_snapshot
+        const { data: preview, error: previewErr } = await sb!.rpc("preview_restore_snapshot", {
+          _snapshot_id: snapId,
+          _actor: m9TestUserId,
+        });
+        assertEquals(previewErr, null);
+        assertExists(preview);
+        assertExists((preview as Record<string, unknown>).confirmation_token);
+
+        // Cleanup
+        await sb!.from("restore_confirmation_tokens").delete().eq("workspace_id", m9TestWorkspaceId);
+        await sb!.from("workspace_snapshots").delete().eq("workspace_id", m9TestWorkspaceId);
+        await sb!.from("audit_logs").delete().eq("workspace_id", m9TestWorkspaceId);
       } finally {
         await teardownM9TestData();
       }

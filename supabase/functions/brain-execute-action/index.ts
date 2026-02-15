@@ -850,7 +850,27 @@ async function getExecutionPolicy(
   return data as ExecutionPolicy;
 }
 
-// ─── Usage Increment Helper (M9) ───
+// ─── Usage Peek Helper (M9 corrected: read-only pre-check) ───
+
+async function peekUsageCounter(
+  sb: ReturnType<typeof createClient>,
+  workspaceId: string,
+  counterKey: string,
+  windowSeconds: number = 86400,
+): Promise<{ current: number; reset_at: string } | null> {
+  const { data, error } = await sb.rpc("peek_usage", {
+    _workspace_id: workspaceId,
+    _counter_key: counterKey,
+    _window_seconds: windowSeconds,
+  });
+  if (error) {
+    console.warn("[brain-execute] usage peek failed:", error.message);
+    return null;
+  }
+  return data as { current: number; reset_at: string };
+}
+
+// ─── Usage Increment Helper (M9 corrected: post-success only) ───
 
 async function incrementUsageCounter(
   sb: ReturnType<typeof createClient>,
@@ -1159,10 +1179,10 @@ serve(async (req) => {
           );
         }
 
-        // Daily execution limit
+        // Daily execution limit (peek only — increment after success)
         if (policy.max_daily_executions !== null) {
-          const usageResult = await incrementUsageCounter(sbService, workspaceId, "ai_executions_per_day", policy.max_daily_executions, 86400);
-          if (usageResult && !usageResult.allowed) {
+          const peekResult = await peekUsageCounter(sbService, workspaceId, "ai_executions_per_day", 86400);
+          if (peekResult && peekResult.current >= policy.max_daily_executions) {
             structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 403, code: "UPGRADE_REQUIRED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
             return new Response(
               JSON.stringify({ code: "UPGRADE_REQUIRED", reason: `Daily AI execution limit reached (${policy.max_daily_executions}). Upgrade your plan.`, remaining: 0, request_id: finalRequestId }),
@@ -1275,6 +1295,11 @@ serve(async (req) => {
         const result = rpcResult as Record<string, unknown>;
 
         if (result.success === true) {
+          // Post-success: increment usage counter (only on real execution, not replayed)
+          if (!result.replayed && policy.max_daily_executions !== null) {
+            await incrementUsageCounter(sbService, workspaceId, "ai_executions_per_day", policy.max_daily_executions, 86400);
+          }
+
           structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 200, code: "OK", request_id: finalRequestId, runtime_ms: Date.now() - startMs, rpc_ms: rpcMs, replayed: result.replayed });
           return new Response(
             JSON.stringify({
