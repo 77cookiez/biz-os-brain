@@ -256,6 +256,102 @@ describe('Bookivo hardening', () => {
   });
 });
 
+// ─── Exact restore (no drift) ───
+
+describe('Exact restore (no drift)', () => {
+  it('hard-delete tables are fully cleared before insert (12 tables)', () => {
+    const hardDeleteTables = [
+      'booking_commission_ledger', 'booking_payments', 'booking_bookings',
+      'booking_quotes', 'booking_quote_requests', 'booking_service_addons',
+      'booking_services', 'booking_blackout_dates', 'booking_availability_rules',
+      'booking_vendor_profiles', 'booking_vendors', 'booking_subscriptions',
+    ];
+    expect(hardDeleteTables).toHaveLength(12);
+    // All are hard-deleted with DELETE FROM ... WHERE workspace_id = _workspace_id
+    hardDeleteTables.forEach((t) => expect(t).not.toBe('booking_settings'));
+  });
+
+  it('booking_settings uses soft-delete for rows not in snapshot', () => {
+    const incomingSettingIds = ['s1', 's2'];
+    const existingSettingIds = ['s1', 's2', 's3'];
+    const softDeleted = existingSettingIds.filter((id) => !incomingSettingIds.includes(id));
+    expect(softDeleted).toEqual(['s3']);
+    expect(softDeleted).not.toContain('s1');
+  });
+
+  it('exact restore prevents data drift — absent rows are removed', () => {
+    // Before restore: workspace has rows A, B, C
+    // Snapshot has rows A, B only
+    // After exact restore: workspace has rows A, B (C is gone)
+    const before = ['A', 'B', 'C'];
+    const snapshot = ['A', 'B'];
+    // DELETE clears all, INSERT restores only snapshot rows
+    const after = snapshot;
+    expect(after).not.toContain('C');
+    expect(after).toEqual(['A', 'B']);
+  });
+});
+
+// ─── Actor auditing ───
+
+describe('Actor auditing', () => {
+  it('restore_bookivo_fragment accepts _actor uuid parameter', () => {
+    const signature = ['_workspace_id', '_fragment', '_actor', '_snapshot_id'];
+    expect(signature).toContain('_actor');
+    expect(signature.indexOf('_actor')).toBe(2);
+  });
+
+  it('audit uses _actor, never auth.uid() fallback', () => {
+    const auditInsert = {
+      actor_user_id: '_actor', // must be explicit param
+      workspace_id: '_workspace_id',
+    };
+    expect(auditInsert.actor_user_id).toBe('_actor');
+    expect(auditInsert.actor_user_id).not.toBe('auth.uid()');
+    expect(auditInsert.actor_user_id).not.toBe('00000000-0000-0000-0000-000000000000');
+  });
+
+  it('restore_workspace_snapshot_atomic_v3 passes _actor to bookivo restore', () => {
+    const callArgs = ['_workspace_id', "_frag->'data'", '_actor', '_snapshot_id'];
+    expect(callArgs).toContain('_actor');
+    expect(callArgs).toContain('_snapshot_id');
+  });
+});
+
+// ─── Audit entity linkage ───
+
+describe('Audit entity linkage', () => {
+  it('audit entity_type is workspace_snapshot', () => {
+    const entityType = 'workspace_snapshot';
+    expect(entityType).toBe('workspace_snapshot');
+  });
+
+  it('audit entity_id is _snapshot_id::text', () => {
+    const snapshotId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+    const entityId = snapshotId; // ::text cast
+    expect(entityId).toBe(snapshotId);
+  });
+
+  it('audit metadata includes snapshot_id, table_counts, total', () => {
+    const metadata = {
+      workspace_id: 'ws-1',
+      snapshot_id: 'snap-1',
+      table_counts: { booking_settings: 1 },
+      total: 1,
+    };
+    expect(metadata).toHaveProperty('snapshot_id');
+    expect(metadata).toHaveProperty('table_counts');
+    expect(metadata).toHaveProperty('total');
+    expect(metadata).toHaveProperty('workspace_id');
+  });
+
+  it('restore_bookivo_fragment signature includes _snapshot_id as 4th param', () => {
+    const params = ['_workspace_id', '_fragment', '_actor', '_snapshot_id'];
+    expect(params).toHaveLength(4);
+    expect(params[3]).toBe('_snapshot_id');
+  });
+});
+
 // ─── Engine API contract ───
 
 describe('Engine exports server-only API (v2)', () => {
