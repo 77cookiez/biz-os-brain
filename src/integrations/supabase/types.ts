@@ -3548,7 +3548,7 @@ export type Database = {
     Enums: {
       app_pricing: "free" | "paid" | "subscription"
       app_role: "owner" | "admin" | "member"
-      app_status: "active" | "available" | "coming_soon"
+      app_status: "active" | "available" | "coming_soon" | "deprecated"
       booking_status:
         | "requested"
         | "quoted"
@@ -3715,7 +3715,7 @@ export const Constants = {
     Enums: {
       app_pricing: ["free", "paid", "subscription"],
       app_role: ["owner", "admin", "member"],
-      app_status: ["active", "available", "coming_soon"],
+      app_status: ["active", "available", "coming_soon", "deprecated"],
       booking_status: [
         "requested",
         "quoted",
