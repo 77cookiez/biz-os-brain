@@ -3485,8 +3485,8 @@ export type Database = {
       capture_workspace_snapshot_v3: {
         Args: {
           _actor?: string
-          _reason?: string
-          _snapshot_type?: string
+          _reason: string
+          _snapshot_type: string
           _workspace_id: string
         }
         Returns: string
@@ -3683,6 +3683,10 @@ export type Database = {
         Returns: string
       }
       restore_billing_fragment: {
+        Args: { _fragment: Json; _workspace_id: string }
+        Returns: number
+      }
+      restore_bookivo_fragment: {
         Args: { _fragment: Json; _workspace_id: string }
         Returns: number
       }

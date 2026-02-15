@@ -36,4 +36,12 @@ export const FallbackProviderDescriptors: ProviderDescriptor[] = [
     default_policy: 'metadata_only',
     is_enabled: true,
   },
+  {
+    provider_id: 'bookivo',
+    name: 'Bookivo',
+    description: 'Booking services, vendors, availability, bookings, quotes, settings (file refs only)',
+    critical: true,
+    default_policy: 'full',
+    is_enabled: true,
+  },
 ];

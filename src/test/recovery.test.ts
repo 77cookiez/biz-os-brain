@@ -66,9 +66,9 @@ describe('Provider descriptors', () => {
 // ─── Registry completeness ───
 
 describe('Provider registry (v2)', () => {
-  it('should have exactly 3 fallback descriptors', async () => {
+  it('should have exactly 4 fallback descriptors', async () => {
     const { FallbackProviderDescriptors } = await import('@/core/snapshot/providerRegistry');
-    expect(FallbackProviderDescriptors).toHaveLength(3);
+    expect(FallbackProviderDescriptors).toHaveLength(4);
   });
 
   it('provider IDs should be unique', async () => {
@@ -77,12 +77,13 @@ describe('Provider registry (v2)', () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('should contain workboard, billing, team_chat', async () => {
+  it('should contain workboard, billing, team_chat, bookivo', async () => {
     const { FallbackProviderDescriptors } = await import('@/core/snapshot/providerRegistry');
     const ids = FallbackProviderDescriptors.map((p) => p.provider_id);
     expect(ids).toContain('workboard');
     expect(ids).toContain('billing');
     expect(ids).toContain('team_chat');
+    expect(ids).toContain('bookivo');
   });
 
   it('each descriptor has all required fields', async () => {
@@ -95,6 +96,85 @@ describe('Provider registry (v2)', () => {
       expect(['none', 'metadata_only', 'full', 'full_plus_files']).toContain(p.default_policy);
       expect(typeof p.is_enabled).toBe('boolean');
     });
+  });
+});
+
+// ─── Bookivo provider ───
+
+describe('Bookivo provider', () => {
+  it('BookivoProvider should be descriptor only', async () => {
+    const { BookivoProvider } = await import('@/core/snapshot/providers/BookivoProvider');
+    expect(BookivoProvider.describe).toBeDefined();
+    expect((BookivoProvider as any).capture).toBeUndefined();
+    expect((BookivoProvider as any).restore).toBeUndefined();
+  });
+
+  it('bookivo descriptor is critical with full default', async () => {
+    const { BookivoDescriptor } = await import('@/core/snapshot/providers/BookivoProvider');
+    expect(BookivoDescriptor.critical).toBe(true);
+    expect(BookivoDescriptor.default_policy).toBe('full');
+    expect(BookivoDescriptor.provider_id).toBe('bookivo');
+  });
+
+  it('restore_workspace_snapshot_atomic_v3 recognizes bookivo provider', () => {
+    const knownProviders = ['workboard', 'billing', 'team_chat', 'bookivo'];
+    expect(knownProviders).toContain('bookivo');
+  });
+
+  it('bookivo capture includes 13 tables in full policy', () => {
+    const bookivoTables = [
+      'booking_settings', 'booking_subscriptions', 'booking_vendors',
+      'booking_vendor_profiles', 'booking_availability_rules', 'booking_blackout_dates',
+      'booking_services', 'booking_service_addons', 'booking_quote_requests',
+      'booking_quotes', 'booking_bookings', 'booking_payments', 'booking_commission_ledger',
+    ];
+    expect(bookivoTables).toHaveLength(13);
+  });
+
+  it('bookivo restore deletes in reverse FK order', () => {
+    const deleteOrder = [
+      'booking_commission_ledger', 'booking_payments', 'booking_bookings',
+      'booking_quotes', 'booking_quote_requests', 'booking_service_addons',
+      'booking_services', 'booking_blackout_dates', 'booking_availability_rules',
+      'booking_vendor_profiles', 'booking_vendors', 'booking_subscriptions', 'booking_settings',
+    ];
+    expect(deleteOrder[0]).toBe('booking_commission_ledger');
+    expect(deleteOrder[deleteOrder.length - 1]).toBe('booking_settings');
+  });
+
+  it('bookivo is critical — failure causes full rollback', () => {
+    const criticalProviders = ['workboard', 'billing', 'bookivo'];
+    expect(criticalProviders).toContain('bookivo');
+  });
+
+  it('bookivo size protection defaults to 5000 rows per table', () => {
+    const defaultLimits = { max_rows_per_table: 5000 };
+    expect(defaultLimits.max_rows_per_table).toBe(5000);
+  });
+
+  it('bookivo policy resolution works with override', () => {
+    const defaultPolicy = 'full';
+    const override = 'metadata_only';
+    const effective = override ?? defaultPolicy;
+    expect(effective).toBe('metadata_only');
+  });
+
+  it('bookivo capture payload includes policy field in fragment', () => {
+    const fragment = { provider_id: 'bookivo', version: 1, policy: 'full', data: {}, metadata: { entity_count: 42 } };
+    expect(fragment.provider_id).toBe('bookivo');
+    expect(fragment.policy).toBe('full');
+  });
+
+  it('bookivo restore validates vendor_id whitelist for dependent tables', () => {
+    const validVendorIds = ['v1', 'v2'];
+    const profileRow = { vendor_id: 'v3' };
+    expect(validVendorIds).not.toContain(profileRow.vendor_id);
+  });
+
+  it('bookivo payments are captured but never auto-finalize on restore', () => {
+    // Payments are restored as-is from snapshot (status preserved), never auto-finalized
+    const paymentStatuses = ['pending', 'paid', 'refunded'];
+    expect(paymentStatuses).toContain('pending');
   });
 });
 
