@@ -197,3 +197,20 @@ export function useUninstallApp() {
     },
   });
 }
+
+export function useRemoveOverride() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      workspace_id: string;
+      override_type: "os_plan_override" | "app_plan_override";
+      app_id?: string;
+      reason: string;
+    }) => callPlatform("POST", "remove-override", body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["platform-workspace-detail", vars.workspace_id] });
+      qc.invalidateQueries({ queryKey: ["platform-audit"] });
+      qc.invalidateQueries({ queryKey: ["platform-grants"] });
+    },
+  });
+}

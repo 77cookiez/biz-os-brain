@@ -7,6 +7,7 @@ import {
   useSetAppSubscription,
   useInstallApp,
   useUninstallApp,
+  useRemoveOverride,
 } from "@/hooks/usePlatformAdmin";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,8 @@ export default function OwnerWorkspaces() {
   const [appSubDialog, setAppSubDialog] = useState(false);
   const [installDialog, setInstallDialog] = useState(false);
   const [uninstallTarget, setUninstallTarget] = useState<string | null>(null);
+  const [removeOsOverrideDialog, setRemoveOsOverrideDialog] = useState(false);
+  const [removeBookingOverrideDialog, setRemoveBookingOverrideDialog] = useState(false);
 
   // Form state
   const [reason, setReason] = useState("");
@@ -93,6 +96,7 @@ export default function OwnerWorkspaces() {
   const setAppSub = useSetAppSubscription();
   const installApp = useInstallApp();
   const uninstallApp = useUninstallApp();
+  const removeOverride = useRemoveOverride();
 
   const doSearch = () => setDebouncedSearch(search);
 
@@ -106,6 +110,8 @@ export default function OwnerWorkspaces() {
     setAppSubDialog(false);
     setInstallDialog(false);
     setUninstallTarget(null);
+    setRemoveOsOverrideDialog(false);
+    setRemoveBookingOverrideDialog(false);
   };
 
   const handleSetOsPlan = () => {
@@ -147,6 +153,28 @@ export default function OwnerWorkspaces() {
       { workspace_id: selectedWsId, app_id: uninstallTarget, reason: reason.trim() },
       {
         onSuccess: () => { toast.success("App deactivated"); resetDialog(); },
+        onError: (e) => toast.error(e.message),
+      }
+    );
+  };
+
+  const handleRemoveOsOverride = () => {
+    if (!selectedWsId || !reason.trim()) return;
+    removeOverride.mutate(
+      { workspace_id: selectedWsId, override_type: "os_plan_override", reason: reason.trim() },
+      {
+        onSuccess: () => { toast.success("OS plan override removed"); resetDialog(); },
+        onError: (e) => toast.error(e.message),
+      }
+    );
+  };
+
+  const handleRemoveBookingOverride = () => {
+    if (!selectedWsId || !reason.trim()) return;
+    removeOverride.mutate(
+      { workspace_id: selectedWsId, override_type: "app_plan_override", app_id: "booking", reason: reason.trim() },
+      {
+        onSuccess: () => { toast.success("Bookivo override removed"); resetDialog(); },
         onError: (e) => toast.error(e.message),
       }
     );
@@ -215,13 +243,20 @@ export default function OwnerWorkspaces() {
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CreditCard className="h-4 w-4" /> OS Plan
                 </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => {
-                  setSelectedPlan(effectiveOsPlanId);
-                  setSelectedCycle(effectiveOsCycle);
-                  setOsPlanDialog(true);
-                }}>
-                  Override Plan
-                </Button>
+                <div className="flex gap-2">
+                  {isOsOverride && (
+                    <Button size="sm" variant="destructive" onClick={() => setRemoveOsOverrideDialog(true)}>
+                      Remove Override
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => {
+                    setSelectedPlan(effectiveOsPlanId);
+                    setSelectedCycle(effectiveOsCycle);
+                    setOsPlanDialog(true);
+                  }}>
+                    Override Plan
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -301,16 +336,23 @@ export default function OwnerWorkspaces() {
               <Card>
                 <CardHeader className="pb-2 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm">Bookivo Subscription</CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => {
-                    setSelectedAppPlan(
-                      isBookingOverride
-                        ? appPlanOverride.value_json?.plan || "monthly"
-                        : bookingSub?.plan || "monthly"
-                    );
-                    setAppSubDialog(true);
-                  }}>
-                    Override
-                  </Button>
+                  <div className="flex gap-2">
+                    {isBookingOverride && (
+                      <Button size="sm" variant="destructive" onClick={() => setRemoveBookingOverrideDialog(true)}>
+                        Remove Override
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => {
+                      setSelectedAppPlan(
+                        isBookingOverride
+                          ? appPlanOverride.value_json?.plan || "monthly"
+                          : bookingSub?.plan || "monthly"
+                      );
+                      setAppSubDialog(true);
+                    }}>
+                      Override
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {isBookingOverride && (
@@ -519,6 +561,78 @@ export default function OwnerWorkspaces() {
               <Button variant="destructive" onClick={handleUninstallApp} disabled={!reason.trim() || uninstallApp.isPending}>
                 {uninstallApp.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Deactivate
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Remove OS Override */}
+        <Dialog open={removeOsOverrideDialog} onOpenChange={() => resetDialog()}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                Remove OS Plan Override
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This will remove the active OS plan override for <strong>{ws?.name}</strong>.
+                The workspace will revert to its billing subscription plan.
+              </p>
+              {osPlanOverride && (
+                <div className="flex items-center gap-2 flex-wrap text-sm">
+                  <span className="text-muted-foreground">Current override:</span>
+                  <Badge variant="secondary" className="capitalize">{osPlanOverride.value_json?.plan_id}</Badge>
+                  <Badge variant="outline">{osPlanOverride.value_json?.billing_cycle}</Badge>
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium text-foreground">Reason (required)</label>
+                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why remove this override?" className="mt-1" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={resetDialog}>Cancel</Button>
+              <Button variant="destructive" onClick={handleRemoveOsOverride} disabled={!reason.trim() || removeOverride.isPending}>
+                {removeOverride.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Remove Override
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Remove Bookivo Override */}
+        <Dialog open={removeBookingOverrideDialog} onOpenChange={() => resetDialog()}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+                Remove Bookivo Override
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                This will remove the active Bookivo subscription override for <strong>{ws?.name}</strong>.
+                The workspace will revert to its actual booking subscription.
+              </p>
+              {appPlanOverride && (
+                <div className="flex items-center gap-2 flex-wrap text-sm">
+                  <span className="text-muted-foreground">Current override:</span>
+                  <Badge variant="secondary" className="capitalize">{appPlanOverride.value_json?.plan}</Badge>
+                  <Badge variant="outline">{appPlanOverride.value_json?.status}</Badge>
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium text-foreground">Reason (required)</label>
+                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why remove this override?" className="mt-1" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={resetDialog}>Cancel</Button>
+              <Button variant="destructive" onClick={handleRemoveBookingOverride} disabled={!reason.trim() || removeOverride.isPending}>
+                {removeOverride.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Remove Override
               </Button>
             </DialogFooter>
           </DialogContent>

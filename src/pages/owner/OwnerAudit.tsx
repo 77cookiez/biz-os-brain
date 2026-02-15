@@ -14,6 +14,8 @@ const ACTION_TYPES = [
   { value: "app_subscription_override", label: "App Subscription Override" },
   { value: "app_installed", label: "App Installed" },
   { value: "app_uninstalled", label: "App Uninstalled" },
+  { value: "os_plan_override_removed", label: "OS Override Removed" },
+  { value: "app_plan_override_removed", label: "App Override Removed" },
 ];
 
 export default function OwnerAudit() {
