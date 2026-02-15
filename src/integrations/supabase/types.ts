@@ -3398,6 +3398,14 @@ export type Database = {
         Args: { _feature: string; _workspace_id: string }
         Returns: boolean
       }
+      capture_workspace_snapshot_v2: {
+        Args: {
+          _reason?: string
+          _snapshot_type?: string
+          _workspace_id: string
+        }
+        Returns: string
+      }
       check_booking_limit: { Args: { _workspace_id: string }; Returns: boolean }
       check_limit: {
         Args: { _limit_key: string; _workspace_id: string }
@@ -3567,15 +3575,37 @@ export type Database = {
         Args: { _actor: string; _snapshot_id: string }
         Returns: Json
       }
+      preview_restore_v2: { Args: { _snapshot_id: string }; Returns: Json }
       request_upgrade: {
         Args: { _notes?: string; _plan_id: string; _workspace_id: string }
         Returns: string
+      }
+      restore_billing_fragment: {
+        Args: { _fragment: Json; _workspace_id: string }
+        Returns: number
+      }
+      restore_teamchat_fragment: {
+        Args: { _fragment: Json; _workspace_id: string }
+        Returns: number
+      }
+      restore_workboard_fragment: {
+        Args: { _fragment: Json; _workspace_id: string }
+        Returns: number
       }
       restore_workspace_snapshot: {
         Args: {
           _actor: string
           _confirmation_token: string
           _snapshot_id: string
+        }
+        Returns: Json
+      }
+      restore_workspace_snapshot_atomic: {
+        Args: {
+          _actor: string
+          _confirmation_token: string
+          _snapshot_id: string
+          _workspace_id: string
         }
         Returns: Json
       }

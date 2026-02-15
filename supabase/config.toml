@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.backup-export]
 verify_jwt = false
+
+[functions.safeback-engine]
+verify_jwt = false
