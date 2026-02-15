@@ -6,11 +6,17 @@ import logoPrimary from "@/assets/logo-primary.png";
 import logoLight from "@/assets/logo-light.png";
 import { useTheme } from "@/contexts/ThemeContext";
 import { isSystemApp } from "@/lib/systemApps";
+import safebackIcon from "@/assets/safeback-icon.png";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const iconMap: Record<string, React.ElementType> = {};
+
+/** Apps that use a custom image icon instead of a Lucide icon */
+const appImageIcons: Record<string, string> = {
+  safeback: safebackIcon,
+};
 
 interface AppSidebarProps {
   onNavigate?: () => void;
@@ -104,6 +110,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
           <nav className="mt-2 flex flex-col gap-1">
             {activeApps.map((app) => {
               const info = appNames[app.app_id];
+              const hasImageIcon = !!appImageIcons[app.app_id];
               const Icon = LayoutGrid;
               return (
                 <NavLink
@@ -113,7 +120,11 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
                   activeClassName="bg-secondary text-foreground"
                   onClick={onNavigate}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  {hasImageIcon ? (
+                    <img src={appImageIcons[app.app_id]} alt={info?.name || app.app_id} className="h-5 w-5 rounded shrink-0" />
+                  ) : (
+                    <Icon className="h-4 w-4 shrink-0" />
+                  )}
                   {!collapsed && <span>{info?.name || app.app_id}</span>}
                 </NavLink>
               );

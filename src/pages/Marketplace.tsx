@@ -10,6 +10,7 @@ import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { isSystemApp, HIDDEN_FROM_MARKETPLACE } from '@/lib/systemApps';
+import safebackIcon from '@/assets/safeback-icon.png';
 
 interface AppItem {
   id: string;
@@ -29,6 +30,11 @@ const pricingLabels: Record<string, { label: string; variant: 'default' | 'secon
 
 const iconMap: Record<string, React.ElementType> = {
   crown: Crown,
+};
+
+/** Apps that use a custom image icon instead of a Lucide icon */
+const appImageIcons: Record<string, string> = {
+  safeback: safebackIcon,
 };
 
 export default function Marketplace() {
@@ -149,8 +155,14 @@ export default function Marketplace() {
             <Card key={app.id} className={`border-border bg-card cursor-pointer hover:border-primary/50 ${app.status === 'coming_soon' ? 'opacity-50' : ''}`} onClick={() => setSelectedApp(app)}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    {systemApp ? <Shield className="h-5 w-5 text-primary" /> : <AppIcon className="h-5 w-5 text-primary" />}
+                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
+                    {appImageIcons[app.id] ? (
+                      <img src={appImageIcons[app.id]} alt={app.name} className="h-10 w-10 rounded-lg object-cover" />
+                    ) : systemApp ? (
+                      <Shield className="h-5 w-5 text-primary" />
+                    ) : (
+                      <AppIcon className="h-5 w-5 text-primary" />
+                    )}
                   </div>
                   <div className="flex items-center gap-1.5">
                     {systemApp && <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">System</Badge>}
@@ -179,7 +191,10 @@ export default function Marketplace() {
           {selectedApp && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
+                <DialogTitle className="flex items-center gap-3">
+                  {appImageIcons[selectedApp.id] && (
+                    <img src={appImageIcons[selectedApp.id]} alt={selectedApp.name} className="h-8 w-8 rounded-lg" />
+                  )}
                   {selectedApp.name}
                   <Badge variant={pricingLabels[selectedApp.pricing].variant} className="text-[10px]">
                     {pricingLabels[selectedApp.pricing].label}
