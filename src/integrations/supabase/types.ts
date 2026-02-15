@@ -3345,6 +3345,10 @@ export type Database = {
         Args: { _batch?: number; _older_than_minutes?: number }
         Returns: number
       }
+      cleanup_restore_tokens: {
+        Args: { _batch?: number; _older_than_minutes?: number }
+        Returns: number
+      }
       cleanup_stale_executed_drafts: {
         Args: { _batch?: number; _stale_threshold?: unknown }
         Returns: number
