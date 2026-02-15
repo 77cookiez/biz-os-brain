@@ -184,12 +184,12 @@ async function handleListWorkspaces(
 
   let query = sb
     .from("workspaces")
-    .select("id, name, slug, created_at, company_id", { count: "exact" })
+    .select("id, name, created_at, company_id", { count: "exact" })
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (search) {
-    query = query.or(`name.ilike.%${search}%,slug.ilike.%${search}%,id.eq.${search}`);
+    query = query.or(`name.ilike.%${search}%,id.eq.${search}`);
   }
 
   const { data, count, error: qErr } = await query;
