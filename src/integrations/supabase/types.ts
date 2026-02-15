@@ -3409,10 +3409,19 @@ export type Database = {
         Args: { _batch?: number; _older_than_hours?: number }
         Returns: number
       }
-      create_workspace_snapshot: {
-        Args: { _snapshot_type?: string; _workspace_id: string }
-        Returns: string
-      }
+      create_workspace_snapshot:
+        | {
+            Args: {
+              _actor?: string
+              _snapshot_type?: string
+              _workspace_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: { _snapshot_type?: string; _workspace_id: string }
+            Returns: string
+          }
       decide_upgrade: {
         Args: { _decision: string; _notes?: string; _request_id: string }
         Returns: Json
@@ -3526,16 +3535,14 @@ export type Database = {
         Args: { _notes?: string; _plan_id: string; _workspace_id: string }
         Returns: string
       }
-      restore_workspace_snapshot:
-        | { Args: { _snapshot_id: string }; Returns: Json }
-        | {
-            Args: {
-              _actor: string
-              _confirmation_token?: string
-              _snapshot_id: string
-            }
-            Returns: Json
-          }
+      restore_workspace_snapshot: {
+        Args: {
+          _actor: string
+          _confirmation_token: string
+          _snapshot_id: string
+        }
+        Returns: Json
+      }
       workspace_id_from_path: { Args: { path: string }; Returns: string }
     }
     Enums: {

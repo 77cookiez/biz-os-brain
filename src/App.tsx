@@ -81,6 +81,7 @@ import PublicBookingLayoutV3 from "@/pages/public/booking/v3/PublicBookingLayout
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PrivacySettingsPage from "@/pages/settings/PrivacySettingsPage";
 import BillingSettingsPage from "@/pages/settings/BillingSettingsPage";
+import RecoverySettingsPage from "@/pages/settings/RecoverySettingsPage";
 import { toast as sonnerToast } from "sonner";
 
 const queryClient = new QueryClient({
@@ -209,6 +210,7 @@ const AppRoutes = () => (
       <Route path="/settings/intelligence" element={<IntelligenceSettingsPage />} />
       <Route path="/settings/privacy" element={<PrivacySettingsPage />} />
       <Route path="/settings/billing" element={<BillingSettingsPage />} />
+      <Route path="/settings/recovery" element={<RecoverySettingsPage />} />
       <Route path="/settings/workspace/language" element={<WorkspaceLanguageSettingsPage />} />
       <Route path="/docs/system/ull" element={<ULLDeveloperContractPage />} />
       <Route path="/apps/workboard" element={<WorkboardLayout />}>
