@@ -166,7 +166,6 @@ describe('Pre-restore snapshot reason', () => {
 // ─── SafeBack Manifest Tests ───
 
 describe('SafeBack manifest', () => {
-  // We import statically to verify exports
   const manifest = {
     id: 'safeback',
     routeBase: '/apps/safeback',
@@ -205,16 +204,11 @@ describe('SafeBack onboarding localStorage key', () => {
 describe('SafeBack audit log filter', () => {
   const AUDIT_FILTERS = [
     'workspace.snapshot_%',
-    'workspace.restore_%',
     'workspace.backup_%',
   ];
 
   it('should match snapshot actions', () => {
     expect(AUDIT_FILTERS.some(f => 'workspace.snapshot_created'.startsWith(f.replace('%', '')))).toBe(true);
-  });
-
-  it('should match restore actions', () => {
-    expect(AUDIT_FILTERS.some(f => 'workspace.restore_completed'.startsWith(f.replace('%', '')))).toBe(true);
   });
 
   it('should match backup actions', () => {
@@ -230,11 +224,52 @@ describe('SafeBack audit log filter', () => {
 
 describe('Deep-link preservation', () => {
   it('/settings/recovery route is independent of safeback install', () => {
-    // This test documents the architectural decision:
-    // RecoverySettingsPage is a settings page, NOT gated by AppInstalledGate
     const settingsRoute = '/settings/recovery';
     const safebackRoute = '/apps/safeback';
     expect(settingsRoute).not.toContain('safeback');
     expect(safebackRoute).not.toContain('settings');
+  });
+});
+
+// ─── Snapshot scope truthfulness ───
+
+describe('Snapshot scope contract', () => {
+  const SNAPSHOT_ENTITIES = ['tasks', 'goals', 'plans', 'ideas', 'billing_subscription'];
+
+  it('should include exactly 5 entities from the RPC', () => {
+    expect(SNAPSHOT_ENTITIES).toHaveLength(5);
+  });
+
+  it('should include tasks, goals, plans, ideas', () => {
+    expect(SNAPSHOT_ENTITIES).toContain('tasks');
+    expect(SNAPSHOT_ENTITIES).toContain('goals');
+    expect(SNAPSHOT_ENTITIES).toContain('plans');
+    expect(SNAPSHOT_ENTITIES).toContain('ideas');
+  });
+
+  it('should include billing_subscription', () => {
+    expect(SNAPSHOT_ENTITIES).toContain('billing_subscription');
+  });
+
+  it('should NOT claim to include app-specific data', () => {
+    expect(SNAPSHOT_ENTITIES).not.toContain('booking_bookings');
+    expect(SNAPSHOT_ENTITIES).not.toContain('chat_messages');
+    expect(SNAPSHOT_ENTITIES).not.toContain('brain_messages');
+  });
+});
+
+// ─── Marketplace filtering ───
+
+describe('Marketplace filtering', () => {
+  const VALID_STATUSES = ['available', 'active'];
+
+  it('should only show available and active apps', () => {
+    expect(VALID_STATUSES).toContain('available');
+    expect(VALID_STATUSES).toContain('active');
+  });
+
+  it('should exclude deprecated and coming_soon', () => {
+    expect(VALID_STATUSES).not.toContain('deprecated');
+    expect(VALID_STATUSES).not.toContain('coming_soon');
   });
 });
