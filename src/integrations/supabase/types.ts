@@ -1960,6 +1960,7 @@ export type Database = {
           executed_by: string
           request_id: string | null
           status: string
+          updated_at: string
           workspace_id: string
         }
         Insert: {
@@ -1974,6 +1975,7 @@ export type Database = {
           executed_by: string
           request_id?: string | null
           status?: string
+          updated_at?: string
           workspace_id: string
         }
         Update: {
@@ -1988,6 +1990,7 @@ export type Database = {
           executed_by?: string
           request_id?: string | null
           status?: string
+          updated_at?: string
           workspace_id?: string
         }
         Relationships: [
@@ -2044,7 +2047,7 @@ export type Database = {
           kpi_name: string | null
           kpi_target: number | null
           meaning_object_id: string
-          source_lang: string | null
+          source_lang: string
           status: string
           title: string
           updated_at: string
@@ -2061,7 +2064,7 @@ export type Database = {
           kpi_name?: string | null
           kpi_target?: number | null
           meaning_object_id: string
-          source_lang?: string | null
+          source_lang?: string
           status?: string
           title: string
           updated_at?: string
@@ -2078,7 +2081,7 @@ export type Database = {
           kpi_name?: string | null
           kpi_target?: number | null
           meaning_object_id?: string
-          source_lang?: string | null
+          source_lang?: string
           status?: string
           title?: string
           updated_at?: string
@@ -2110,7 +2113,7 @@ export type Database = {
           id: string
           meaning_object_id: string
           source: string
-          source_lang: string | null
+          source_lang: string
           status: string
           title: string
           updated_at: string
@@ -2124,7 +2127,7 @@ export type Database = {
           id?: string
           meaning_object_id: string
           source?: string
-          source_lang?: string | null
+          source_lang?: string
           status?: string
           title: string
           updated_at?: string
@@ -2138,7 +2141,7 @@ export type Database = {
           id?: string
           meaning_object_id?: string
           source?: string
-          source_lang?: string | null
+          source_lang?: string
           status?: string
           title?: string
           updated_at?: string
@@ -2446,7 +2449,7 @@ export type Database = {
           id: string
           meaning_object_id: string
           plan_type: Database["public"]["Enums"]["plan_type"]
-          source_lang: string | null
+          source_lang: string
           title: string
           updated_at: string
           weekly_breakdown: Json | null
@@ -2462,7 +2465,7 @@ export type Database = {
           id?: string
           meaning_object_id: string
           plan_type?: Database["public"]["Enums"]["plan_type"]
-          source_lang?: string | null
+          source_lang?: string
           title: string
           updated_at?: string
           weekly_breakdown?: Json | null
@@ -2478,7 +2481,7 @@ export type Database = {
           id?: string
           meaning_object_id?: string
           plan_type?: Database["public"]["Enums"]["plan_type"]
-          source_lang?: string | null
+          source_lang?: string
           title?: string
           updated_at?: string
           weekly_breakdown?: Json | null
@@ -2653,7 +2656,7 @@ export type Database = {
           meaning_object_id: string
           plan_id: string | null
           priority: number | null
-          source_lang: string | null
+          source_lang: string
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
@@ -2678,7 +2681,7 @@ export type Database = {
           meaning_object_id: string
           plan_id?: string | null
           priority?: number | null
-          source_lang?: string | null
+          source_lang?: string
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
@@ -2703,7 +2706,7 @@ export type Database = {
           meaning_object_id?: string
           plan_id?: string | null
           priority?: number | null
-          source_lang?: string | null
+          source_lang?: string
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
@@ -3106,6 +3109,22 @@ export type Database = {
       cleanup_stale_memory: { Args: never; Returns: undefined }
       decide_upgrade: {
         Args: { _decision: string; _notes?: string; _request_id: string }
+        Returns: Json
+      }
+      execute_draft_atomic: {
+        Args: {
+          _agent_type: string
+          _draft_id: string
+          _draft_intent?: string
+          _draft_title?: string
+          _draft_type: string
+          _meaning_object_id: string
+          _payload: Json
+          _request_id: string
+          _source_lang?: string
+          _user_id: string
+          _workspace_id: string
+        }
         Returns: Json
       }
       get_live_booking_tenant_by_slug: {

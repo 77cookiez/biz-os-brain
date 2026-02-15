@@ -565,4 +565,92 @@ if (TEST_MODE_AVAILABLE) {
       }
     },
   });
+
+  // ─── M5 TEST: Stale reserved takeover ───
+
+  Deno.test({
+    name: "M5: stale reserved row is taken over on execute",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft();
+
+        // Confirm
+        const { data: confirmData } = await callFunction(
+          { mode: "confirm", workspace_id: testWorkspaceId, draft },
+          { userId: testUserId, role: "owner" },
+        );
+
+        const execDraft = {
+          ...draft,
+          expires_at: confirmData.expires_at,
+          meaning: { meaning_object_id: confirmData.meaning_object_id },
+        };
+
+        // Insert STALE reserved row (created_at in the past)
+        const staleTime = new Date(Date.now() - 120000).toISOString(); // 2 minutes ago
+        await sb!.from("executed_drafts").insert({
+          draft_id: draft.id,
+          workspace_id: testWorkspaceId,
+          agent_type: "teamwork",
+          draft_type: "draft_task_set",
+          executed_by: testUserId,
+          status: "reserved",
+          created_at: staleTime,
+        });
+
+        // Execute should take over the stale reservation and succeed
+        const { status, data } = await callFunction(
+          { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
+          { userId: testUserId, role: "owner" },
+        );
+        assertEquals(status, 200);
+        assertEquals(data.success, true);
+        assertExists(data.entities);
+        assertEquals(data.entities.length, 1);
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M5 TEST: Atomicity (RPC rollback on failure) ───
+
+  Deno.test({
+    name: "M5: unsupported draft_type fails without partial writes",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft({ type: "draft_unknown_type", target_module: "teamwork" });
+
+        // Confirm
+        const { data: confirmData } = await callFunction(
+          { mode: "confirm", workspace_id: testWorkspaceId, draft },
+          { userId: testUserId, role: "owner" },
+        );
+
+        const execDraft = {
+          ...draft,
+          expires_at: confirmData.expires_at,
+          meaning: { meaning_object_id: confirmData.meaning_object_id },
+        };
+
+        const { count: tasksBefore } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
+
+        const { status, data } = await callFunction(
+          { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
+          { userId: testUserId, role: "owner" },
+        );
+
+        // Should fail
+        assertEquals(status === 400 || status === 409, true);
+
+        // No tasks should have been created
+        const { count: tasksAfter } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
+        assertEquals(tasksBefore, tasksAfter);
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
 }

@@ -1036,110 +1036,62 @@ serve(async (req) => {
           );
         }
 
-        // ── Strong Idempotency reservation ──
-        const reserveResult = await reserveDraftExecution(sbService, {
-          draft_id: draft.id,
-          workspace_id: workspaceId,
-          agent_type: agentType,
-          draft_type: draft.type,
-          executed_by: userId,
-          request_id: requestId,
+        // ── Atomic execution via RPC (Milestone 5) ──
+        const { data: rpcResult, error: rpcError } = await sbService.rpc("execute_draft_atomic", {
+          _workspace_id: workspaceId,
+          _draft_id: draft.id,
+          _draft_type: draft.type,
+          _agent_type: agentType,
+          _user_id: userId,
+          _request_id: requestId,
+          _meaning_object_id: (draft.meaning as { meaning_object_id: string }).meaning_object_id,
+          _payload: draft.payload,
+          _source_lang: sourceLang,
+          _draft_title: draft.title,
+          _draft_intent: draft.intent,
         });
 
-        if (reserveResult.status === "duplicate") {
-          const prev = reserveResult.row;
-          // Strong idempotency: replay previous successful result
-          if (prev && prev.status === "success") {
-            return new Response(
-              JSON.stringify({
-                success: true,
-                entities: prev.entity_refs || [],
-                audit_log_id: prev.audit_log_id,
-                replayed: true,
-              }),
-              { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-            );
-          }
-          // Previous execution failed → return 409 with previous error
-          if (prev && prev.status === "failed") {
-            return new Response(
-              JSON.stringify({
-                code: "ALREADY_EXECUTED",
-                reason: "Draft previously failed",
-                previous_error: prev.error,
-                status: "failed",
-              }),
-              { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-            );
-          }
-          // Reserved but not finalized (in-flight) → conflict
+        if (rpcError) {
+          console.error("[brain-execute] RPC error:", rpcError.message);
           return new Response(
-            JSON.stringify({ code: "ALREADY_EXECUTED", reason: "Draft execution in progress" }),
-            { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-
-        if (reserveResult.status === "error") {
-          return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "retry" }),
+            JSON.stringify({ code: "EXECUTION_FAILED", reason: rpcError.message }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
-        // Execute agent
-        const result = await agent.execute(draft, ctx);
+        const result = rpcResult as Record<string, unknown>;
 
-        // Audit + org_events
-        const auditLogId = await writeAudit(sbService, {
-          workspace_id: workspaceId,
-          actor_user_id: userId,
-          action: result.success ? "agent.execute.success" : "agent.execute.failure",
-          entity_type: draft.type,
-          entity_id: result.entities[0]?.id || draft.id,
-          metadata: {
-            agent_type: agentType,
-            draft_id: draft.id,
-            draft_type: draft.type,
-            entities: result.entities,
-            error: result.error || null,
-            request_id: requestId,
-          },
-        });
-
-        await emitOrgEvent(sbService, {
-          workspace_id: workspaceId,
-          event_type: result.success ? "agent.executed" : "agent.failed",
-          metadata: {
-            agent_type: agentType,
-            draft_type: draft.type,
-            draft_id: draft.id,
-            entity_count: result.entities.length,
-            risks_count: draft.risks.length,
-            error: result.error || null,
-            request_id: requestId,
-          },
-        });
-
-        // Finalize reservation with audit_log_id
-        await finalizeDraftReservation(
-          sbService,
-          draft.id,
-          result.success ? "success" : "failed",
-          result.entities,
-          auditLogId,
-          result.error,
-        );
-
-        if (!result.success) {
+        // RPC returns structured jsonb — map to HTTP
+        if (result.success === true) {
+          const statusCode = 200;
           return new Response(
-            JSON.stringify({ code: "EXECUTION_FAILED", reason: result.error, entities: result.entities }),
-            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            JSON.stringify({
+              success: true,
+              entities: result.entities,
+              audit_log_id: result.audit_log_id,
+              replayed: result.replayed || false,
+            }),
+            { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
+        // Failure responses from RPC
+        const code = (result.code as string) || "EXECUTION_FAILED";
+        const reason = (result.reason as string) || "Unknown error";
+        const httpStatus = code === "ALREADY_EXECUTED"
+          ? 409
+          : code === "EXECUTION_DENIED"
+          ? 403
+          : 400;
+
         return new Response(
-          JSON.stringify({ success: true, entities: result.entities, audit_log_id: auditLogId }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          JSON.stringify({
+            code,
+            reason,
+            ...(result.previous_error ? { previous_error: result.previous_error } : {}),
+            ...(result.status ? { status: result.status } : {}),
+          }),
+          { status: httpStatus, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
