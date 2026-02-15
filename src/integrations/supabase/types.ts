@@ -3164,6 +3164,47 @@ export type Database = {
           },
         ]
       }
+      workspace_backup_settings: {
+        Row: {
+          cadence: string
+          created_at: string
+          include_tables: string[]
+          is_enabled: boolean
+          retain_count: number
+          store_in_storage: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          cadence?: string
+          created_at?: string
+          include_tables?: string[]
+          is_enabled?: boolean
+          retain_count?: number
+          store_in_storage?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          cadence?: string
+          created_at?: string
+          include_tables?: string[]
+          is_enabled?: boolean
+          retain_count?: number
+          store_in_storage?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_backup_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspace_members: {
         Row: {
           custom_role_name: string | null
@@ -3409,19 +3450,10 @@ export type Database = {
         Args: { _batch?: number; _older_than_hours?: number }
         Returns: number
       }
-      create_workspace_snapshot:
-        | {
-            Args: {
-              _actor?: string
-              _snapshot_type?: string
-              _workspace_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: { _snapshot_type?: string; _workspace_id: string }
-            Returns: string
-          }
+      create_workspace_snapshot: {
+        Args: { _snapshot_type?: string; _workspace_id: string }
+        Returns: string
+      }
       decide_upgrade: {
         Args: { _decision: string; _notes?: string; _request_id: string }
         Returns: Json
