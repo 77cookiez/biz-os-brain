@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   usePlatformWorkspaces,
   useWorkspaceDetail,
+  useAvailableApps,
   useSetOsPlan,
   useSetAppSubscription,
   useInstallApp,
@@ -21,6 +22,7 @@ import {
   Plus,
   X,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Dialog,
@@ -50,11 +52,12 @@ const BOOKING_PLANS = [
   { id: "yearly", label: "Yearly" },
 ];
 
-const AVAILABLE_APPS = [
-  { id: "booking", label: "Bookivo" },
-  { id: "safeback", label: "SafeBack" },
-  { id: "leadership", label: "Leadership" },
-];
+// Helper: find active grant of a given type from grants list
+function findActiveGrant(grants: any[], grantType: string, filterFn?: (g: any) => boolean) {
+  return grants.find(
+    (g: any) => g.grant_type === grantType && g.is_active && (!filterFn || filterFn(g))
+  );
+}
 
 export default function OwnerWorkspaces() {
   const [search, setSearch] = useState("");
@@ -75,7 +78,16 @@ export default function OwnerWorkspaces() {
   const [selectedAppId, setSelectedAppId] = useState("");
 
   const { data: listData, isLoading: listLoading } = usePlatformWorkspaces(debouncedSearch);
-  const { data: detail, isLoading: detailLoading, refetch: refetchDetail } = useWorkspaceDetail(selectedWsId);
+  const { data: detail, isLoading: detailLoading } = useWorkspaceDetail(selectedWsId);
+  const { data: availableAppsData } = useAvailableApps();
+
+  // Build app name map from registry (must be top-level)
+  const registryApps: any[] = availableAppsData?.apps || [];
+  const appNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    registryApps.forEach((a: any) => { map[a.id] = a.name; });
+    return map;
+  }, [registryApps]);
 
   const setOsPlan = useSetOsPlan();
   const setAppSub = useSetAppSubscription();
@@ -101,7 +113,7 @@ export default function OwnerWorkspaces() {
     setOsPlan.mutate(
       { workspace_id: selectedWsId, plan_id: selectedPlan, billing_cycle: selectedCycle, reason: reason.trim() },
       {
-        onSuccess: () => { toast.success("OS plan updated"); resetDialog(); },
+        onSuccess: () => { toast.success("OS plan override created"); resetDialog(); },
         onError: (e) => toast.error(e.message),
       }
     );
@@ -112,7 +124,7 @@ export default function OwnerWorkspaces() {
     setAppSub.mutate(
       { workspace_id: selectedWsId, app_id: "booking", plan: selectedAppPlan, status: "active", reason: reason.trim() },
       {
-        onSuccess: () => { toast.success("Bookivo subscription updated"); resetDialog(); },
+        onSuccess: () => { toast.success("Bookivo subscription override created"); resetDialog(); },
         onError: (e) => toast.error(e.message),
       }
     );
@@ -143,12 +155,28 @@ export default function OwnerWorkspaces() {
   // ─── Detail View ───
   if (selectedWsId) {
     const ws = detail?.workspace;
-    const apps = detail?.apps || [];
+    const apps: any[] = detail?.apps || [];
     const osSub = detail?.os_subscription;
     const bookingSub = detail?.booking_subscription;
     const memberCount = detail?.member_count || 0;
-    const activeGrants = detail?.active_grants || [];
+    const activeGrants: any[] = detail?.active_grants || [];
     const installedAppIds = apps.filter((a: any) => a.is_active).map((a: any) => a.app_id);
+
+    // (E) Resolve effective OS plan: grants first, then billing_subscriptions
+    const osPlanOverride = findActiveGrant(activeGrants, "os_plan_override");
+    const effectiveOsPlanId = osPlanOverride?.value_json?.plan_id || osSub?.plan_id || "free";
+    const effectiveOsPlanName = osPlanOverride?.value_json?.plan_name
+      || osSub?.billing_plans?.name
+      || effectiveOsPlanId;
+    const effectiveOsCycle = osPlanOverride?.value_json?.billing_cycle || osSub?.billing_cycle || "monthly";
+    const isOsOverride = !!osPlanOverride;
+
+    // (E) Resolve effective Bookivo plan: grants first
+    const appPlanOverride = findActiveGrant(activeGrants, "app_plan_override", (g) => g.value_json?.app_id === "booking");
+    const isBookingOverride = !!appPlanOverride;
+
+    // Available apps from DB, filtered to exclude already installed
+    const installableApps = registryApps.filter((a: any) => !installedAppIds.includes(a.id));
 
     return (
       <div className="space-y-6 max-w-3xl">
@@ -181,36 +209,43 @@ export default function OwnerWorkspaces() {
               </CardContent>
             </Card>
 
-            {/* OS Plan */}
+            {/* OS Plan — shows override vs truth */}
             <Card>
               <CardHeader className="pb-2 flex flex-row items-center justify-between">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <CreditCard className="h-4 w-4" /> OS Plan
                 </CardTitle>
                 <Button size="sm" variant="outline" onClick={() => {
-                  setSelectedPlan(osSub?.plan_id || "free");
-                  setSelectedCycle(osSub?.billing_cycle || "monthly");
+                  setSelectedPlan(effectiveOsPlanId);
+                  setSelectedCycle(effectiveOsCycle);
                   setOsPlanDialog(true);
                 }}>
-                  Change Plan
+                  Override Plan
                 </Button>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="default" className="capitalize">
-                    {osSub?.billing_plans?.name || osSub?.plan_id || "Free"}
+                    {effectiveOsPlanName}
                   </Badge>
-                  <Badge variant="outline">{osSub?.billing_cycle || "monthly"}</Badge>
-                  <Badge variant={osSub?.status === "active" ? "default" : "destructive"}>
-                    {osSub?.status || "none"}
-                  </Badge>
-                  {osSub?.billing_provider === "platform_override" && (
-                    <Badge variant="secondary" className="text-xs">
-                      <AlertTriangle className="h-3 w-3 mr-1" />
+                  <Badge variant="outline">{effectiveOsCycle}</Badge>
+                  {isOsOverride ? (
+                    <Badge variant="secondary" className="text-xs gap-1">
+                      <ShieldCheck className="h-3 w-3" />
                       Override
+                    </Badge>
+                  ) : (
+                    <Badge variant={osSub?.status === "active" ? "default" : "destructive"}>
+                      {osSub?.status || "none"}
                     </Badge>
                   )}
                 </div>
+                {isOsOverride && osSub && (
+                  <p className="text-xs text-muted-foreground">
+                    Billing truth: {osSub.billing_plans?.name || osSub.plan_id} ({osSub.billing_cycle})
+                    — {osSub.billing_provider}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -220,7 +255,12 @@ export default function OwnerWorkspaces() {
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Package className="h-4 w-4" /> Installed Apps
                 </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => setInstallDialog(true)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setInstallDialog(true)}
+                  disabled={installableApps.length === 0}
+                >
                   <Plus className="h-3.5 w-3.5 mr-1" /> Install App
                 </Button>
               </CardHeader>
@@ -232,7 +272,9 @@ export default function OwnerWorkspaces() {
                     {apps.map((app: any) => (
                       <div key={app.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground capitalize">{app.app_id}</span>
+                          <span className="text-sm font-medium text-foreground">
+                            {appNameMap[app.app_id] || app.app_id}
+                          </span>
                           <Badge variant={app.is_active ? "default" : "secondary"} className="text-xs">
                             {app.is_active ? "Active" : "Inactive"}
                           </Badge>
@@ -254,24 +296,44 @@ export default function OwnerWorkspaces() {
               </CardContent>
             </Card>
 
-            {/* Bookivo Subscription */}
+            {/* Bookivo Subscription — shows override vs truth */}
             {installedAppIds.includes("booking") && (
               <Card>
                 <CardHeader className="pb-2 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm">Bookivo Subscription</CardTitle>
                   <Button size="sm" variant="outline" onClick={() => {
-                    setSelectedAppPlan(bookingSub?.plan || "monthly");
+                    setSelectedAppPlan(
+                      isBookingOverride
+                        ? appPlanOverride.value_json?.plan || "monthly"
+                        : bookingSub?.plan || "monthly"
+                    );
                     setAppSubDialog(true);
                   }}>
-                    Change
+                    Override
                   </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-2">
+                  {isBookingOverride && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="default" className="capitalize">
+                        {appPlanOverride.value_json?.plan}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs gap-1">
+                        <ShieldCheck className="h-3 w-3" />
+                        Override
+                      </Badge>
+                    </div>
+                  )}
                   {bookingSub ? (
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="default" className="capitalize">{bookingSub.plan}</Badge>
-                      <Badge variant={bookingSub.status === "active" ? "default" : "destructive"}>
-                        {bookingSub.status}
+                      {!isBookingOverride && (
+                        <Badge variant="default" className="capitalize">{bookingSub.plan}</Badge>
+                      )}
+                      {isBookingOverride && (
+                        <span className="text-xs text-muted-foreground">DB truth:</span>
+                      )}
+                      <Badge variant={bookingSub.status === "active" ? (isBookingOverride ? "outline" : "default") : "destructive"}>
+                        {bookingSub.plan} — {bookingSub.status}
                       </Badge>
                       {bookingSub.expires_at && (
                         <span className="text-xs text-muted-foreground">
@@ -280,7 +342,9 @@ export default function OwnerWorkspaces() {
                       )}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">No subscription.</p>
+                    !isBookingOverride && (
+                      <p className="text-sm text-muted-foreground">No subscription.</p>
+                    )
                   )}
                 </CardContent>
               </Card>
@@ -300,6 +364,11 @@ export default function OwnerWorkspaces() {
                           {g.grant_type.replace(/_/g, " ")}
                         </Badge>
                         <span className="text-muted-foreground text-xs">{g.reason}</span>
+                        {g.ends_at && (
+                          <span className="text-xs text-muted-foreground">
+                            (until {new Date(g.ends_at).toLocaleDateString()})
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -311,7 +380,7 @@ export default function OwnerWorkspaces() {
 
         {/* ─── Dialogs ─── */}
 
-        {/* Set OS Plan */}
+        {/* Set OS Plan — grant only */}
         <Dialog open={osPlanDialog} onOpenChange={() => resetDialog()}>
           <DialogContent>
             <DialogHeader>
@@ -322,7 +391,8 @@ export default function OwnerWorkspaces() {
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                This will override the billing plan for <strong>{ws?.name}</strong>.
+                Creates a grant-based override for <strong>{ws?.name}</strong>.
+                Does not modify billing truth (Stripe).
               </p>
               <div>
                 <label className="text-sm font-medium text-foreground">Plan</label>
@@ -354,7 +424,7 @@ export default function OwnerWorkspaces() {
               <Button variant="outline" onClick={resetDialog}>Cancel</Button>
               <Button onClick={handleSetOsPlan} disabled={!selectedPlan || !reason.trim() || setOsPlan.isPending}>
                 {setOsPlan.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                Override Plan
+                Create Override
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -393,7 +463,7 @@ export default function OwnerWorkspaces() {
           </DialogContent>
         </Dialog>
 
-        {/* Install App */}
+        {/* Install App — from DB registry */}
         <Dialog open={installDialog} onOpenChange={() => resetDialog()}>
           <DialogContent>
             <DialogHeader>
@@ -405,8 +475,8 @@ export default function OwnerWorkspaces() {
                 <Select value={selectedAppId} onValueChange={setSelectedAppId}>
                   <SelectTrigger className="mt-1"><SelectValue placeholder="Select app..." /></SelectTrigger>
                   <SelectContent>
-                    {AVAILABLE_APPS.filter((a) => !installedAppIds.includes(a.id)).map((a) => (
-                      <SelectItem key={a.id} value={a.id}>{a.label}</SelectItem>
+                    {installableApps.map((a: any) => (
+                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -437,7 +507,7 @@ export default function OwnerWorkspaces() {
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                This will deactivate <strong className="capitalize">{uninstallTarget}</strong>. No data will be deleted.
+                This will deactivate <strong>{appNameMap[uninstallTarget || ""] || uninstallTarget}</strong>. No data will be deleted.
               </p>
               <div>
                 <label className="text-sm font-medium text-foreground">Reason (required)</label>
