@@ -3,6 +3,7 @@ import { LayoutDashboard, Database, Clock, Download, Shield, FileText, Settings 
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import safebackIcon from '@/assets/safeback-icon.png';
 
 const iconMap = { LayoutDashboard, Database, Clock, Download, Shield, FileText, Settings };
 
@@ -21,6 +22,13 @@ export default function SafeBackLayout() {
 
   return (
     <div className="safeback-app flex flex-col h-full" style={{ '--safeback-primary': '#3B82F6', '--safeback-accent': '#10B981' } as React.CSSProperties}>
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+        <img src={safebackIcon} alt="SafeBack" className="h-8 w-8 rounded-lg" />
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">{t('apps.safeback.title', 'SafeBack')}</h1>
+          <p className="text-xs text-muted-foreground">{t('apps.safeback.subtitle', 'Workspace snapshots, scheduled backups & safe restore')}</p>
+        </div>
+      </div>
       <nav className="border-b border-border bg-card px-4">
         <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
           {tabs.map(tab => (
