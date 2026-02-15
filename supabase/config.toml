@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.safeback-engine]
 verify_jwt = false
+
+[functions.platform-admin]
+verify_jwt = false

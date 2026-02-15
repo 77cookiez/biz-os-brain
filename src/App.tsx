@@ -90,6 +90,11 @@ import SafeBackExports from "@/apps/safeback/pages/SafeBackExports";
 import SafeBackPolicies from "@/apps/safeback/pages/SafeBackPolicies";
 import SafeBackAudit from "@/apps/safeback/pages/SafeBackAudit";
 import SafeBackSettings from "@/apps/safeback/pages/SafeBackSettings";
+import OwnerLayout from "@/pages/owner/OwnerLayout";
+import OwnerOverview from "@/pages/owner/OwnerOverview";
+import OwnerWorkspaces from "@/pages/owner/OwnerWorkspaces";
+import OwnerGrants from "@/pages/owner/OwnerGrants";
+import OwnerAudit from "@/pages/owner/OwnerAudit";
 import { toast as sonnerToast } from "sonner";
 
 const queryClient = new QueryClient({
@@ -296,6 +301,13 @@ const AppRoutes = () => (
       <Route path="request" element={<PublicRequestQuotePage />} />
       <Route path="my" element={<PublicMyBookingsV2 />} />
       <Route path="auth" element={<PublicAuthPage />} />
+    </Route>
+    {/* Platform Owner Console (self-protecting) */}
+    <Route path="/owner" element={<OwnerLayout />}>
+      <Route index element={<OwnerOverview />} />
+      <Route path="workspaces" element={<OwnerWorkspaces />} />
+      <Route path="grants" element={<OwnerGrants />} />
+      <Route path="audit" element={<OwnerAudit />} />
     </Route>
     {/* Admin Backoffice (protected) */}
     <Route
