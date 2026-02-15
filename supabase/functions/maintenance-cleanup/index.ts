@@ -129,6 +129,15 @@ serve(async (req) => {
       structuredLog({ step: "pending_executions", error: err6.message, request_id: requestId });
     }
 
+    // ── 7. Cleanup expired restore tokens ──
+    const { data: restoreTokensDeleted, error: err7 } = await sb.rpc(
+      "cleanup_restore_tokens",
+      { _older_than_minutes: 60, _batch: 500 },
+    );
+    if (err7) {
+      structuredLog({ step: "restore_tokens", error: err7.message, request_id: requestId });
+    }
+
     const runtimeMs = Date.now() - startMs;
     const confirmsCount = confirmationsDeleted ?? 0;
     const staleCount = staleDeleted ?? 0;
@@ -136,8 +145,9 @@ serve(async (req) => {
     const rateLimitsCount = rateLimitsDeleted ?? 0;
     const usageCountersCount = usageCountersDeleted ?? 0;
     const pendingExecsCount = pendingExecsDeleted ?? 0;
+    const restoreTokensCount = restoreTokensDeleted ?? 0;
 
-    // ── 7. Structured log ──
+    // ── 8. Structured log ──
     structuredLog({
       status_code: 200,
       code: "OK",
@@ -148,6 +158,7 @@ serve(async (req) => {
       rate_limits_deleted: rateLimitsCount,
       usage_counters_deleted: usageCountersCount,
       pending_executions_deleted: pendingExecsCount,
+      restore_tokens_deleted: restoreTokensCount,
       runtime_ms: runtimeMs,
     });
 
@@ -160,6 +171,7 @@ serve(async (req) => {
         rate_limits_deleted: rateLimitsCount,
         usage_counters_deleted: usageCountersCount,
         pending_executions_deleted: pendingExecsCount,
+        restore_tokens_deleted: restoreTokensCount,
         runtime_ms: runtimeMs,
         request_id: requestId,
       }),

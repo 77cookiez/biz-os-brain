@@ -2680,6 +2680,57 @@ export type Database = {
         }
         Relationships: []
       }
+      restore_confirmation_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          preview_summary: Json
+          snapshot_id: string
+          token: string
+          used_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          preview_summary?: Json
+          snapshot_id: string
+          token: string
+          used_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          preview_summary?: Json
+          snapshot_id?: string
+          token?: string
+          used_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restore_confirmation_tokens_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "workspace_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restore_confirmation_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       risk_forecasts: {
         Row: {
           company_id: string
@@ -3467,14 +3518,24 @@ export type Database = {
         Args: { _event_type: string; _meta?: Json; _workspace_id: string }
         Returns: undefined
       }
+      preview_restore_snapshot: {
+        Args: { _actor: string; _snapshot_id: string }
+        Returns: Json
+      }
       request_upgrade: {
         Args: { _notes?: string; _plan_id: string; _workspace_id: string }
         Returns: string
       }
-      restore_workspace_snapshot: {
-        Args: { _snapshot_id: string }
-        Returns: Json
-      }
+      restore_workspace_snapshot:
+        | { Args: { _snapshot_id: string }; Returns: Json }
+        | {
+            Args: {
+              _actor: string
+              _confirmation_token?: string
+              _snapshot_id: string
+            }
+            Returns: Json
+          }
       workspace_id_from_path: { Args: { path: string }; Returns: string }
     }
     Enums: {
