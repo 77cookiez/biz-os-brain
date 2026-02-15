@@ -184,12 +184,6 @@ export function useExportSnapshot() {
       const token = session.session?.access_token;
       if (!token) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase.functions.invoke('backup-export', {
-        body: null,
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      // Use query params approach
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/backup-export?snapshot_id=${snapshotId}`;
       const resp = await fetch(url, {
         headers: {
