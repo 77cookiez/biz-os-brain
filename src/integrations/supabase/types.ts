@@ -2599,6 +2599,120 @@ export type Database = {
           },
         ]
       }
+      platform_audit_log: {
+        Row: {
+          action_type: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          payload: Json
+          reason: string | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action_type: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          reason?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action_type?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          reason?: string | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      platform_grants: {
+        Row: {
+          created_at: string
+          created_by: string
+          ends_at: string | null
+          grant_type: string
+          id: string
+          is_active: boolean
+          reason: string
+          scope: string
+          scope_id: string
+          starts_at: string
+          value_json: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          ends_at?: string | null
+          grant_type: string
+          id?: string
+          is_active?: boolean
+          reason: string
+          scope: string
+          scope_id: string
+          starts_at?: string
+          value_json?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string | null
+          grant_type?: string
+          id?: string
+          is_active?: boolean
+          reason?: string
+          scope?: string
+          scope_id?: string
+          starts_at?: string
+          value_json?: Json
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      platform_users: {
+        Row: {
+          created_at: string
+          is_active: boolean
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          is_active?: boolean
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          is_active?: boolean
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -3609,6 +3723,7 @@ export type Database = {
         Args: { p_slug: string }
         Returns: Json
       }
+      get_platform_role: { Args: { _user_id: string }; Returns: string }
       get_thread_workspace: { Args: { _thread_id: string }; Returns: string }
       get_workspace_company: {
         Args: { _workspace_id: string }
@@ -3656,6 +3771,7 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_platform_user: { Args: { _user_id: string }; Returns: boolean }
       is_workspace_admin: {
         Args: { _user_id: string; _workspace_id: string }
         Returns: boolean
