@@ -38,6 +38,8 @@ async function callPlatform(
   return data;
 }
 
+// ─── Existing hooks ───
+
 export function usePlatformRole() {
   const { user } = useAuth();
   return useQuery({
@@ -106,5 +108,84 @@ export function usePlatformAudit(actionType?: string) {
         undefined,
         actionType ? { action_type: actionType } : {}
       ),
+  });
+}
+
+// ─── NEW hooks ───
+
+export function useWorkspaceDetail(workspaceId: string | null) {
+  return useQuery({
+    queryKey: ["platform-workspace-detail", workspaceId],
+    queryFn: () =>
+      callPlatform("GET", "workspace-detail", undefined, {
+        workspace_id: workspaceId!,
+      }),
+    enabled: !!workspaceId,
+  });
+}
+
+export function useSetOsPlan() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      workspace_id: string;
+      plan_id: string;
+      billing_cycle?: string;
+      reason: string;
+    }) => callPlatform("POST", "set-os-plan", body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["platform-workspace-detail", vars.workspace_id] });
+      qc.invalidateQueries({ queryKey: ["platform-audit"] });
+      qc.invalidateQueries({ queryKey: ["platform-grants"] });
+    },
+  });
+}
+
+export function useSetAppSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      workspace_id: string;
+      app_id: string;
+      plan: string;
+      status?: string;
+      expires_at?: string;
+      reason: string;
+    }) => callPlatform("POST", "set-app-subscription", body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["platform-workspace-detail", vars.workspace_id] });
+      qc.invalidateQueries({ queryKey: ["platform-audit"] });
+      qc.invalidateQueries({ queryKey: ["platform-grants"] });
+    },
+  });
+}
+
+export function useInstallApp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      workspace_id: string;
+      app_id: string;
+      reason: string;
+    }) => callPlatform("POST", "install-app", body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["platform-workspace-detail", vars.workspace_id] });
+      qc.invalidateQueries({ queryKey: ["platform-audit"] });
+    },
+  });
+}
+
+export function useUninstallApp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      workspace_id: string;
+      app_id: string;
+      reason: string;
+    }) => callPlatform("POST", "uninstall-app", body),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["platform-workspace-detail", vars.workspace_id] });
+      qc.invalidateQueries({ queryKey: ["platform-audit"] });
+    },
   });
 }
