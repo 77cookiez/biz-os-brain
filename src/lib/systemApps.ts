@@ -12,4 +12,4 @@ export function isSystemApp(appId: string): boolean {
 }
 
 /** Apps that are always hidden from the Marketplace browse view (but shown when installed). */
-export const HIDDEN_FROM_MARKETPLACE = ['brain'] as const;
+export const HIDDEN_FROM_MARKETPLACE = ['brain', 'recovery'] as const;

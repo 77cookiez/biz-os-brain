@@ -42,11 +42,19 @@ export function useAuditLogs(page = 0, pageSize = 20) {
       const from = page * pageSize;
       const to = from + pageSize - 1;
 
+      // Query audit entries related to snapshots, backups, restore, and safeback app events.
+      // Current known actions: app.install, app.uninstall (entity_id='safeback')
+      // Future RPCs may write: workspace.snapshot_created, workspace.snapshot_restored, etc.
       const { data, error, count } = await supabase
         .from('audit_logs')
         .select('*', { count: 'exact' })
         .eq('workspace_id', workspaceId)
-        .or('action.like.workspace.snapshot_%,action.like.workspace.restore_%,action.like.workspace.backup_%')
+        .or(
+          'action.like.workspace.snapshot_%,' +
+          'action.like.workspace.backup_%,' +
+          'entity_type.eq.workspace_snapshot,' +
+          'and(action.in.(app.install,app.uninstall),entity_id.eq.safeback)'
+        )
         .order('created_at', { ascending: false })
         .range(from, to);
 
