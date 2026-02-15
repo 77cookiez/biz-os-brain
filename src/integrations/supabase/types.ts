@@ -3462,6 +3462,10 @@ export type Database = {
         Args: { _snapshot_type?: string; _workspace_id: string }
         Returns: string
       }
+      create_workspace_snapshot_internal: {
+        Args: { _actor: string; _snapshot_type?: string; _workspace_id: string }
+        Returns: string
+      }
       decide_upgrade: {
         Args: { _decision: string; _notes?: string; _request_id: string }
         Returns: Json

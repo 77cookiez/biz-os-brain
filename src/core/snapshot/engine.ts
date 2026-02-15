@@ -75,12 +75,11 @@ export async function restoreFromSnapshot(
   snapshotId: string,
   confirmationToken: string,
   _actor: string,
-  workspaceId: string,
+  _workspaceId: string,
 ): Promise<Record<string, number>> {
   const result = await callEngine('restore', {
     snapshot_id: snapshotId,
     confirmation_token: confirmationToken,
-    workspace_id: workspaceId,
   });
   return result.restored_counts || {};
 }

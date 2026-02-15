@@ -100,19 +100,27 @@ Deno.serve(async (req) => {
 
     // ── RESTORE ──
     if (path === "restore") {
-      const { snapshot_id, confirmation_token, workspace_id } = body;
-      if (!snapshot_id || !confirmation_token || !workspace_id) {
+      const { snapshot_id, confirmation_token } = body;
+      if (!snapshot_id || !confirmation_token) {
         return json(
-          { error: "snapshot_id, confirmation_token, workspace_id required" },
+          { error: "snapshot_id, confirmation_token required" },
           400
         );
       }
-      await assertAdmin(workspace_id);
+
+      // Derive workspace_id from snapshot (never trust client)
+      const { data: snap, error: snapErr } = await sb
+        .from("workspace_snapshots")
+        .select("workspace_id")
+        .eq("id", snapshot_id)
+        .single();
+      if (snapErr || !snap) return json({ error: "Snapshot not found" }, 404);
+      await assertAdmin(snap.workspace_id);
 
       const { data, error } = await sb.rpc(
         "restore_workspace_snapshot_atomic",
         {
-          _workspace_id: workspace_id,
+          _workspace_id: snap.workspace_id,
           _snapshot_id: snapshot_id,
           _actor: user.id,
           _confirmation_token: confirmation_token,
