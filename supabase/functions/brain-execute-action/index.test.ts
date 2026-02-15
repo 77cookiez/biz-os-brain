@@ -5,7 +5,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("VITE_SUPABASE_SERVICE_ROLE_KEY") || "";
+const MAINTENANCE_KEY = Deno.env.get("MAINTENANCE_KEY") || "";
 const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/brain-execute-action`;
+const MAINTENANCE_URL = `${SUPABASE_URL}/functions/v1/maintenance-cleanup`;
 
 // Service client for test data setup/teardown
 const sb = SERVICE_KEY ? createClient(SUPABASE_URL, SERVICE_KEY) : null;
@@ -804,5 +806,73 @@ if (TEST_MODE_AVAILABLE) {
         await teardownTestData();
       }
     },
+
+
+  // ─── M6 TEST: Execute success response includes request_id ───
+
+  Deno.test({
+    name: "M6: execute success response includes request_id",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft();
+        const { execute } = await confirmAndExecute(draft);
+
+        const { status, data } = await execute();
+        assertEquals(status, 200);
+        assertEquals(data.success, true);
+        assertExists(data.request_id);
+        assertEquals(typeof data.request_id, "string");
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+}
+
+// ─── Maintenance-cleanup tests (require MAINTENANCE_KEY) ───
+
+const MAINTENANCE_TEST_AVAILABLE = !!MAINTENANCE_KEY;
+
+if (MAINTENANCE_TEST_AVAILABLE) {
+  Deno.test("M6: maintenance-cleanup rejects missing key with 401", async () => {
+    const resp = await fetch(MAINTENANCE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await resp.json();
+    assertEquals(resp.status, 401);
+    assertEquals(data.code, "UNAUTHORIZED");
+    assertExists(data.request_id);
+  });
+
+  Deno.test("M6: maintenance-cleanup rejects wrong key with 401", async () => {
+    const resp = await fetch(MAINTENANCE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-maintenance-key": "wrong-key-value",
+      },
+    });
+    const data = await resp.json();
+    assertEquals(resp.status, 401);
+    assertEquals(data.code, "UNAUTHORIZED");
+  });
+
+  Deno.test("M6: maintenance-cleanup accepts correct key with 200", async () => {
+    const resp = await fetch(MAINTENANCE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-maintenance-key": MAINTENANCE_KEY,
+      },
+    });
+    const data = await resp.json();
+    assertEquals(resp.status, 200);
+    assertEquals(data.ok, true);
+    assertEquals(typeof data.confirmations_deleted, "number");
+    assertEquals(typeof data.stale_reservations_deleted, "number");
+    assertEquals(typeof data.runtime_ms, "number");
+    assertExists(data.request_id);
   });
 }

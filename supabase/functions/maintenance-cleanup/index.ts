@@ -16,20 +16,18 @@ serve(async (req) => {
   const requestId = crypto.randomUUID();
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const maintenanceKey = Deno.env.get("MAINTENANCE_KEY");
+    const providedKey = req.headers.get("x-maintenance-key") || "";
 
-    // ── Auth: require service role key via Authorization header ──
-    const authHeader = req.headers.get("Authorization") || "";
-    const token = authHeader.replace("Bearer ", "");
-
-    if (token !== serviceKey) {
+    if (!maintenanceKey || providedKey !== maintenanceKey) {
       return new Response(
-        JSON.stringify({ ok: false, reason: "Unauthorized" }),
+        JSON.stringify({ ok: false, code: "UNAUTHORIZED", request_id: requestId }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
 
     // ── 1. Cleanup expired draft confirmations ──
@@ -54,31 +52,10 @@ serve(async (req) => {
     const confirmsCount = confirmationsDeleted ?? 0;
     const staleCount = staleDeleted ?? 0;
 
-    // ── 3. Emit observability org_event (best-effort) ──
-    try {
-      // Find any workspace for the org_event — use a system sentinel or skip if none
-      // For maintenance events we use a "system" event that doesn't require a workspace
-      // but org_events requires workspace_id, so we pick the first active one
-      if (confirmsCount > 0 || staleCount > 0) {
-        const { data: ws } = await sb.from("workspaces").select("id").limit(1).single();
-        if (ws) {
-          await sb.from("org_events").insert({
-            workspace_id: ws.id,
-            event_type: "maintenance.cleanup",
-            object_type: "system",
-            severity_hint: "info",
-            metadata: {
-              request_id: requestId,
-              confirmations_deleted: confirmsCount,
-              stale_reservations_deleted: staleCount,
-              runtime_ms: runtimeMs,
-            },
-          });
-        }
-      }
-    } catch (e) {
-      console.warn("[maintenance-cleanup] org_event write failed:", e);
-    }
+    // ── 3. Structured console log (observability) ──
+    console.log(
+      `[maintenance-cleanup] request_id=${requestId} confirmations_deleted=${confirmsCount} stale_deleted=${staleCount} runtime_ms=${runtimeMs}`,
+    );
 
     return new Response(
       JSON.stringify({
@@ -93,7 +70,7 @@ serve(async (req) => {
   } catch (error) {
     console.error("[maintenance-cleanup] unexpected error:", error);
     return new Response(
-      JSON.stringify({ ok: false, reason: "Internal error", request_id: requestId }),
+      JSON.stringify({ ok: false, code: "INTERNAL_ERROR", request_id: requestId }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
