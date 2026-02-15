@@ -1052,11 +1052,11 @@ serve(async (req) => {
         });
 
         if (rpcError) {
-          console.error("[brain-execute] RPC error:", rpcError.message);
+          console.error("[brain-execute] RPC error:", rpcError.message, "request_id:", requestId);
           // RPC raised an exception — entire transaction was rolled back (true atomicity).
           // No partial writes exist. Return error to client.
           return new Response(
-            JSON.stringify({ code: "EXECUTION_FAILED", reason: rpcError.message }),
+            JSON.stringify({ code: "EXECUTION_FAILED", reason: rpcError.message, request_id: requestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
