@@ -33,10 +33,39 @@ export function useBookingSubscription() {
     enabled: !!workspaceId,
   });
 
-  const isActive = subscription?.status === 'active';
-  const isTrial = subscription?.status === 'trial';
-  const isGracePeriod = subscription?.status === 'grace';
-  const isSuspended = subscription?.status === 'suspended' || subscription?.status === 'expired';
+  // Check for active app_plan_override grant (safety net)
+  const { data: appOverrideGrant } = useQuery({
+    queryKey: ['booking-app-override', workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return null;
+      const { data, error } = await supabase
+        .from('platform_grants')
+        .select('*')
+        .eq('scope', 'workspace')
+        .eq('scope_id', workspaceId)
+        .eq('grant_type', 'app_plan_override')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        console.warn('Could not fetch app_plan_override grant:', error.message);
+        return null;
+      }
+      // Filter to booking app_id
+      if (data && (data as any).value_json?.app_id === 'booking') return data;
+      return null;
+    },
+    enabled: !!workspaceId,
+  });
+
+  const hasOverride = !!appOverrideGrant;
+
+  // If override grant exists, treat as active regardless of subscription table
+  const isActive = hasOverride || subscription?.status === 'active';
+  const isTrial = !hasOverride && subscription?.status === 'trial';
+  const isGracePeriod = !hasOverride && subscription?.status === 'grace';
+  const isSuspended = !hasOverride && (subscription?.status === 'suspended' || subscription?.status === 'expired');
 
   let daysRemaining: number | null = null;
   if (subscription?.expires_at) {
@@ -56,5 +85,7 @@ export function useBookingSubscription() {
     isSuspended,
     daysRemaining,
     canWrite,
+    isOverride: hasOverride,
+    overrideGrant: appOverrideGrant,
   };
 }

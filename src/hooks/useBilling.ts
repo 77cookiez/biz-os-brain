@@ -91,6 +91,31 @@ export function useBilling() {
     enabled: !!workspaceId,
   });
 
+  // Fetch active os_plan_override grant for this workspace
+  const { data: osOverrideGrant, isLoading: overrideLoading } = useQuery({
+    queryKey: ['billing-os-override', workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return null;
+      const { data, error } = await supabase
+        .from('platform_grants')
+        .select('*')
+        .eq('scope', 'workspace')
+        .eq('scope_id', workspaceId)
+        .eq('grant_type', 'os_plan_override')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        // If platform_grants doesn't exist or user has no access, just return null
+        console.warn('Could not fetch os_plan_override grant:', error.message);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!workspaceId,
+  });
+
   // Fetch invoices
   const { data: invoices = [], isLoading: invoicesLoading } = useQuery({
     queryKey: ['billing-invoices', workspaceId],
@@ -107,11 +132,16 @@ export function useBilling() {
     enabled: !!workspaceId,
   });
 
-  const currentPlan = plans.find(p => p.id === (subscription?.plan_id || 'free')) || null;
+  // Resolve effective plan: grant override first, then subscription, then "free"
+  const isOverride = !!osOverrideGrant;
+  const effectivePlanId = (osOverrideGrant as any)?.value_json?.plan_id
+    || subscription?.plan_id
+    || 'free';
+  const currentPlan = plans.find(p => p.id === effectivePlanId) || null;
 
-  const isFreePlan = !subscription || subscription.plan_id === 'free';
-  const isActive = !subscription || subscription.status === 'active' || subscription.status === 'trial';
-  const isPastDue = subscription?.status === 'past_due';
+  const isFreePlan = effectivePlanId === 'free';
+  const isActive = isOverride || !subscription || subscription.status === 'active' || subscription.status === 'trial';
+  const isPastDue = !isOverride && subscription?.status === 'past_due';
 
   // Change plan (admin only)
   const changePlan = useMutation({
@@ -176,11 +206,13 @@ export function useBilling() {
     subscription,
     currentPlan,
     invoices,
-    isLoading: plansLoading || subLoading,
+    isLoading: plansLoading || subLoading || overrideLoading,
     invoicesLoading,
     isFreePlan,
     isActive,
     isPastDue,
+    isOverride,
+    overrideGrant: osOverrideGrant,
     changePlan,
     markInvoicePaid,
   };
