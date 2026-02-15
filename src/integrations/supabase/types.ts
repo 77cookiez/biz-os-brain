@@ -2544,6 +2544,54 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          action: string
+          counter: number
+          user_id: string
+          window_start: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          counter?: number
+          user_id: string
+          window_start: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          counter?: number
+          user_id?: string
+          window_start?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      request_dedupes: {
+        Row: {
+          created_at: string
+          mode: string
+          request_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          mode: string
+          request_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          mode?: string
+          request_id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
       risk_forecasts: {
         Row: {
           company_id: string
@@ -3099,6 +3147,16 @@ export type Database = {
       }
       check_booking_limit: { Args: { _workspace_id: string }; Returns: boolean }
       check_quotes_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      check_rate_limit: {
+        Args: {
+          _action: string
+          _limit: number
+          _user_id: string
+          _window_seconds?: number
+          _workspace_id: string
+        }
+        Returns: Json
+      }
       check_seat_limit: { Args: { _workspace_id: string }; Returns: boolean }
       check_services_limit: {
         Args: { _workspace_id: string }
@@ -3110,6 +3168,14 @@ export type Database = {
         Returns: number
       }
       cleanup_old_org_events: { Args: never; Returns: undefined }
+      cleanup_rate_limits: {
+        Args: { _batch?: number; _older_than_hours?: number }
+        Returns: number
+      }
+      cleanup_request_dedupes: {
+        Args: { _batch?: number; _older_than_minutes?: number }
+        Returns: number
+      }
       cleanup_stale_executed_drafts: {
         Args: { _batch?: number; _stale_threshold?: unknown }
         Returns: number

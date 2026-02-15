@@ -71,6 +71,7 @@ Deno.test("dry_run rejects unauthenticated request", async () => {
   });
   assertEquals(status, 401);
   assertEquals(data.code, "EXECUTION_DENIED");
+  assertExists(data.request_id);
 });
 
 Deno.test("execute rejects missing confirmation_hash", async () => {
@@ -79,9 +80,9 @@ Deno.test("execute rejects missing confirmation_hash", async () => {
     workspace_id: crypto.randomUUID(),
     draft: makeDraft(),
   });
-  // Without auth we get 401 first
   assertEquals(status, 401);
   assertEquals(data.code, "EXECUTION_DENIED");
+  assertExists(data.request_id);
 });
 
 Deno.test("rejects missing meaning", async () => {
@@ -108,6 +109,23 @@ Deno.test("rejects invalid draft structure", async () => {
   assertEquals(typeof status, "number");
 });
 
+Deno.test("all responses include request_id", async () => {
+  // 401 path
+  const { data: d1 } = await callFunction({
+    mode: "dry_run",
+    workspace_id: crypto.randomUUID(),
+    draft: makeDraft(),
+  });
+  assertExists(d1.request_id);
+
+  // 400 path (missing workspace_id)
+  const { data: d2 } = await callFunction(
+    { mode: "dry_run", draft: makeDraft() },
+    { token: "fake-token" },
+  );
+  assertExists(d2.request_id);
+});
+
 // ─── Strong Behavior Tests (require TEST_MODE=true + SERVICE_ROLE_KEY) ───
 
 const TEST_MODE_AVAILABLE = Deno.env.get("TEST_MODE") === "true" && !!SERVICE_KEY;
@@ -121,28 +139,24 @@ if (TEST_MODE_AVAILABLE) {
   async function setupTestData() {
     if (!sb) return;
 
-    // Create company
     await sb.from("companies").insert({
       id: testCompanyId,
       name: "Test Company",
       created_by: testUserId,
     });
 
-    // Create workspace
     await sb.from("workspaces").insert({
       id: testWorkspaceId,
       name: "Test Workspace",
       company_id: testCompanyId,
     });
 
-    // Create profile
     await sb.from("profiles").upsert({
       user_id: testUserId,
       full_name: "Test User",
       preferred_locale: "en",
     });
 
-    // Add as workspace member (accepted)
     await sb.from("workspace_members").insert({
       workspace_id: testWorkspaceId,
       user_id: testUserId,
@@ -150,7 +164,6 @@ if (TEST_MODE_AVAILABLE) {
       invite_status: "accepted",
     });
 
-    // Add as company owner
     await sb.from("user_roles").insert({
       user_id: testUserId,
       company_id: testCompanyId,
@@ -161,6 +174,8 @@ if (TEST_MODE_AVAILABLE) {
   // Teardown test data
   async function teardownTestData() {
     if (!sb) return;
+    await sb.from("request_dedupes").delete().eq("workspace_id", testWorkspaceId);
+    await sb.from("rate_limits").delete().eq("workspace_id", testWorkspaceId);
     await sb.from("draft_confirmations").delete().eq("workspace_id", testWorkspaceId);
     await sb.from("executed_drafts").delete().eq("workspace_id", testWorkspaceId);
     await sb.from("audit_logs").delete().eq("workspace_id", testWorkspaceId);
@@ -176,13 +191,11 @@ if (TEST_MODE_AVAILABLE) {
 
   // Helper: full confirm->execute flow
   async function confirmAndExecute(draft: Record<string, unknown>) {
-    // Step 1: confirm
     const { data: confirmData } = await callFunction(
       { mode: "confirm", workspace_id: testWorkspaceId, draft },
       { userId: testUserId, role: "owner" },
     );
 
-    // Step 2: patch draft with meaning_object_id + expires_at
     const execDraft = {
       ...draft,
       expires_at: confirmData.expires_at,
@@ -191,7 +204,6 @@ if (TEST_MODE_AVAILABLE) {
         : draft.meaning,
     };
 
-    // Step 3: execute
     return {
       confirmData,
       execDraft,
@@ -217,6 +229,7 @@ if (TEST_MODE_AVAILABLE) {
         assertEquals(status, 200);
         assertEquals(data.can_execute, true);
         assertExists(data.preview);
+        assertExists(data.request_id);
 
         const { count: afterCount } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(beforeCount, afterCount);
@@ -235,28 +248,24 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const draft = makeDraft();
 
-        // First confirm
         const { status: s1, data: d1 } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
           { userId: testUserId, role: "owner" },
         );
         assertEquals(s1, 200);
         assertExists(d1.meaning_object_id);
+        assertExists(d1.request_id);
 
-        // Count meaning_objects
         const { count: countAfterFirst } = await sb!.from("meaning_objects").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
 
-        // Second confirm — same draft
+        // Second confirm — same draft but new request_id (different request)
         const { status: s2, data: d2 } = await callFunction(
-          { mode: "confirm", workspace_id: testWorkspaceId, draft },
+          { mode: "confirm", workspace_id: testWorkspaceId, draft, request_id: crypto.randomUUID() },
           { userId: testUserId, role: "owner" },
         );
         assertEquals(s2, 200);
-
-        // Same meaning_object_id
         assertEquals(d2.meaning_object_id, d1.meaning_object_id);
 
-        // No new meaning_objects minted
         const { count: countAfterSecond } = await sb!.from("meaning_objects").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(countAfterFirst, countAfterSecond);
       } finally {
@@ -272,7 +281,7 @@ if (TEST_MODE_AVAILABLE) {
     async fn() {
       await setupTestData();
       try {
-        const draft = makeDraft(); // has meaning_payload
+        const draft = makeDraft();
 
         const { status, data } = await callFunction(
           { mode: "execute", workspace_id: testWorkspaceId, draft, confirmation_hash: "any-hash" },
@@ -280,6 +289,7 @@ if (TEST_MODE_AVAILABLE) {
         );
         assertEquals(status, 400);
         assertEquals(data.code, "VALIDATION_ERROR");
+        assertExists(data.request_id);
       } finally {
         await teardownTestData();
       }
@@ -295,17 +305,15 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const draft = makeDraft();
 
-        // Confirm to get real meaning + hash
         const { data: confirmData } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
           { userId: testUserId, role: "owner" },
         );
 
-        // Tamper: use a different meaning_object_id
         const tamperedDraft = {
           ...draft,
           expires_at: confirmData.expires_at,
-          meaning: { meaning_object_id: crypto.randomUUID() }, // wrong ID
+          meaning: { meaning_object_id: crypto.randomUUID() },
         };
 
         const { status, data } = await callFunction(
@@ -331,20 +339,23 @@ if (TEST_MODE_AVAILABLE) {
         const draft = makeDraft();
         const { execDraft, confirmData, execute } = await confirmAndExecute(draft);
 
-        // First execute — success
         const { status: s1, data: d1 } = await execute();
         assertEquals(s1, 200);
         assertEquals(d1.success, true);
         assertExists(d1.entities);
         assertExists(d1.audit_log_id);
+        assertExists(d1.request_id);
 
-        // Second execute — 200 replayed
-        const { status: s2, data: d2 } = await execute();
+        // Second execute — same request so dedupe returns replayed
+        // Need fresh request_id for execute to not hit request_dedupes
+        const { status: s2, data: d2 } = await callFunction(
+          { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash, request_id: crypto.randomUUID() },
+          { userId: testUserId, role: "owner" },
+        );
         assertEquals(s2, 200);
         assertEquals(d2.success, true);
         assertEquals(d2.replayed, true);
         assertExists(d2.audit_log_id);
-        // Same entities
         assertEquals(JSON.stringify(d2.entities), JSON.stringify(d1.entities));
       } finally {
         await teardownTestData();
@@ -361,7 +372,6 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const draft = makeDraft();
 
-        // Confirm
         const { data: confirmData } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
           { userId: testUserId, role: "owner" },
@@ -383,7 +393,6 @@ if (TEST_MODE_AVAILABLE) {
           status: "reserved",
         });
 
-        // Try execute — should get 409 in-progress
         const { status, data } = await callFunction(
           { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
           { userId: testUserId, role: "owner" },
@@ -416,6 +425,7 @@ if (TEST_MODE_AVAILABLE) {
         assertEquals(status, 200);
         assertExists(data.confirmation_hash);
         assertEquals(data.meaning_object_id, undefined);
+        assertExists(data.request_id);
 
         const { count: afterCount } = await sb!.from("meaning_objects").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(beforeCount, afterCount);
@@ -439,20 +449,17 @@ if (TEST_MODE_AVAILABLE) {
         assertExists(data.entities);
         assertEquals(data.entities.length, 1);
         assertEquals(data.entities[0].type, "task");
+        assertExists(data.request_id);
 
-        // Check task was created
         const { data: task } = await sb!.from("tasks").select("id").eq("id", data.entities[0].id).single();
         assertExists(task);
 
-        // Check audit_logs
         const { data: audits } = await sb!.from("audit_logs").select("id").eq("workspace_id", testWorkspaceId).eq("action", "agent.execute.success");
         assertEquals(audits!.length >= 1, true);
 
-        // Check org_events
         const { data: events } = await sb!.from("org_events").select("id").eq("workspace_id", testWorkspaceId).eq("event_type", "agent.executed");
         assertEquals(events!.length >= 1, true);
 
-        // Check executed_drafts
         const { data: reservation } = await sb!.from("executed_drafts").select("*").eq("draft_id", draft.id).single();
         assertExists(reservation);
         assertEquals(reservation.status, "success");
@@ -577,7 +584,6 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const draft = makeDraft();
 
-        // Confirm
         const { data: confirmData } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
           { userId: testUserId, role: "owner" },
@@ -589,8 +595,7 @@ if (TEST_MODE_AVAILABLE) {
           meaning: { meaning_object_id: confirmData.meaning_object_id },
         };
 
-        // Insert STALE reserved row (both created_at and updated_at in the past)
-        const staleTime = new Date(Date.now() - 120000).toISOString(); // 2 minutes ago
+        const staleTime = new Date(Date.now() - 120000).toISOString();
         await sb!.from("executed_drafts").insert({
           draft_id: draft.id,
           workspace_id: testWorkspaceId,
@@ -602,7 +607,6 @@ if (TEST_MODE_AVAILABLE) {
           updated_at: staleTime,
         });
 
-        // Execute should take over the stale reservation and succeed
         const { status, data } = await callFunction(
           { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
           { userId: testUserId, role: "owner" },
@@ -617,7 +621,7 @@ if (TEST_MODE_AVAILABLE) {
     },
   });
 
-  // ─── M5 TEST: Atomicity (RPC RAISE EXCEPTION rollback on failure) ───
+  // ─── M5 TEST: Atomicity ───
 
   Deno.test({
     name: "M5: unsupported draft_type fails without partial writes",
@@ -626,7 +630,6 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const draft = makeDraft({ type: "draft_unknown_type", target_module: "teamwork" });
 
-        // Confirm
         const { data: confirmData } = await callFunction(
           { mode: "confirm", workspace_id: testWorkspaceId, draft },
           { userId: testUserId, role: "owner" },
@@ -646,18 +649,14 @@ if (TEST_MODE_AVAILABLE) {
           { userId: testUserId, role: "owner" },
         );
 
-        // RPC raises exception → edge returns 400
         assertEquals(status, 400);
 
-        // No tasks should have been created (full rollback)
         const { count: tasksAfter } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(tasksBefore, tasksAfter);
 
-        // No audit logs should have been created (full rollback)
         const { count: auditsAfter } = await sb!.from("audit_logs").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(auditsBefore, auditsAfter);
 
-        // No executed_drafts reservation should persist (full rollback)
         const { data: reservation } = await sb!.from("executed_drafts").select("*").eq("draft_id", draft.id).maybeSingle();
         assertEquals(reservation, null);
       } finally {
@@ -675,10 +674,9 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const expiredDraftId = `m6-expired-${crypto.randomUUID()}`;
         const validDraftId = `m6-valid-${crypto.randomUUID()}`;
-        const pastEpochMs = Date.now() - 3600_000; // 1 hour ago
-        const futureEpochMs = Date.now() + 3600_000; // 1 hour from now
+        const pastEpochMs = Date.now() - 3600_000;
+        const futureEpochMs = Date.now() + 3600_000;
 
-        // Insert expired confirmation
         await sb!.from("draft_confirmations").insert({
           draft_id: expiredDraftId,
           workspace_id: testWorkspaceId,
@@ -688,7 +686,6 @@ if (TEST_MODE_AVAILABLE) {
           expires_at: pastEpochMs,
         });
 
-        // Insert valid (non-expired) confirmation
         await sb!.from("draft_confirmations").insert({
           draft_id: validDraftId,
           workspace_id: testWorkspaceId,
@@ -698,21 +695,17 @@ if (TEST_MODE_AVAILABLE) {
           expires_at: futureEpochMs,
         });
 
-        // Call cleanup RPC
         const { data: deleted, error } = await sb!.rpc("cleanup_expired_draft_confirmations", {});
         assertEquals(error, null);
         assertEquals(typeof deleted, "number");
         assertEquals(deleted >= 1, true);
 
-        // Expired row should be gone
         const { data: expiredRow } = await sb!.from("draft_confirmations").select("*").eq("draft_id", expiredDraftId).maybeSingle();
         assertEquals(expiredRow, null);
 
-        // Valid row should still exist
         const { data: validRow } = await sb!.from("draft_confirmations").select("*").eq("draft_id", validDraftId).maybeSingle();
         assertExists(validRow);
 
-        // Cleanup valid row
         await sb!.from("draft_confirmations").delete().eq("draft_id", validDraftId);
       } finally {
         await teardownTestData();
@@ -729,9 +722,8 @@ if (TEST_MODE_AVAILABLE) {
       try {
         const staleDraftId = `m6-stale-${crypto.randomUUID()}`;
         const freshDraftId = `m6-fresh-${crypto.randomUUID()}`;
-        const staleTime = new Date(Date.now() - 15 * 60_000).toISOString(); // 15 min ago
+        const staleTime = new Date(Date.now() - 15 * 60_000).toISOString();
 
-        // Insert stale reserved row
         await sb!.from("executed_drafts").insert({
           draft_id: staleDraftId,
           workspace_id: testWorkspaceId,
@@ -743,7 +735,6 @@ if (TEST_MODE_AVAILABLE) {
           updated_at: staleTime,
         });
 
-        // Insert fresh reserved row (should NOT be deleted)
         await sb!.from("executed_drafts").insert({
           draft_id: freshDraftId,
           workspace_id: testWorkspaceId,
@@ -753,21 +744,17 @@ if (TEST_MODE_AVAILABLE) {
           status: "reserved",
         });
 
-        // Call cleanup RPC (default 10 min threshold)
         const { data: deleted, error } = await sb!.rpc("cleanup_stale_executed_drafts", {});
         assertEquals(error, null);
         assertEquals(typeof deleted, "number");
         assertEquals(deleted >= 1, true);
 
-        // Stale row should be gone
         const { data: staleRow } = await sb!.from("executed_drafts").select("*").eq("draft_id", staleDraftId).maybeSingle();
         assertEquals(staleRow, null);
 
-        // Fresh row should still exist
         const { data: freshRow } = await sb!.from("executed_drafts").select("*").eq("draft_id", freshDraftId).maybeSingle();
         assertExists(freshRow);
 
-        // Cleanup fresh row
         await sb!.from("executed_drafts").delete().eq("draft_id", freshDraftId);
       } finally {
         await teardownTestData();
@@ -789,7 +776,6 @@ if (TEST_MODE_AVAILABLE) {
         assertEquals(status, 200);
         assertEquals(data.success, true);
 
-        // Check audit_logs has request_id in metadata
         const { data: audits } = await sb!.from("audit_logs")
           .select("metadata")
           .eq("workspace_id", testWorkspaceId)
@@ -806,12 +792,74 @@ if (TEST_MODE_AVAILABLE) {
         await teardownTestData();
       }
     },
+  });
 
-
-  // ─── M6 TEST: Execute success response includes request_id ───
+  // ─── M8 TEST: Rate limiting returns 429 when exceeded ───
 
   Deno.test({
-    name: "M6: execute success response includes request_id",
+    name: "M8: rate limiting returns 429 when confirm limit exceeded",
+    async fn() {
+      await setupTestData();
+      try {
+        // Fire 21 confirm requests (limit is 20/min)
+        let hitRateLimit = false;
+        for (let i = 0; i < 22; i++) {
+          const draft = makeDraft();
+          const { status, data } = await callFunction(
+            { mode: "confirm", workspace_id: testWorkspaceId, draft, request_id: crypto.randomUUID() },
+            { userId: testUserId, role: "owner" },
+          );
+          if (status === 429) {
+            assertEquals(data.code, "RATE_LIMITED");
+            assertExists(data.reset_at);
+            assertExists(data.request_id);
+            hitRateLimit = true;
+            break;
+          }
+        }
+        assertEquals(hitRateLimit, true);
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M8 TEST: Request dedupe returns replayed for duplicate request_id ───
+
+  Deno.test({
+    name: "M8: duplicate request_id returns REQUEST_REPLAYED",
+    async fn() {
+      await setupTestData();
+      try {
+        const sharedRequestId = crypto.randomUUID();
+        const draft = makeDraft();
+
+        // First call
+        const { status: s1, data: d1 } = await callFunction(
+          { mode: "dry_run", workspace_id: testWorkspaceId, draft, request_id: sharedRequestId },
+          { userId: testUserId, role: "owner" },
+        );
+        assertEquals(s1, 200);
+
+        // Second call with same request_id
+        const { status: s2, data: d2 } = await callFunction(
+          { mode: "dry_run", workspace_id: testWorkspaceId, draft, request_id: sharedRequestId },
+          { userId: testUserId, role: "owner" },
+        );
+        assertEquals(s2, 200);
+        assertEquals(d2.code, "REQUEST_REPLAYED");
+        assertEquals(d2.replayed, true);
+        assertExists(d2.request_id);
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M8 TEST: Execute success response includes request_id ───
+
+  Deno.test({
+    name: "M8: execute success response includes request_id",
     async fn() {
       await setupTestData();
       try {
@@ -859,7 +907,7 @@ if (MAINTENANCE_TEST_AVAILABLE) {
     assertEquals(data.code, "UNAUTHORIZED");
   });
 
-  Deno.test("M6: maintenance-cleanup accepts correct key with 200", async () => {
+  Deno.test("M8: maintenance-cleanup accepts correct key and returns all cleanup counts", async () => {
     const resp = await fetch(MAINTENANCE_URL, {
       method: "POST",
       headers: {
@@ -872,6 +920,8 @@ if (MAINTENANCE_TEST_AVAILABLE) {
     assertEquals(data.ok, true);
     assertEquals(typeof data.confirmations_deleted, "number");
     assertEquals(typeof data.stale_reservations_deleted, "number");
+    assertEquals(typeof data.dedupes_deleted, "number");
+    assertEquals(typeof data.rate_limits_deleted, "number");
     assertEquals(typeof data.runtime_ms, "number");
     assertExists(data.request_id);
   });
