@@ -883,7 +883,7 @@ serve(async (req) => {
         ? sbService // In test mode, use service client as user client
         : createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
 
-      const requestId = crypto.randomUUID();
+      const requestId = (body.request_id as string) || crypto.randomUUID();
       const ctx: AgentContext = {
         sbService,
         sbUser: userClient,
@@ -898,7 +898,7 @@ serve(async (req) => {
       // ─── MODE: dry_run ───
       if (mode === "dry_run") {
         const result = await agent.dryRun(draft, ctx);
-        return new Response(JSON.stringify(result), {
+        return new Response(JSON.stringify({ ...result, request_id: requestId }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -1071,6 +1071,7 @@ serve(async (req) => {
               entities: result.entities,
               audit_log_id: result.audit_log_id,
               replayed: result.replayed || false,
+              request_id: requestId,
             }),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
@@ -1089,6 +1090,7 @@ serve(async (req) => {
           JSON.stringify({
             code,
             reason,
+            request_id: requestId,
             ...(result.previous_error ? { previous_error: result.previous_error } : {}),
             ...(result.status ? { status: result.status } : {}),
           }),
