@@ -29,12 +29,12 @@ async function getAuthUser(req: Request) {
   );
 
   const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabase.auth.getClaims(token);
-  if (error || !data?.claims) return null;
+  const { data, error } = await supabase.auth.getUser(token);
+  if (error || !data?.user) return null;
 
   return {
-    id: data.claims.sub as string,
-    email: (data.claims.email as string) || "",
+    id: data.user.id,
+    email: data.user.email || "",
   };
 }
 
