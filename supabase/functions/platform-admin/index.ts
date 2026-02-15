@@ -243,7 +243,7 @@ async function handleWorkspaceDetail(user: { id: string }, params: URLSearchPara
   const [wsRes, appsRes, osPlanRes, bookingSubRes, membersRes, grantsRes] = await Promise.all([
     sb.from("workspaces").select("id, name, created_at, company_id").eq("id", workspaceId).single(),
     sb.from("workspace_apps").select("*").eq("workspace_id", workspaceId),
-    sb.from("billing_subscriptions").select("*, billing_plans(*)").eq("workspace_id", workspaceId).maybeSingle(),
+    sb.from("billing_subscriptions").select("*").eq("workspace_id", workspaceId).maybeSingle(),
     sb.from("booking_subscriptions").select("*").eq("workspace_id", workspaceId).maybeSingle(),
     sb.from("workspace_members").select("id", { count: "exact" }).eq("workspace_id", workspaceId),
     sb.from("platform_grants").select("*").eq("scope", "workspace").eq("scope_id", workspaceId).eq("is_active", true),

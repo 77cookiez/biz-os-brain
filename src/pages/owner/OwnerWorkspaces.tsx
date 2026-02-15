@@ -194,7 +194,7 @@ export default function OwnerWorkspaces() {
     const osPlanOverride = findActiveGrant(activeGrants, "os_plan_override");
     const effectiveOsPlanId = osPlanOverride?.value_json?.plan_id || osSub?.plan_id || "free";
     const effectiveOsPlanName = osPlanOverride?.value_json?.plan_name
-      || osSub?.billing_plans?.name
+      || OS_PLANS.find(p => p.id === effectiveOsPlanId)?.label
       || effectiveOsPlanId;
     const effectiveOsCycle = osPlanOverride?.value_json?.billing_cycle || osSub?.billing_cycle || "monthly";
     const isOsOverride = !!osPlanOverride;
@@ -277,7 +277,7 @@ export default function OwnerWorkspaces() {
                 </div>
                 {isOsOverride && osSub && (
                   <p className="text-xs text-muted-foreground">
-                    Billing truth: {osSub.billing_plans?.name || osSub.plan_id} ({osSub.billing_cycle})
+                    Billing truth: {OS_PLANS.find(p => p.id === osSub.plan_id)?.label || osSub.plan_id} ({osSub.billing_cycle})
                     — {osSub.billing_provider}
                   </p>
                 )}
