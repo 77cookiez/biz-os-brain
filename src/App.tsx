@@ -82,6 +82,14 @@ import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import PrivacySettingsPage from "@/pages/settings/PrivacySettingsPage";
 import BillingSettingsPage from "@/pages/settings/BillingSettingsPage";
 import RecoverySettingsPage from "@/pages/settings/RecoverySettingsPage";
+import SafeBackLayout from "@/apps/safeback/components/SafeBackLayout";
+import SafeBackOverview from "@/apps/safeback/pages/SafeBackOverview";
+import SafeBackSnapshots from "@/apps/safeback/pages/SafeBackSnapshots";
+import SafeBackSchedules from "@/apps/safeback/pages/SafeBackSchedules";
+import SafeBackExports from "@/apps/safeback/pages/SafeBackExports";
+import SafeBackPolicies from "@/apps/safeback/pages/SafeBackPolicies";
+import SafeBackAudit from "@/apps/safeback/pages/SafeBackAudit";
+import SafeBackSettings from "@/apps/safeback/pages/SafeBackSettings";
 import { toast as sonnerToast } from "sonner";
 
 const queryClient = new QueryClient({
@@ -234,6 +242,15 @@ const AppRoutes = () => (
         <Route path="bookings" element={<BookingBookingsPage />} />
         <Route path="settings" element={<BookingSettingsPage />} />
         <Route path="billing" element={<BillingPage />} />
+      </Route>
+      <Route path="/apps/safeback" element={<AppInstalledGate appId="safeback"><SafeBackLayout /></AppInstalledGate>}>
+        <Route index element={<SafeBackOverview />} />
+        <Route path="snapshots" element={<SafeBackSnapshots />} />
+        <Route path="schedules" element={<SafeBackSchedules />} />
+        <Route path="exports" element={<SafeBackExports />} />
+        <Route path="policies" element={<SafeBackPolicies />} />
+        <Route path="audit" element={<SafeBackAudit />} />
+        <Route path="settings" element={<SafeBackSettings />} />
       </Route>
       <Route path="/apps/leadership" element={<AppInstalledGate appId="leadership"><LeadershipPage /></AppInstalledGate>} />
       <Route path="/apps/leadership/settings" element={<AppInstalledGate appId="leadership"><LeadershipSettingsPage /></AppInstalledGate>} />

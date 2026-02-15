@@ -1845,6 +1845,75 @@
     "previewDesc": "Review what will change before restoring.",
     "confirmDesc": "This action is irreversible. A pre-restore backup will be created automatically.",
     "willReplace": "Current data will be replaced",
-    "typeToConfirm": "Type the following to confirm:"
+    "typeToConfirm": "Type the following to confirm:",
+    "openSafebackCta": {
+      "title": "SafeBack Available",
+      "body": "For advanced backup management, open SafeBack",
+      "button": "Open SafeBack"
+    }
+  },
+  "apps": {
+    "safeback": {
+    "title": "SafeBack",
+    "subtitle": "Workspace snapshots, scheduled backups, and safe restore",
+    "tabs": {
+      "overview": "Overview",
+      "snapshots": "Snapshots",
+      "schedules": "Schedules",
+      "exports": "Exports",
+      "policies": "Policies",
+      "audit": "Audit",
+      "settings": "Settings"
+    },
+    "overview": {
+      "status": "Backup Status",
+      "lastSnapshot": "Last Snapshot",
+      "backupStatus": "Auto Backup",
+      "retention": "Retention",
+      "totalSnapshots": "Total Snapshots",
+      "createSnapshot": "Create Snapshot",
+      "viewSchedules": "View Schedules",
+      "exportLatest": "Export Latest"
+    },
+    "onboarding": {
+      "title": "Getting Started",
+      "completed": "completed",
+      "enableBackups": "Enable automatic backups",
+      "setRetention": "Set retention policy",
+      "createSnapshot": "Create first manual snapshot",
+      "testRestore": "Test a restore preview",
+      "exportSnapshot": "Export a snapshot"
+    },
+    "plans": {
+      "title": "SafeBack Plans",
+      "feature": "Feature",
+      "manualSnapshots": "Manual snapshots",
+      "restoreWithToken": "Restore with confirmation phrase",
+      "preRestoreSafety": "Pre-restore safety snapshot",
+      "scheduledBackups": "Scheduled backups",
+      "higherRetention": "Higher retention (60+)",
+      "storageExport": "Storage export",
+      "complianceReports": "Compliance reports",
+      "drDrills": "DR drills",
+      "immutableBackups": "Immutable backups"
+    },
+    "audit": {
+      "title": "Audit Log",
+      "empty": "No audit entries yet."
+    },
+    "exports": {
+      "noSnapshots": "No snapshots available to export.",
+      "download": "Export"
+    },
+    "policies": {
+      "title": "Retention Policies",
+      "retainCount": "Maximum snapshots to retain",
+      "retainDesc": "Older snapshots beyond this limit are automatically removed."
+    },
+    "settings": {
+      "title": "SafeBack Settings",
+      "subtitle": "Configure backup schedules and retention policies."
+    }
+    }
   }
 }
