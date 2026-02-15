@@ -1,0 +1,32 @@
+name: Maintenance Cleanup (Scheduled)
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call maintenance-cleanup edge function
+        env:
+          MAINTENANCE_CLEANUP_URL: ${{ secrets.MAINTENANCE_CLEANUP_URL }}
+          MAINTENANCE_KEY: ${{ secrets.MAINTENANCE_KEY }}
+        run: |
+          if [ -z "$MAINTENANCE_CLEANUP_URL" ] || [ -z "$MAINTENANCE_KEY" ]; then
+            echo "::warning::MAINTENANCE_CLEANUP_URL or MAINTENANCE_KEY not set — skipping"
+            exit 0
+          fi
+          HTTP_CODE=$(curl -s -o /tmp/cleanup_response.json -w "%{http_code}" \
+            -X POST "$MAINTENANCE_CLEANUP_URL" \
+            -H "Content-Type: application/json" \
+            -H "x-maintenance-key: $MAINTENANCE_KEY" \
+            -d '{}')
+          cat /tmp/cleanup_response.json
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "::error::Cleanup returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+          echo "Cleanup completed successfully (HTTP $HTTP_CODE)"
