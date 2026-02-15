@@ -230,6 +230,7 @@ async function handleListAudit(user: { id: string }, params: URLSearchParams) {
 
 // ─── NEW Route Handlers ───
 
+// (A) Fixed: single workspace query, member_count from workspace_members
 async function handleWorkspaceDetail(user: { id: string }, params: URLSearchParams) {
   await requirePlatformRole(user.id, ["owner", "admin", "support", "auditor"]);
 
@@ -238,15 +239,13 @@ async function handleWorkspaceDetail(user: { id: string }, params: URLSearchPara
 
   const sb = getServiceClient();
 
-  // Parallel queries
+  // Single workspace fetch + all parallel queries
   const [wsRes, appsRes, osPlanRes, bookingSubRes, membersRes, grantsRes] = await Promise.all([
     sb.from("workspaces").select("id, name, created_at, company_id").eq("id", workspaceId).single(),
     sb.from("workspace_apps").select("*").eq("workspace_id", workspaceId),
     sb.from("billing_subscriptions").select("*, billing_plans(*)").eq("workspace_id", workspaceId).maybeSingle(),
     sb.from("booking_subscriptions").select("*").eq("workspace_id", workspaceId).maybeSingle(),
-    sb.from("user_roles").select("id", { count: "exact" }).eq("company_id",
-      (await sb.from("workspaces").select("company_id").eq("id", workspaceId).single()).data?.company_id || "00000000-0000-0000-0000-000000000000"
-    ),
+    sb.from("workspace_members").select("id", { count: "exact" }).eq("workspace_id", workspaceId),
     sb.from("platform_grants").select("*").eq("scope", "workspace").eq("scope_id", workspaceId).eq("is_active", true),
   ]);
 
@@ -262,6 +261,7 @@ async function handleWorkspaceDetail(user: { id: string }, params: URLSearchPara
   });
 }
 
+// (B) Fixed: ONLY creates a grant, NO direct billing_subscriptions write
 async function handleSetOsPlan(user: { id: string }, body: Record<string, unknown>) {
   await requirePlatformRole(user.id, ["owner", "admin"]);
 
@@ -274,18 +274,27 @@ async function handleSetOsPlan(user: { id: string }, body: Record<string, unknow
   const { data: ws } = await sb.from("workspaces").select("id").eq("id", workspace_id as string).single();
   if (!ws) return err("Workspace not found", 404);
 
-  // Verify plan exists
+  // Verify plan exists and is active
   const { data: plan } = await sb.from("billing_plans").select("id, name").eq("id", plan_id as string).eq("is_active", true).single();
   if (!plan) return err("Plan not found or inactive", 404);
 
-  // Create a grant-based override (doesn't overwrite Stripe truth)
+  // Deactivate any existing os_plan_override grants for this workspace
+  await sb
+    .from("platform_grants")
+    .update({ is_active: false })
+    .eq("scope", "workspace")
+    .eq("scope_id", workspace_id as string)
+    .eq("grant_type", "os_plan_override")
+    .eq("is_active", true);
+
+  // Create grant-based override (no billing_subscriptions write)
   const { data: grant, error: grantErr } = await sb
     .from("platform_grants")
     .insert({
       scope: "workspace",
       scope_id: workspace_id as string,
       grant_type: "os_plan_override",
-      value_json: { plan_id, billing_cycle: billing_cycle || "monthly" },
+      value_json: { plan_id, billing_cycle: billing_cycle || "monthly", plan_name: plan.name },
       reason: reason as string,
       created_by: user.id,
     })
@@ -293,23 +302,6 @@ async function handleSetOsPlan(user: { id: string }, body: Record<string, unknow
     .single();
 
   if (grantErr) return err(grantErr.message, 500);
-
-  // Also directly upsert the subscription for immediate reflection
-  const { error: subErr } = await sb
-    .from("billing_subscriptions")
-    .upsert(
-      {
-        workspace_id: workspace_id as string,
-        plan_id: plan_id as string,
-        billing_cycle: (billing_cycle as string) || "monthly",
-        status: "active",
-        billing_provider: "platform_override",
-        current_period_start: new Date().toISOString(),
-      },
-      { onConflict: "workspace_id" }
-    );
-
-  if (subErr) return err(subErr.message, 500);
 
   await audit(user.id, "os_plan_override", {
     targetType: "workspace",
@@ -329,11 +321,18 @@ async function handleSetAppSubscription(user: { id: string }, body: Record<strin
 
   const sb = getServiceClient();
 
-  // Verify workspace
   const { data: ws } = await sb.from("workspaces").select("id").eq("id", workspace_id as string).single();
   if (!ws) return err("Workspace not found", 404);
 
-  // Create grant for audit trail
+  // Deactivate existing app_plan_override grants for this workspace+app
+  await sb
+    .from("platform_grants")
+    .update({ is_active: false })
+    .eq("scope", "workspace")
+    .eq("scope_id", workspace_id as string)
+    .eq("grant_type", "app_plan_override")
+    .eq("is_active", true);
+
   const { data: grant, error: grantErr } = await sb
     .from("platform_grants")
     .insert({
@@ -349,9 +348,9 @@ async function handleSetAppSubscription(user: { id: string }, body: Record<strin
 
   if (grantErr) return err(grantErr.message, 500);
 
-  // App-specific subscription upsert (adapter pattern)
+  // App-specific subscription upsert (adapter pattern for immediate reflection)
   if (app_id === "booking") {
-    const { error: subErr } = await sb
+    await sb
       .from("booking_subscriptions")
       .upsert(
         {
@@ -363,10 +362,7 @@ async function handleSetAppSubscription(user: { id: string }, body: Record<strin
         },
         { onConflict: "workspace_id" }
       );
-
-    if (subErr) return err(subErr.message, 500);
   }
-  // Future apps: add more cases here
 
   await audit(user.id, "app_subscription_override", {
     targetType: "workspace",
@@ -378,6 +374,7 @@ async function handleSetAppSubscription(user: { id: string }, body: Record<strin
   return json({ success: true, grant });
 }
 
+// (C) Robust and idempotent install/uninstall
 async function handleInstallApp(user: { id: string }, body: Record<string, unknown>) {
   await requirePlatformRole(user.id, ["owner", "admin"]);
 
@@ -386,16 +383,14 @@ async function handleInstallApp(user: { id: string }, body: Record<string, unkno
 
   const sb = getServiceClient();
 
-  // Verify workspace
   const { data: ws } = await sb.from("workspaces").select("id").eq("id", workspace_id as string).single();
   if (!ws) return err("Workspace not found", 404);
 
-  // Verify app exists in registry
   const { data: app } = await sb.from("app_registry").select("id, name, status").eq("id", app_id as string).single();
   if (!app) return err("App not found in registry", 404);
   if (app.status === "deprecated") return err("App is deprecated", 400);
 
-  // Upsert workspace_apps
+  // Upsert: reactivates if inactive, creates if missing
   const { error: appErr } = await sb
     .from("workspace_apps")
     .upsert(
@@ -430,15 +425,24 @@ async function handleUninstallApp(user: { id: string }, body: Record<string, unk
 
   const sb = getServiceClient();
 
-  // Soft toggle — never delete data
+  // Check existing row
+  const { data: existing } = await sb
+    .from("workspace_apps")
+    .select("id, is_active")
+    .eq("workspace_id", workspace_id as string)
+    .eq("app_id", app_id as string)
+    .maybeSingle();
+
+  if (!existing) return err("App not installed", 404);
+  if (!existing.is_active) return err("Already inactive", 409);
+
   const { error: appErr } = await sb
     .from("workspace_apps")
     .update({
       is_active: false,
       uninstalled_at: new Date().toISOString(),
     })
-    .eq("workspace_id", workspace_id as string)
-    .eq("app_id", app_id as string);
+    .eq("id", existing.id);
 
   if (appErr) return err(appErr.message, 500);
 
@@ -450,6 +454,22 @@ async function handleUninstallApp(user: { id: string }, body: Record<string, unk
   });
 
   return json({ success: true, app_id });
+}
+
+// (D) Available apps from DB
+async function handleAvailableApps(user: { id: string }) {
+  await requirePlatformRole(user.id, ["owner", "admin", "support", "auditor"]);
+
+  const sb = getServiceClient();
+  const { data, error: qErr } = await sb
+    .from("app_registry")
+    .select("id, name, icon, pricing, status")
+    .eq("status", "available")
+    .order("name");
+
+  if (qErr) return err(qErr.message, 500);
+
+  return json({ apps: data || [] });
 }
 
 // ─── Main handler ───
@@ -473,6 +493,7 @@ Deno.serve(async (req) => {
         if (path === "grants") return handleListGrants(user, url.searchParams);
         if (path === "audit") return handleListAudit(user, url.searchParams);
         if (path === "workspace-detail") return handleWorkspaceDetail(user, url.searchParams);
+        if (path === "available-apps") return handleAvailableApps(user);
         return err("Not found", 404);
       }
       case "POST": {

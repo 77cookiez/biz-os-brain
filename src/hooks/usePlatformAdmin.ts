@@ -124,6 +124,14 @@ export function useWorkspaceDetail(workspaceId: string | null) {
   });
 }
 
+export function useAvailableApps() {
+  return useQuery({
+    queryKey: ["platform-available-apps"],
+    queryFn: () => callPlatform("GET", "available-apps"),
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useSetOsPlan() {
   const qc = useQueryClient();
   return useMutation({
