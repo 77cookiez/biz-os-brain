@@ -75,7 +75,6 @@ export default function OwnerWorkspaces() {
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-foreground truncate">{ws.name}</p>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {ws.slug && <Badge variant="outline" className="text-xs">{ws.slug}</Badge>}
                   <span className="text-xs text-muted-foreground font-mono truncate">{ws.id}</span>
                 </div>
               </div>
