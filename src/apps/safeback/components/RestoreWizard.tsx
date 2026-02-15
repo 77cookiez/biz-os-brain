@@ -61,19 +61,24 @@ export default function RestoreWizard({
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>{t('recovery.willReplace', 'Current data will be replaced')}</AlertTitle>
                   <AlertDescription>
-                    <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                      <div>
-                        <p className="font-medium">Will remove:</p>
-                        {Object.entries(previewData.summary.will_replace).map(([k, v]) => (
-                          <p key={k}>{k}: {v}</p>
-                        ))}
-                      </div>
-                      <div>
-                        <p className="font-medium">Will restore:</p>
-                        {Object.entries(previewData.summary.will_restore).map(([k, v]) => (
-                          <p key={k}>{k}: {v}</p>
-                        ))}
-                      </div>
+                    <div className="mt-2 text-xs space-y-1.5">
+                      {'providers' in previewData.summary && previewData.summary.providers ? (
+                        previewData.summary.providers.map((p: any) => (
+                          <div key={p.provider_id} className="flex items-center justify-between">
+                            <span className="font-medium">{p.name} <span className="text-muted-foreground">({p.description})</span></span>
+                            <span>{p.entity_count} entities</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="font-medium">Will restore:</p>
+                            {Object.entries(previewData.summary.will_restore).map(([k, v]) => (
+                              <p key={k}>{k}: {v}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </AlertDescription>
                 </Alert>
