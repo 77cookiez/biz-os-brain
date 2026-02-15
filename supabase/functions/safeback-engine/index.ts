@@ -63,22 +63,23 @@ Deno.serve(async (req) => {
         throw Object.assign(new Error("FORBIDDEN"), { status: 403 });
     }
 
-    // ── CAPTURE ──
+    // ── CAPTURE (v3) ──
     if (path === "capture") {
       const { workspace_id, reason } = body;
       if (!workspace_id) return json({ error: "workspace_id required" }, 400);
       await assertAdmin(workspace_id);
 
-      const { data, error } = await sb.rpc("capture_workspace_snapshot_v2", {
+      const { data, error } = await sb.rpc("capture_workspace_snapshot_v3", {
         _workspace_id: workspace_id,
         _snapshot_type: "manual",
         _reason: reason || null,
+        _actor: userId,
       });
       if (error) throw error;
       return json({ snapshot_id: data });
     }
 
-    // ── PREVIEW ──
+    // ── PREVIEW (v3) ──
     if (path === "preview") {
       const { snapshot_id } = body;
       if (!snapshot_id) return json({ error: "snapshot_id required" }, 400);
@@ -92,14 +93,16 @@ Deno.serve(async (req) => {
       if (snapErr || !snap) return json({ error: "Snapshot not found" }, 404);
       await assertAdmin(snap.workspace_id);
 
-      const { data, error } = await sb.rpc("preview_restore_v2", {
+      // preview_restore_v3 uses auth.uid() internally for token creation,
+      // so call via the user's anon client
+      const { data, error } = await anonClient.rpc("preview_restore_v3", {
         _snapshot_id: snapshot_id,
       });
       if (error) throw error;
       return json(data);
     }
 
-    // ── RESTORE ──
+    // ── RESTORE (v3) ──
     if (path === "restore") {
       const { snapshot_id, confirmation_token } = body;
       if (!snapshot_id || !confirmation_token) {
@@ -119,7 +122,7 @@ Deno.serve(async (req) => {
       await assertAdmin(snap.workspace_id);
 
       const { data, error } = await sb.rpc(
-        "restore_workspace_snapshot_atomic",
+        "restore_workspace_snapshot_atomic_v3",
         {
           _workspace_id: snap.workspace_id,
           _snapshot_id: snapshot_id,
@@ -129,6 +132,18 @@ Deno.serve(async (req) => {
       );
       if (error) throw error;
       return json(data);
+    }
+
+    // ── PROVIDERS (read registry) ──
+    if (path === "providers") {
+      const { workspace_id } = body;
+      if (!workspace_id) return json({ error: "workspace_id required" }, 400);
+
+      const { data, error } = await sb.rpc("get_effective_snapshot_providers", {
+        _workspace_id: workspace_id,
+      });
+      if (error) throw error;
+      return json({ providers: data });
     }
 
     return json({ error: "Unknown action" }, 404);

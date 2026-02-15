@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, Plus, Clock, Download, Loader2, Info } from 'lucide-react';
 import type { BackupSettings, Snapshot } from '@/hooks/useRecovery';
 import { useNavigate } from 'react-router-dom';
-import { SnapshotProviders } from '@/core/snapshot/providerRegistry';
+import { FallbackProviderDescriptors } from '@/core/snapshot/providerRegistry';
 
 interface OverviewPanelProps {
   settings: BackupSettings | null;
@@ -29,7 +29,7 @@ export default function OverviewPanel({
   const navigate = useNavigate();
   const lastSnapshot = snapshots[0];
 
-  const providers = SnapshotProviders.map((p) => p.describe());
+  const providers = FallbackProviderDescriptors;
 
   return (
     <div className="space-y-4">
@@ -95,12 +95,15 @@ export default function OverviewPanel({
           </p>
           <ul className="text-sm text-foreground space-y-1.5">
             {providers.map((p) => (
-              <li key={p.name} className="flex items-center gap-2">
+              <li key={p.provider_id} className="flex items-center gap-2">
                 <Badge variant={p.critical ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
                   {p.critical ? t('common.critical', 'Critical') : t('common.optional', 'Optional')}
                 </Badge>
                 <span className="font-medium">{p.name}</span>
                 <span className="text-muted-foreground">— {p.description}</span>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                  {p.default_policy}
+                </Badge>
               </li>
             ))}
           </ul>

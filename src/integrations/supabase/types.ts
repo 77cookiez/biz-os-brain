@@ -2824,6 +2824,78 @@ export type Database = {
           },
         ]
       }
+      snapshot_provider_policies: {
+        Row: {
+          include_files: boolean
+          limits: Json
+          policy: string
+          provider_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          include_files?: boolean
+          limits?: Json
+          policy?: string
+          provider_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          include_files?: boolean
+          limits?: Json
+          policy?: string
+          provider_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "snapshot_provider_policies_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "snapshot_providers_registry"
+            referencedColumns: ["provider_id"]
+          },
+          {
+            foreignKeyName: "snapshot_provider_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      snapshot_providers_registry: {
+        Row: {
+          created_at: string
+          critical: boolean
+          default_policy: string
+          description: string
+          is_enabled: boolean
+          name: string
+          provider_id: string
+        }
+        Insert: {
+          created_at?: string
+          critical?: boolean
+          default_policy?: string
+          description: string
+          is_enabled?: boolean
+          name: string
+          provider_id: string
+        }
+        Update: {
+          created_at?: string
+          critical?: boolean
+          default_policy?: string
+          description?: string
+          is_enabled?: boolean
+          name?: string
+          provider_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           assigned_by: string | null
@@ -3410,6 +3482,15 @@ export type Database = {
         }
         Returns: string
       }
+      capture_workspace_snapshot_v3: {
+        Args: {
+          _actor?: string
+          _reason?: string
+          _snapshot_type?: string
+          _workspace_id: string
+        }
+        Returns: string
+      }
       check_booking_limit: { Args: { _workspace_id: string }; Returns: boolean }
       check_limit: {
         Args: { _limit_key: string; _workspace_id: string }
@@ -3511,6 +3592,18 @@ export type Database = {
         Args: { _actor: string; _snapshot_id: string }
         Returns: string
       }
+      get_effective_snapshot_providers: {
+        Args: { _workspace_id: string }
+        Returns: {
+          critical: boolean
+          description: string
+          effective_policy: string
+          include_files: boolean
+          limits: Json
+          name: string
+          provider_id: string
+        }[]
+      }
       get_execution_policy: { Args: { _workspace_id: string }; Returns: Json }
       get_live_booking_tenant_by_slug: {
         Args: { p_slug: string }
@@ -3584,6 +3677,7 @@ export type Database = {
         Returns: Json
       }
       preview_restore_v2: { Args: { _snapshot_id: string }; Returns: Json }
+      preview_restore_v3: { Args: { _snapshot_id: string }; Returns: Json }
       request_upgrade: {
         Args: { _notes?: string; _plan_id: string; _workspace_id: string }
         Returns: string
@@ -3609,6 +3703,15 @@ export type Database = {
         Returns: Json
       }
       restore_workspace_snapshot_atomic: {
+        Args: {
+          _actor: string
+          _confirmation_token: string
+          _snapshot_id: string
+          _workspace_id: string
+        }
+        Returns: Json
+      }
+      restore_workspace_snapshot_atomic_v3: {
         Args: {
           _actor: string
           _confirmation_token: string

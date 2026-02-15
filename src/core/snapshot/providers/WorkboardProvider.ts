@@ -1,17 +1,25 @@
-import type { SnapshotProvider } from '../types';
-
 /**
- * WorkboardProvider — Metadata only (capture/restore is server-side).
+ * WorkboardProvider — Descriptor only (v2).
+ * Capture/restore logic is entirely server-side.
  */
-export const WorkboardProvider: SnapshotProvider = {
+import type { ProviderDescriptor } from '../types';
+
+export const WorkboardDescriptor: ProviderDescriptor = {
+  provider_id: 'workboard',
+  name: 'Workboard',
+  description: 'Tasks, goals, plans, ideas',
+  critical: true,
+  default_policy: 'full',
+  is_enabled: true,
+};
+
+// Legacy export for backward compat with tests
+export const WorkboardProvider = {
   id: 'workboard',
   version: 1,
-
-  describe() {
-    return {
-      name: 'Workboard',
-      description: 'Tasks, goals, plans, ideas',
-      critical: true,
-    };
-  },
+  describe: () => ({
+    name: WorkboardDescriptor.name,
+    description: WorkboardDescriptor.description,
+    critical: WorkboardDescriptor.critical,
+  }),
 };

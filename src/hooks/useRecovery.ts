@@ -13,8 +13,8 @@ import {
   captureFullSnapshot,
   previewRestore as enginePreview,
   restoreFromSnapshot,
-  type PreviewResult,
 } from '@/core/snapshot/engine';
+import type { PreviewResult } from '@/core/snapshot/types';
 
 // ─── Types ───
 

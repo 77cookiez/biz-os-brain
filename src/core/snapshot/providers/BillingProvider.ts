@@ -1,17 +1,25 @@
-import type { SnapshotProvider } from '../types';
-
 /**
- * BillingProvider — Metadata only (capture/restore is server-side).
+ * BillingProvider — Descriptor only (v2).
+ * Capture/restore logic is entirely server-side.
  */
-export const BillingProvider: SnapshotProvider = {
+import type { ProviderDescriptor } from '../types';
+
+export const BillingDescriptor: ProviderDescriptor = {
+  provider_id: 'billing',
+  name: 'Billing',
+  description: 'Billing subscriptions & plan linkage',
+  critical: true,
+  default_policy: 'full',
+  is_enabled: true,
+};
+
+// Legacy export for backward compat with tests
+export const BillingProvider = {
   id: 'billing',
   version: 1,
-
-  describe() {
-    return {
-      name: 'Billing',
-      description: 'Billing subscriptions & plan linkage',
-      critical: true,
-    };
-  },
+  describe: () => ({
+    name: BillingDescriptor.name,
+    description: BillingDescriptor.description,
+    critical: BillingDescriptor.critical,
+  }),
 };

@@ -1,18 +1,39 @@
 /**
- * Provider Registry — Single source of all snapshot providers.
+ * Provider Registry v2 — Reads from DB via Edge Function.
  *
- * To add a new app to SafeBack snapshots:
- *   1. Create a provider implementing SnapshotProvider
- *   2. Add it to this array
- *   3. SafeBack never changes.
+ * Client-side descriptors are kept as fallback for offline/SSR.
+ * The source of truth is snapshot_providers_registry in the DB.
  */
-import type { SnapshotProvider } from './types';
-import { WorkboardProvider } from './providers/WorkboardProvider';
-import { BillingProvider } from './providers/BillingProvider';
-import { TeamChatProvider } from './providers/TeamChatProvider';
 
-export const SnapshotProviders: SnapshotProvider[] = [
-  WorkboardProvider,
-  BillingProvider,
-  TeamChatProvider,
+import type { ProviderDescriptor } from './types';
+
+/**
+ * Static fallback descriptors (used when DB is unreachable).
+ * These match the seeded rows in snapshot_providers_registry.
+ */
+export const FallbackProviderDescriptors: ProviderDescriptor[] = [
+  {
+    provider_id: 'workboard',
+    name: 'Workboard',
+    description: 'Tasks, goals, plans, ideas',
+    critical: true,
+    default_policy: 'full',
+    is_enabled: true,
+  },
+  {
+    provider_id: 'billing',
+    name: 'Billing',
+    description: 'Billing subscriptions & plan linkage',
+    critical: true,
+    default_policy: 'full',
+    is_enabled: true,
+  },
+  {
+    provider_id: 'team_chat',
+    name: 'Team Chat',
+    description: 'Channels, messages, threads, attachment references (no file blobs)',
+    critical: false,
+    default_policy: 'metadata_only',
+    is_enabled: true,
+  },
 ];

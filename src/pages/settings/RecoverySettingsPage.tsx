@@ -22,7 +22,7 @@ import { Link } from 'react-router-dom';
 import ScheduleSettings from '@/apps/safeback/components/ScheduleSettings';
 import SnapshotsList from '@/apps/safeback/components/SnapshotsList';
 import RestoreWizard from '@/apps/safeback/components/RestoreWizard';
-import { SnapshotProviders } from '@/core/snapshot/providerRegistry';
+import { FallbackProviderDescriptors } from '@/core/snapshot/providerRegistry';
 
 export default function RecoverySettingsPage() {
   const { t } = useTranslation();
@@ -123,7 +123,7 @@ export default function RecoverySettingsPage() {
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs text-muted-foreground">
           {t('recovery.includedNote', 'Snapshots capture all registered OS Providers:')}{' '}
-          {SnapshotProviders.map((p) => p.describe().name).join(', ')}.
+          {FallbackProviderDescriptors.map((p) => p.name).join(', ')}.
         </AlertDescription>
       </Alert>
 
