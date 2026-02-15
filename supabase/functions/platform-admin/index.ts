@@ -17,7 +17,6 @@ function err(msg: string, status = 400) {
   return json({ error: msg }, status);
 }
 
-/** Authenticate user from Authorization header */
 async function getAuthUser(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
@@ -32,10 +31,7 @@ async function getAuthUser(req: Request) {
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data?.user) return null;
 
-  return {
-    id: data.user.id,
-    email: data.user.email || "",
-  };
+  return { id: data.user.id, email: data.user.email || "" };
 }
 
 function getServiceClient() {
@@ -45,7 +41,6 @@ function getServiceClient() {
   );
 }
 
-/** Get platform role using service client (bypasses RLS) */
 async function getPlatformRole(userId: string): Promise<string | null> {
   const sb = getServiceClient();
   const { data } = await sb
@@ -57,28 +52,16 @@ async function getPlatformRole(userId: string): Promise<string | null> {
   return data?.role ?? null;
 }
 
-/** Require one of the allowed roles; returns role or throws */
-async function requirePlatformRole(
-  userId: string,
-  allowed: string[]
-): Promise<string> {
+async function requirePlatformRole(userId: string, allowed: string[]): Promise<string> {
   const role = await getPlatformRole(userId);
-  if (!role || !allowed.includes(role)) {
-    throw new Error("FORBIDDEN");
-  }
+  if (!role || !allowed.includes(role)) throw new Error("FORBIDDEN");
   return role;
 }
 
-/** Insert platform audit log */
 async function audit(
   actorId: string,
   actionType: string,
-  opts: {
-    targetType?: string;
-    targetId?: string;
-    payload?: Record<string, unknown>;
-    reason?: string;
-  } = {}
+  opts: { targetType?: string; targetId?: string; payload?: Record<string, unknown>; reason?: string } = {}
 ) {
   const sb = getServiceClient();
   await sb.from("platform_audit_log").insert({
@@ -91,62 +74,27 @@ async function audit(
   });
 }
 
-// ─── Route handlers ───
+// ─── Existing Route Handlers ───
 
 async function handleBootstrap(user: { id: string; email: string }) {
   const sb = getServiceClient();
   const ownerEmail = Deno.env.get("PLATFORM_OWNER_EMAIL");
   const bootstrapEnabled = Deno.env.get("PLATFORM_BOOTSTRAP_ENABLED");
 
-  if (!ownerEmail || bootstrapEnabled !== "true") {
-    return err("Bootstrap not enabled", 403);
-  }
+  if (!ownerEmail || bootstrapEnabled !== "true") return err("Bootstrap not enabled", 403);
+  if (user.email.toLowerCase() !== ownerEmail.toLowerCase()) return err("Email mismatch", 403);
 
-  if (user.email.toLowerCase() !== ownerEmail.toLowerCase()) {
-    return err("Email mismatch", 403);
-  }
+  const { data: lockRow } = await sb.from("platform_settings").select("value").eq("key", "bootstrap_locked").single();
+  if (lockRow?.value === true) return err("Bootstrap already locked", 403);
 
-  // Check DB lock
-  const { data: lockRow } = await sb
-    .from("platform_settings")
-    .select("value")
-    .eq("key", "bootstrap_locked")
-    .single();
+  const { data: existing } = await sb.from("platform_users").select("user_id").eq("role", "owner").limit(1);
+  if (existing && existing.length > 0) return err("Owner already exists", 409);
 
-  if (lockRow?.value === true) {
-    return err("Bootstrap already locked", 403);
-  }
-
-  // Check if owner already exists
-  const { data: existing } = await sb
-    .from("platform_users")
-    .select("user_id")
-    .eq("role", "owner")
-    .limit(1);
-
-  if (existing && existing.length > 0) {
-    return err("Owner already exists", 409);
-  }
-
-  // Insert owner
-  const { error: insertErr } = await sb.from("platform_users").insert({
-    user_id: user.id,
-    role: "owner",
-    is_active: true,
-  });
-
+  const { error: insertErr } = await sb.from("platform_users").insert({ user_id: user.id, role: "owner", is_active: true });
   if (insertErr) return err(insertErr.message, 500);
 
-  // Lock bootstrap in DB
-  await sb
-    .from("platform_settings")
-    .update({ value: true, updated_at: new Date().toISOString() })
-    .eq("key", "bootstrap_locked");
-
-  // Audit
-  await audit(user.id, "bootstrap_owner", {
-    payload: { email: user.email },
-  });
+  await sb.from("platform_settings").update({ value: true, updated_at: new Date().toISOString() }).eq("key", "bootstrap_locked");
+  await audit(user.id, "bootstrap_owner", { payload: { email: user.email } });
 
   return json({ success: true, role: "owner" });
 }
@@ -154,28 +102,12 @@ async function handleBootstrap(user: { id: string; email: string }) {
 async function handleGetRole(user: { id: string }) {
   const role = await getPlatformRole(user.id);
   const sb = getServiceClient();
-  const { data: lockRow } = await sb
-    .from("platform_settings")
-    .select("value")
-    .eq("key", "bootstrap_locked")
-    .single();
-
-  return json({
-    role,
-    bootstrap_locked: lockRow?.value === true,
-  });
+  const { data: lockRow } = await sb.from("platform_settings").select("value").eq("key", "bootstrap_locked").single();
+  return json({ role, bootstrap_locked: lockRow?.value === true });
 }
 
-async function handleListWorkspaces(
-  user: { id: string },
-  params: URLSearchParams
-) {
-  await requirePlatformRole(user.id, [
-    "owner",
-    "admin",
-    "support",
-    "auditor",
-  ]);
+async function handleListWorkspaces(user: { id: string }, params: URLSearchParams) {
+  await requirePlatformRole(user.id, ["owner", "admin", "support", "auditor"]);
 
   const sb = getServiceClient();
   const search = params.get("search") || "";
@@ -198,16 +130,11 @@ async function handleListWorkspaces(
   return json({ workspaces: data, total: count });
 }
 
-async function handleCreateGrant(
-  user: { id: string },
-  body: Record<string, unknown>
-) {
-  const role = await requirePlatformRole(user.id, ["owner", "admin"]);
+async function handleCreateGrant(user: { id: string }, body: Record<string, unknown>) {
+  await requirePlatformRole(user.id, ["owner", "admin"]);
 
   const { scope, scope_id, grant_type, reason, value_json, ends_at } = body;
-  if (!scope || !scope_id || !grant_type || !reason) {
-    return err("scope, scope_id, grant_type, reason are required");
-  }
+  if (!scope || !scope_id || !grant_type || !reason) return err("scope, scope_id, grant_type, reason are required");
 
   const sb = getServiceClient();
   const { data, error: insertErr } = await sb
@@ -236,27 +163,14 @@ async function handleCreateGrant(
   return json({ grant: data }, 201);
 }
 
-async function handleListGrants(
-  user: { id: string },
-  params: URLSearchParams
-) {
-  await requirePlatformRole(user.id, [
-    "owner",
-    "admin",
-    "support",
-    "auditor",
-  ]);
+async function handleListGrants(user: { id: string }, params: URLSearchParams) {
+  await requirePlatformRole(user.id, ["owner", "admin", "support", "auditor"]);
 
   const sb = getServiceClient();
   const scope = params.get("scope");
   const activeOnly = params.get("active") !== "false";
 
-  let query = sb
-    .from("platform_grants")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
+  let query = sb.from("platform_grants").select("*").order("created_at", { ascending: false }).limit(100);
   if (scope) query = query.eq("scope", scope);
   if (activeOnly) query = query.eq("is_active", true);
 
@@ -266,10 +180,7 @@ async function handleListGrants(
   return json({ grants: data });
 }
 
-async function handleRevokeGrant(
-  user: { id: string },
-  body: Record<string, unknown>
-) {
+async function handleRevokeGrant(user: { id: string }, body: Record<string, unknown>) {
   await requirePlatformRole(user.id, ["owner", "admin"]);
 
   const { grant_id, reason } = body;
@@ -295,15 +206,8 @@ async function handleRevokeGrant(
   return json({ grant: data });
 }
 
-async function handleListAudit(
-  user: { id: string },
-  params: URLSearchParams
-) {
-  await requirePlatformRole(user.id, [
-    "owner",
-    "admin",
-    "auditor",
-  ]);
+async function handleListAudit(user: { id: string }, params: URLSearchParams) {
+  await requirePlatformRole(user.id, ["owner", "admin", "auditor"]);
 
   const sb = getServiceClient();
   const actionType = params.get("action_type");
@@ -324,6 +228,230 @@ async function handleListAudit(
   return json({ logs: data, total: count });
 }
 
+// ─── NEW Route Handlers ───
+
+async function handleWorkspaceDetail(user: { id: string }, params: URLSearchParams) {
+  await requirePlatformRole(user.id, ["owner", "admin", "support", "auditor"]);
+
+  const workspaceId = params.get("workspace_id");
+  if (!workspaceId) return err("workspace_id is required");
+
+  const sb = getServiceClient();
+
+  // Parallel queries
+  const [wsRes, appsRes, osPlanRes, bookingSubRes, membersRes, grantsRes] = await Promise.all([
+    sb.from("workspaces").select("id, name, created_at, company_id").eq("id", workspaceId).single(),
+    sb.from("workspace_apps").select("*").eq("workspace_id", workspaceId),
+    sb.from("billing_subscriptions").select("*, billing_plans(*)").eq("workspace_id", workspaceId).maybeSingle(),
+    sb.from("booking_subscriptions").select("*").eq("workspace_id", workspaceId).maybeSingle(),
+    sb.from("user_roles").select("id", { count: "exact" }).eq("company_id",
+      (await sb.from("workspaces").select("company_id").eq("id", workspaceId).single()).data?.company_id || "00000000-0000-0000-0000-000000000000"
+    ),
+    sb.from("platform_grants").select("*").eq("scope", "workspace").eq("scope_id", workspaceId).eq("is_active", true),
+  ]);
+
+  if (wsRes.error) return err("Workspace not found", 404);
+
+  return json({
+    workspace: wsRes.data,
+    apps: appsRes.data || [],
+    os_subscription: osPlanRes.data || null,
+    booking_subscription: bookingSubRes.data || null,
+    member_count: membersRes.count || 0,
+    active_grants: grantsRes.data || [],
+  });
+}
+
+async function handleSetOsPlan(user: { id: string }, body: Record<string, unknown>) {
+  await requirePlatformRole(user.id, ["owner", "admin"]);
+
+  const { workspace_id, plan_id, billing_cycle, reason } = body;
+  if (!workspace_id || !plan_id || !reason) return err("workspace_id, plan_id, reason are required");
+
+  const sb = getServiceClient();
+
+  // Verify workspace exists
+  const { data: ws } = await sb.from("workspaces").select("id").eq("id", workspace_id as string).single();
+  if (!ws) return err("Workspace not found", 404);
+
+  // Verify plan exists
+  const { data: plan } = await sb.from("billing_plans").select("id, name").eq("id", plan_id as string).eq("is_active", true).single();
+  if (!plan) return err("Plan not found or inactive", 404);
+
+  // Create a grant-based override (doesn't overwrite Stripe truth)
+  const { data: grant, error: grantErr } = await sb
+    .from("platform_grants")
+    .insert({
+      scope: "workspace",
+      scope_id: workspace_id as string,
+      grant_type: "os_plan_override",
+      value_json: { plan_id, billing_cycle: billing_cycle || "monthly" },
+      reason: reason as string,
+      created_by: user.id,
+    })
+    .select()
+    .single();
+
+  if (grantErr) return err(grantErr.message, 500);
+
+  // Also directly upsert the subscription for immediate reflection
+  const { error: subErr } = await sb
+    .from("billing_subscriptions")
+    .upsert(
+      {
+        workspace_id: workspace_id as string,
+        plan_id: plan_id as string,
+        billing_cycle: (billing_cycle as string) || "monthly",
+        status: "active",
+        billing_provider: "platform_override",
+        current_period_start: new Date().toISOString(),
+      },
+      { onConflict: "workspace_id" }
+    );
+
+  if (subErr) return err(subErr.message, 500);
+
+  await audit(user.id, "os_plan_override", {
+    targetType: "workspace",
+    targetId: workspace_id as string,
+    payload: { plan_id, billing_cycle, grant_id: grant.id },
+    reason: reason as string,
+  });
+
+  return json({ success: true, grant });
+}
+
+async function handleSetAppSubscription(user: { id: string }, body: Record<string, unknown>) {
+  await requirePlatformRole(user.id, ["owner", "admin"]);
+
+  const { workspace_id, app_id, plan, status, expires_at, reason } = body;
+  if (!workspace_id || !app_id || !plan || !reason) return err("workspace_id, app_id, plan, reason are required");
+
+  const sb = getServiceClient();
+
+  // Verify workspace
+  const { data: ws } = await sb.from("workspaces").select("id").eq("id", workspace_id as string).single();
+  if (!ws) return err("Workspace not found", 404);
+
+  // Create grant for audit trail
+  const { data: grant, error: grantErr } = await sb
+    .from("platform_grants")
+    .insert({
+      scope: "workspace",
+      scope_id: workspace_id as string,
+      grant_type: "app_plan_override",
+      value_json: { app_id, plan, status: status || "active", expires_at: expires_at || null },
+      reason: reason as string,
+      created_by: user.id,
+    })
+    .select()
+    .single();
+
+  if (grantErr) return err(grantErr.message, 500);
+
+  // App-specific subscription upsert (adapter pattern)
+  if (app_id === "booking") {
+    const { error: subErr } = await sb
+      .from("booking_subscriptions")
+      .upsert(
+        {
+          workspace_id: workspace_id as string,
+          plan: plan as string,
+          status: (status as string) || "active",
+          expires_at: (expires_at as string) || null,
+          started_at: new Date().toISOString(),
+        },
+        { onConflict: "workspace_id" }
+      );
+
+    if (subErr) return err(subErr.message, 500);
+  }
+  // Future apps: add more cases here
+
+  await audit(user.id, "app_subscription_override", {
+    targetType: "workspace",
+    targetId: workspace_id as string,
+    payload: { app_id, plan, status, expires_at, grant_id: grant.id },
+    reason: reason as string,
+  });
+
+  return json({ success: true, grant });
+}
+
+async function handleInstallApp(user: { id: string }, body: Record<string, unknown>) {
+  await requirePlatformRole(user.id, ["owner", "admin"]);
+
+  const { workspace_id, app_id, reason } = body;
+  if (!workspace_id || !app_id || !reason) return err("workspace_id, app_id, reason are required");
+
+  const sb = getServiceClient();
+
+  // Verify workspace
+  const { data: ws } = await sb.from("workspaces").select("id").eq("id", workspace_id as string).single();
+  if (!ws) return err("Workspace not found", 404);
+
+  // Verify app exists in registry
+  const { data: app } = await sb.from("app_registry").select("id, name, status").eq("id", app_id as string).single();
+  if (!app) return err("App not found in registry", 404);
+  if (app.status === "deprecated") return err("App is deprecated", 400);
+
+  // Upsert workspace_apps
+  const { error: appErr } = await sb
+    .from("workspace_apps")
+    .upsert(
+      {
+        workspace_id: workspace_id as string,
+        app_id: app_id as string,
+        is_active: true,
+        installed_at: new Date().toISOString(),
+        installed_by: user.id,
+        uninstalled_at: null,
+      },
+      { onConflict: "workspace_id,app_id" }
+    );
+
+  if (appErr) return err(appErr.message, 500);
+
+  await audit(user.id, "app_installed", {
+    targetType: "workspace",
+    targetId: workspace_id as string,
+    payload: { app_id, app_name: app.name },
+    reason: reason as string,
+  });
+
+  return json({ success: true, app_id });
+}
+
+async function handleUninstallApp(user: { id: string }, body: Record<string, unknown>) {
+  await requirePlatformRole(user.id, ["owner", "admin"]);
+
+  const { workspace_id, app_id, reason } = body;
+  if (!workspace_id || !app_id || !reason) return err("workspace_id, app_id, reason are required");
+
+  const sb = getServiceClient();
+
+  // Soft toggle — never delete data
+  const { error: appErr } = await sb
+    .from("workspace_apps")
+    .update({
+      is_active: false,
+      uninstalled_at: new Date().toISOString(),
+    })
+    .eq("workspace_id", workspace_id as string)
+    .eq("app_id", app_id as string);
+
+  if (appErr) return err(appErr.message, 500);
+
+  await audit(user.id, "app_uninstalled", {
+    targetType: "workspace",
+    targetId: workspace_id as string,
+    payload: { app_id },
+    reason: reason as string,
+  });
+
+  return json({ success: true, app_id });
+}
+
 // ─── Main handler ───
 
 Deno.serve(async (req) => {
@@ -341,12 +469,10 @@ Deno.serve(async (req) => {
     switch (req.method) {
       case "GET": {
         if (path === "role") return handleGetRole(user);
-        if (path === "workspaces")
-          return handleListWorkspaces(user, url.searchParams);
-        if (path === "grants")
-          return handleListGrants(user, url.searchParams);
-        if (path === "audit")
-          return handleListAudit(user, url.searchParams);
+        if (path === "workspaces") return handleListWorkspaces(user, url.searchParams);
+        if (path === "grants") return handleListGrants(user, url.searchParams);
+        if (path === "audit") return handleListAudit(user, url.searchParams);
+        if (path === "workspace-detail") return handleWorkspaceDetail(user, url.searchParams);
         return err("Not found", 404);
       }
       case "POST": {
@@ -354,6 +480,10 @@ Deno.serve(async (req) => {
         if (path === "bootstrap") return handleBootstrap(user);
         if (path === "grants") return handleCreateGrant(user, body);
         if (path === "revoke-grant") return handleRevokeGrant(user, body);
+        if (path === "set-os-plan") return handleSetOsPlan(user, body);
+        if (path === "set-app-subscription") return handleSetAppSubscription(user, body);
+        if (path === "install-app") return handleInstallApp(user, body);
+        if (path === "uninstall-app") return handleUninstallApp(user, body);
         return err("Not found", 404);
       }
       default:

@@ -10,6 +10,10 @@ const ACTION_TYPES = [
   { value: "bootstrap_owner", label: "Bootstrap" },
   { value: "grant_created", label: "Grant Created" },
   { value: "grant_revoked", label: "Grant Revoked" },
+  { value: "os_plan_override", label: "OS Plan Override" },
+  { value: "app_subscription_override", label: "App Subscription Override" },
+  { value: "app_installed", label: "App Installed" },
+  { value: "app_uninstalled", label: "App Uninstalled" },
 ];
 
 export default function OwnerAudit() {
@@ -21,7 +25,7 @@ export default function OwnerAudit() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold text-foreground">Audit Log</h1>
         <Select value={actionType || "all"} onValueChange={(v) => setActionType(v === "all" ? undefined : v)}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-52">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
