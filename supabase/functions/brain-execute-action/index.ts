@@ -1053,9 +1053,11 @@ serve(async (req) => {
 
         if (rpcError) {
           console.error("[brain-execute] RPC error:", rpcError.message);
+          // RPC raised an exception — entire transaction was rolled back (true atomicity).
+          // No partial writes exist. Return error to client.
           return new Response(
             JSON.stringify({ code: "EXECUTION_FAILED", reason: rpcError.message }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
@@ -1063,7 +1065,6 @@ serve(async (req) => {
 
         // RPC returns structured jsonb — map to HTTP
         if (result.success === true) {
-          const statusCode = 200;
           return new Response(
             JSON.stringify({
               success: true,
@@ -1071,11 +1072,11 @@ serve(async (req) => {
               audit_log_id: result.audit_log_id,
               replayed: result.replayed || false,
             }),
-            { status: statusCode, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
-        // Failure responses from RPC
+        // Failure responses from RPC (idempotency: replay failed/in-progress)
         const code = (result.code as string) || "EXECUTION_FAILED";
         const reason = (result.reason as string) || "Unknown error";
         const httpStatus = code === "ALREADY_EXECUTED"

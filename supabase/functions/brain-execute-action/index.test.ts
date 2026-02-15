@@ -587,7 +587,7 @@ if (TEST_MODE_AVAILABLE) {
           meaning: { meaning_object_id: confirmData.meaning_object_id },
         };
 
-        // Insert STALE reserved row (created_at in the past)
+        // Insert STALE reserved row (both created_at and updated_at in the past)
         const staleTime = new Date(Date.now() - 120000).toISOString(); // 2 minutes ago
         await sb!.from("executed_drafts").insert({
           draft_id: draft.id,
@@ -597,6 +597,7 @@ if (TEST_MODE_AVAILABLE) {
           executed_by: testUserId,
           status: "reserved",
           created_at: staleTime,
+          updated_at: staleTime,
         });
 
         // Execute should take over the stale reservation and succeed
@@ -614,7 +615,7 @@ if (TEST_MODE_AVAILABLE) {
     },
   });
 
-  // ─── M5 TEST: Atomicity (RPC rollback on failure) ───
+  // ─── M5 TEST: Atomicity (RPC RAISE EXCEPTION rollback on failure) ───
 
   Deno.test({
     name: "M5: unsupported draft_type fails without partial writes",
@@ -636,18 +637,27 @@ if (TEST_MODE_AVAILABLE) {
         };
 
         const { count: tasksBefore } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
+        const { count: auditsBefore } = await sb!.from("audit_logs").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
 
         const { status, data } = await callFunction(
           { mode: "execute", workspace_id: testWorkspaceId, draft: execDraft, confirmation_hash: confirmData.confirmation_hash },
           { userId: testUserId, role: "owner" },
         );
 
-        // Should fail
-        assertEquals(status === 400 || status === 409, true);
+        // RPC raises exception → edge returns 400
+        assertEquals(status, 400);
 
-        // No tasks should have been created
+        // No tasks should have been created (full rollback)
         const { count: tasksAfter } = await sb!.from("tasks").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
         assertEquals(tasksBefore, tasksAfter);
+
+        // No audit logs should have been created (full rollback)
+        const { count: auditsAfter } = await sb!.from("audit_logs").select("*", { count: "exact", head: true }).eq("workspace_id", testWorkspaceId);
+        assertEquals(auditsBefore, auditsAfter);
+
+        // No executed_drafts reservation should persist (full rollback)
+        const { data: reservation } = await sb!.from("executed_drafts").select("*").eq("draft_id", draft.id).maybeSingle();
+        assertEquals(reservation, null);
       } finally {
         await teardownTestData();
       }
