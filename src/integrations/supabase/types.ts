@@ -3105,7 +3105,15 @@ export type Database = {
         Returns: boolean
       }
       check_vendor_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      cleanup_expired_draft_confirmations: {
+        Args: { _batch?: number; _now?: string }
+        Returns: number
+      }
       cleanup_old_org_events: { Args: never; Returns: undefined }
+      cleanup_stale_executed_drafts: {
+        Args: { _batch?: number; _stale_threshold?: unknown }
+        Returns: number
+      }
       cleanup_stale_memory: { Args: never; Returns: undefined }
       decide_upgrade: {
         Args: { _decision: string; _notes?: string; _request_id: string }

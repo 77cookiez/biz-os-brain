@@ -663,4 +663,146 @@ if (TEST_MODE_AVAILABLE) {
       }
     },
   });
+
+  // ─── M6 TEST: Cleanup expired draft confirmations ───
+
+  Deno.test({
+    name: "M6: cleanup_expired_draft_confirmations deletes expired rows",
+    async fn() {
+      await setupTestData();
+      try {
+        const expiredDraftId = `m6-expired-${crypto.randomUUID()}`;
+        const validDraftId = `m6-valid-${crypto.randomUUID()}`;
+        const pastEpochMs = Date.now() - 3600_000; // 1 hour ago
+        const futureEpochMs = Date.now() + 3600_000; // 1 hour from now
+
+        // Insert expired confirmation
+        await sb!.from("draft_confirmations").insert({
+          draft_id: expiredDraftId,
+          workspace_id: testWorkspaceId,
+          confirmed_meaning_object_id: crypto.randomUUID(),
+          confirmed_by: testUserId,
+          confirmation_hash: "expired-hash",
+          expires_at: pastEpochMs,
+        });
+
+        // Insert valid (non-expired) confirmation
+        await sb!.from("draft_confirmations").insert({
+          draft_id: validDraftId,
+          workspace_id: testWorkspaceId,
+          confirmed_meaning_object_id: crypto.randomUUID(),
+          confirmed_by: testUserId,
+          confirmation_hash: "valid-hash",
+          expires_at: futureEpochMs,
+        });
+
+        // Call cleanup RPC
+        const { data: deleted, error } = await sb!.rpc("cleanup_expired_draft_confirmations", {});
+        assertEquals(error, null);
+        assertEquals(typeof deleted, "number");
+        assertEquals(deleted >= 1, true);
+
+        // Expired row should be gone
+        const { data: expiredRow } = await sb!.from("draft_confirmations").select("*").eq("draft_id", expiredDraftId).maybeSingle();
+        assertEquals(expiredRow, null);
+
+        // Valid row should still exist
+        const { data: validRow } = await sb!.from("draft_confirmations").select("*").eq("draft_id", validDraftId).maybeSingle();
+        assertExists(validRow);
+
+        // Cleanup valid row
+        await sb!.from("draft_confirmations").delete().eq("draft_id", validDraftId);
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M6 TEST: Cleanup stale reserved executed_drafts ───
+
+  Deno.test({
+    name: "M6: cleanup_stale_executed_drafts deletes stale reserved rows only",
+    async fn() {
+      await setupTestData();
+      try {
+        const staleDraftId = `m6-stale-${crypto.randomUUID()}`;
+        const freshDraftId = `m6-fresh-${crypto.randomUUID()}`;
+        const staleTime = new Date(Date.now() - 15 * 60_000).toISOString(); // 15 min ago
+
+        // Insert stale reserved row
+        await sb!.from("executed_drafts").insert({
+          draft_id: staleDraftId,
+          workspace_id: testWorkspaceId,
+          agent_type: "teamwork",
+          draft_type: "draft_task_set",
+          executed_by: testUserId,
+          status: "reserved",
+          created_at: staleTime,
+          updated_at: staleTime,
+        });
+
+        // Insert fresh reserved row (should NOT be deleted)
+        await sb!.from("executed_drafts").insert({
+          draft_id: freshDraftId,
+          workspace_id: testWorkspaceId,
+          agent_type: "teamwork",
+          draft_type: "draft_task_set",
+          executed_by: testUserId,
+          status: "reserved",
+        });
+
+        // Call cleanup RPC (default 10 min threshold)
+        const { data: deleted, error } = await sb!.rpc("cleanup_stale_executed_drafts", {});
+        assertEquals(error, null);
+        assertEquals(typeof deleted, "number");
+        assertEquals(deleted >= 1, true);
+
+        // Stale row should be gone
+        const { data: staleRow } = await sb!.from("executed_drafts").select("*").eq("draft_id", staleDraftId).maybeSingle();
+        assertEquals(staleRow, null);
+
+        // Fresh row should still exist
+        const { data: freshRow } = await sb!.from("executed_drafts").select("*").eq("draft_id", freshDraftId).maybeSingle();
+        assertExists(freshRow);
+
+        // Cleanup fresh row
+        await sb!.from("executed_drafts").delete().eq("draft_id", freshDraftId);
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
+
+  // ─── M6 TEST: Execute response includes request_id in RPC metadata ───
+
+  Deno.test({
+    name: "M6: execute success includes request_id in audit metadata",
+    async fn() {
+      await setupTestData();
+      try {
+        const draft = makeDraft();
+        const { execute } = await confirmAndExecute(draft);
+
+        const { status, data } = await execute();
+        assertEquals(status, 200);
+        assertEquals(data.success, true);
+
+        // Check audit_logs has request_id in metadata
+        const { data: audits } = await sb!.from("audit_logs")
+          .select("metadata")
+          .eq("workspace_id", testWorkspaceId)
+          .eq("action", "agent.execute.success")
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        assertExists(audits);
+        assertEquals(audits!.length >= 1, true);
+        const meta = audits![0].metadata as Record<string, unknown>;
+        assertExists(meta.request_id);
+        assertEquals(typeof meta.request_id, "string");
+      } finally {
+        await teardownTestData();
+      }
+    },
+  });
 }
