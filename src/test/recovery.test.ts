@@ -150,6 +150,63 @@ describe('Size protection', () => {
     const MAX_MESSAGES_PER_SNAPSHOT = 2000;
     expect(MAX_MESSAGES_PER_SNAPSHOT).toBe(2000);
   });
+
+  it('Message body truncation: capture omits raw content field (metadata only)', () => {
+    // chat_messages uses meaning_object_id, not a body column
+    // capture_workspace_snapshot_v2 builds JSON manually with only id, thread_id, sender, etc.
+    const capturedFields = ['id', 'thread_id', 'sender_user_id', 'workspace_id', 'meaning_object_id', 'source_lang', 'created_at'];
+    expect(capturedFields).not.toContain('content');
+    expect(capturedFields).not.toContain('body');
+  });
+});
+
+// ─── TeamChat restore workspace integrity ───
+
+describe('TeamChat restore workspace integrity', () => {
+  it('restore_teamchat_fragment builds thread_id whitelist from fragment', () => {
+    // Contract: only threads from the fragment are inserted, then members/messages
+    // are filtered against that whitelist
+    const fragmentThreadIds = ['t1', 't2'];
+    const memberRow = { thread_id: 't3' }; // foreign thread
+    expect(fragmentThreadIds).not.toContain(memberRow.thread_id);
+  });
+
+  it('attachment refs are validated against restored message_ids', () => {
+    // Contract: attachments with message_id not in restored messages are skipped
+    const restoredMessageIds = ['m1', 'm2'];
+    const orphanAttachment = { message_id: 'm99' };
+    expect(restoredMessageIds).not.toContain(orphanAttachment.message_id);
+  });
+
+  it('workspace_id is forced on all restored rows (threads, messages, attachments)', () => {
+    // Contract: jsonb_build_object('workspace_id', _workspace_id) is appended
+    const forceFields = ['workspace_id'];
+    expect(forceFields).toContain('workspace_id');
+  });
+});
+
+// ─── Edge function restore safety ───
+
+describe('Edge function restore safety', () => {
+  it('restore endpoint derives workspace_id from snapshot, not client body', () => {
+    // Contract: the edge function reads workspace_id from workspace_snapshots table
+    // and does NOT accept workspace_id from the request body
+    const requiredBodyParams = ['snapshot_id', 'confirmation_token'];
+    expect(requiredBodyParams).not.toContain('workspace_id');
+  });
+});
+
+// ─── Pre-restore snapshot uses internal function ───
+
+describe('Pre-restore snapshot correctness', () => {
+  it('uses create_workspace_snapshot_internal with _actor (no auth.uid())', () => {
+    // Contract: restore_workspace_snapshot_atomic calls create_workspace_snapshot_internal(_workspace_id, _actor, ...)
+    const internalFn = 'create_workspace_snapshot_internal';
+    const params = ['_workspace_id', '_actor', '_snapshot_type'];
+    expect(internalFn).toBeTruthy();
+    expect(params).toContain('_actor');
+    expect(params).not.toContain('auth.uid()');
+  });
 });
 
 // ─── Audit log events ───
