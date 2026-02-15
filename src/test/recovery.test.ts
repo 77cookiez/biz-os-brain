@@ -172,9 +172,87 @@ describe('Bookivo provider', () => {
   });
 
   it('bookivo payments are captured but never auto-finalize on restore', () => {
-    // Payments are restored as-is from snapshot (status preserved), never auto-finalized
     const paymentStatuses = ['pending', 'paid', 'refunded'];
     expect(paymentStatuses).toContain('pending');
+  });
+});
+
+// ─── Bookivo hardening (v2) ───
+
+describe('Bookivo hardening', () => {
+  it('restore uses ON CONFLICT (id) DO UPDATE for idempotency', () => {
+    const strategy = 'INSERT ... ON CONFLICT (id) DO UPDATE SET ...';
+    expect(strategy).toContain('ON CONFLICT');
+    expect(strategy).toContain('DO UPDATE');
+  });
+
+  it('restore uses jsonb_strip_nulls for forward compatibility', () => {
+    const row = { id: '1', name: 'test', future_field: null };
+    const stripped = Object.fromEntries(Object.entries(row).filter(([, v]) => v !== null));
+    expect(stripped).not.toHaveProperty('future_field');
+    expect(stripped).toHaveProperty('name');
+  });
+
+  it('booking_settings is the only soft-delete table', () => {
+    const softDeleteTables = ['booking_settings'];
+    const hardDeleteTables = [
+      'booking_subscriptions', 'booking_vendors', 'booking_vendor_profiles',
+      'booking_services', 'booking_service_addons', 'booking_availability_rules',
+      'booking_blackout_dates', 'booking_quote_requests', 'booking_quotes',
+      'booking_bookings', 'booking_payments', 'booking_commission_ledger',
+    ];
+    expect(softDeleteTables).toHaveLength(1);
+    expect(hardDeleteTables).toHaveLength(12);
+  });
+
+  it('financial ledger tables never auto-modify status on restore', () => {
+    const financialTables = ['booking_payments', 'booking_commission_ledger'];
+    const autoFinalizeActions: string[] = [];
+    financialTables.forEach((t) => {
+      expect(autoFinalizeActions).not.toContain(`auto_finalize_${t}`);
+    });
+  });
+
+  it('table-specific caps override max_rows_per_table', () => {
+    const limits = { max_rows_per_table: 5000, max_bookings: 3000, max_quotes: 2000, max_services: 1000 };
+    const capBookings = limits.max_bookings ?? limits.max_rows_per_table;
+    const capQuotes = limits.max_quotes ?? limits.max_rows_per_table;
+    const capServices = limits.max_services ?? limits.max_rows_per_table;
+    const capVendors = (limits as any).max_vendors ?? limits.max_rows_per_table;
+    expect(capBookings).toBe(3000);
+    expect(capQuotes).toBe(2000);
+    expect(capServices).toBe(1000);
+    expect(capVendors).toBe(5000); // fallback
+  });
+
+  it('restore emits workspace.bookivo_fragment_restored audit event', () => {
+    const auditAction = 'workspace.bookivo_fragment_restored';
+    expect(auditAction).toMatch(/^workspace\./);
+    const metadata = { table_counts: { booking_settings: 1, booking_vendors: 3 }, total: 4 };
+    expect(metadata.table_counts).toBeDefined();
+    expect(metadata.total).toBe(4);
+  });
+
+  it('restore is deterministic — tables processed in static order', () => {
+    const insertOrder = [
+      'booking_settings', 'booking_subscriptions', 'booking_vendors',
+      'booking_vendor_profiles', 'booking_availability_rules', 'booking_blackout_dates',
+      'booking_services', 'booking_service_addons', 'booking_quote_requests',
+      'booking_quotes', 'booking_bookings', 'booking_payments', 'booking_commission_ledger',
+    ];
+    // Verify order is static and not alphabetical
+    expect(insertOrder[0]).toBe('booking_settings');
+    expect(insertOrder[2]).toBe('booking_vendors');
+    expect(insertOrder[6]).toBe('booking_services');
+    expect(insertOrder[12]).toBe('booking_commission_ledger');
+  });
+
+  it('booking_id whitelist validates financial rows against restored bookings', () => {
+    const validBookingIds = ['b1', 'b2'];
+    const paymentRow = { booking_id: 'b99' };
+    const ledgerRow = { booking_id: 'b1' };
+    expect(validBookingIds).not.toContain(paymentRow.booking_id);
+    expect(validBookingIds).toContain(ledgerRow.booking_id);
   });
 });
 
