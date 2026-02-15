@@ -1,12 +1,18 @@
 /**
- * Recovery & Backup Hooks
- * Resilience Layer API for the Recovery Center UI
+ * Recovery & Backup Hooks — Provider Engine v1
+ * Uses the Snapshot Provider Engine for all capture/restore operations.
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useWorkspace } from '@/contexts/WorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import {
+  captureFullSnapshot,
+  previewRestore as enginePreview,
+  restoreFromSnapshot,
+  type PreviewResult,
+} from '@/core/snapshot/engine';
 
 // ─── Types ───
 
@@ -27,17 +33,7 @@ export interface Snapshot {
   created_at: string;
 }
 
-export interface RestorePreview {
-  confirmation_token: string;
-  summary: {
-    will_replace: Record<string, number>;
-    will_restore: Record<string, number>;
-    snapshot_created_at: string;
-    snapshot_type: string;
-    snapshot_reason: string;
-  };
-  expires_in_seconds: number;
-}
+export type RestorePreview = PreviewResult;
 
 // ─── useRecoverySettings ───
 
@@ -105,7 +101,7 @@ export function useSnapshots() {
   return { snapshots, isLoading, refetch: () => queryClient.invalidateQueries({ queryKey: ['snapshots'] }) };
 }
 
-// ─── createSnapshot ───
+// ─── createSnapshot (Provider Engine) ───
 
 export function useCreateSnapshot() {
   const { currentWorkspace } = useWorkspace();
@@ -115,12 +111,7 @@ export function useCreateSnapshot() {
   return useMutation({
     mutationFn: async () => {
       if (!currentWorkspace || !user) throw new Error('Not authenticated');
-      const { data, error } = await supabase.rpc('create_workspace_snapshot', {
-        _workspace_id: currentWorkspace.id,
-        _snapshot_type: 'manual',
-      });
-      if (error) throw error;
-      return data as string;
+      return captureFullSnapshot(currentWorkspace.id, user.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['snapshots'] });
@@ -130,7 +121,7 @@ export function useCreateSnapshot() {
   });
 }
 
-// ─── previewRestore ───
+// ─── previewRestore (Provider Engine) ───
 
 export function usePreviewRestore() {
   const { user } = useAuth();
@@ -138,18 +129,13 @@ export function usePreviewRestore() {
   return useMutation({
     mutationFn: async (snapshotId: string) => {
       if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase.rpc('preview_restore_snapshot', {
-        _snapshot_id: snapshotId,
-        _actor: user.id,
-      });
-      if (error) throw error;
-      return data as unknown as RestorePreview;
+      return enginePreview(snapshotId, user.id);
     },
     onError: () => toast.error('Failed to preview restore'),
   });
 }
 
-// ─── restoreSnapshot ───
+// ─── restoreSnapshot (Provider Engine) ───
 
 export function useRestoreSnapshot() {
   const { user } = useAuth();
@@ -158,24 +144,22 @@ export function useRestoreSnapshot() {
   return useMutation({
     mutationFn: async ({ snapshotId, confirmationToken }: { snapshotId: string; confirmationToken: string }) => {
       if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase.rpc('restore_workspace_snapshot', {
-        _snapshot_id: snapshotId,
-        _actor: user.id,
-        _confirmation_token: confirmationToken,
-      });
-      if (error) throw error;
-      return data as unknown as { success: boolean; restored_counts: Record<string, number> };
+      const restoredCounts = await restoreFromSnapshot(snapshotId, confirmationToken, user.id);
+      return { success: true, restored_counts: restoredCounts };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['snapshots'] });
       const counts = data.restored_counts;
-      toast.success(`Restored ${counts.tasks} tasks, ${counts.goals} goals, ${counts.plans} plans, ${counts.ideas} ideas`);
+      const summary = Object.entries(counts)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ');
+      toast.success(`Restored: ${summary}`);
     },
     onError: () => toast.error('Failed to restore snapshot'),
   });
 }
 
-// ─── exportSnapshot ───
+// ─── exportSnapshot (unchanged) ───
 
 export function useExportSnapshot() {
   return useMutation({
@@ -198,7 +182,6 @@ export function useExportSnapshot() {
       if (result.download_url) {
         window.open(result.download_url, '_blank');
       } else if (result.snapshot) {
-        // Download inline JSON
         const blob = new Blob([JSON.stringify(result.snapshot, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);

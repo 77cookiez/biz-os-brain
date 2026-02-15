@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ShieldCheck, Plus, Clock, Download, Loader2, Info } from 'lucide-react';
 import type { BackupSettings, Snapshot } from '@/hooks/useRecovery';
 import { useNavigate } from 'react-router-dom';
+import { SnapshotProviders } from '@/core/snapshot/providerRegistry';
 
 interface OverviewPanelProps {
   settings: BackupSettings | null;
@@ -27,6 +28,8 @@ export default function OverviewPanel({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const lastSnapshot = snapshots[0];
+
+  const providers = SnapshotProviders.map((p) => p.describe());
 
   return (
     <div className="space-y-4">
@@ -78,7 +81,7 @@ export default function OverviewPanel({
         </CardContent>
       </Card>
 
-      {/* Snapshot Scope — what's actually included today */}
+      {/* Dynamic Provider Scope — generated from registered providers */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -87,25 +90,20 @@ export default function OverviewPanel({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('apps.safeback.included.subtitle', 'Current version captures:')}</p>
-            <ul className="text-sm text-foreground space-y-1 list-disc list-inside">
-              <li>{t('apps.safeback.included.items.tasks', 'Tasks')}</li>
-              <li>{t('apps.safeback.included.items.goals', 'Goals')}</li>
-              <li>{t('apps.safeback.included.items.plans', 'Plans')}</li>
-              <li>{t('apps.safeback.included.items.ideas', 'Ideas')}</li>
-              <li>{t('apps.safeback.included.items.billing', 'Billing subscription state')}</li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('apps.safeback.excluded.title', 'Not included yet:')}</p>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>{t('apps.safeback.excluded.items.apps', 'Installed apps data (Booking, Chat, etc.)')}</li>
-              <li>{t('apps.safeback.excluded.items.files', 'Uploaded files & media')}</li>
-              <li>{t('apps.safeback.excluded.items.secrets', 'API keys & secrets')}</li>
-              <li>{t('apps.safeback.excluded.items.queues', 'Runtime queues & notifications')}</li>
-            </ul>
-          </div>
+          <p className="text-xs font-medium text-muted-foreground mb-1.5">
+            {t('apps.safeback.included.subtitle', 'SafeBack captures all registered OS Providers:')}
+          </p>
+          <ul className="text-sm text-foreground space-y-1.5">
+            {providers.map((p) => (
+              <li key={p.name} className="flex items-center gap-2">
+                <Badge variant={p.critical ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                  {p.critical ? t('common.critical', 'Critical') : t('common.optional', 'Optional')}
+                </Badge>
+                <span className="font-medium">{p.name}</span>
+                <span className="text-muted-foreground">— {p.description}</span>
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
     </div>

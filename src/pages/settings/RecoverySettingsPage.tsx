@@ -22,6 +22,7 @@ import { Link } from 'react-router-dom';
 import ScheduleSettings from '@/apps/safeback/components/ScheduleSettings';
 import SnapshotsList from '@/apps/safeback/components/SnapshotsList';
 import RestoreWizard from '@/apps/safeback/components/RestoreWizard';
+import { SnapshotProviders } from '@/core/snapshot/providerRegistry';
 
 export default function RecoverySettingsPage() {
   const { t } = useTranslation();
@@ -117,11 +118,12 @@ export default function RecoverySettingsPage() {
         <p className="text-sm text-muted-foreground mt-1">{t('recovery.subtitle', 'Manage workspace snapshots and restore points')}</p>
       </div>
 
-      {/* Snapshot scope info */}
+      {/* Dynamic provider scope */}
       <Alert variant="default">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-xs text-muted-foreground">
-          {t('recovery.includedNote', 'Snapshots currently include: Tasks, Goals, Plans, Ideas, and Billing state. Other app data (Booking, Chat, files) is not yet included.')}
+          {t('recovery.includedNote', 'Snapshots capture all registered OS Providers:')}{' '}
+          {SnapshotProviders.map((p) => p.describe().name).join(', ')}.
         </AlertDescription>
       </Alert>
 

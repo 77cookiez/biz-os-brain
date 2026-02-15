@@ -3491,6 +3491,10 @@ export type Database = {
             }
             Returns: Json
           }
+      generate_restore_token: {
+        Args: { _actor: string; _snapshot_id: string }
+        Returns: string
+      }
       get_execution_policy: { Args: { _workspace_id: string }; Returns: Json }
       get_live_booking_tenant_by_slug: {
         Args: { p_slug: string }
@@ -3574,6 +3578,10 @@ export type Database = {
           _snapshot_id: string
         }
         Returns: Json
+      }
+      validate_restore_token: {
+        Args: { _actor: string; _snapshot_id: string; _token: string }
+        Returns: boolean
       }
       workspace_id_from_path: { Args: { path: string }; Returns: string }
     }
