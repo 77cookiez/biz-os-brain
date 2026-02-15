@@ -1,6 +1,8 @@
 /**
- * Recovery & Backup Hooks — Provider Engine v1
- * Uses the Snapshot Provider Engine for all capture/restore operations.
+ * Recovery & Backup Hooks — Server-Side Only (v2)
+ *
+ * All operations go through the safeback-engine Edge Function.
+ * NO direct table deletes/inserts from the client.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -101,7 +103,7 @@ export function useSnapshots() {
   return { snapshots, isLoading, refetch: () => queryClient.invalidateQueries({ queryKey: ['snapshots'] }) };
 }
 
-// ─── createSnapshot (Provider Engine) ───
+// ─── createSnapshot (server-side via Edge Function) ───
 
 export function useCreateSnapshot() {
   const { currentWorkspace } = useWorkspace();
@@ -121,7 +123,7 @@ export function useCreateSnapshot() {
   });
 }
 
-// ─── previewRestore (Provider Engine) ───
+// ─── previewRestore (server-side via Edge Function) ───
 
 export function usePreviewRestore() {
   const { user } = useAuth();
@@ -135,16 +137,22 @@ export function usePreviewRestore() {
   });
 }
 
-// ─── restoreSnapshot (Provider Engine) ───
+// ─── restoreSnapshot (server-side via Edge Function, atomic RPC) ───
 
 export function useRestoreSnapshot() {
   const { user } = useAuth();
+  const { currentWorkspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ snapshotId, confirmationToken }: { snapshotId: string; confirmationToken: string }) => {
-      if (!user) throw new Error('Not authenticated');
-      const restoredCounts = await restoreFromSnapshot(snapshotId, confirmationToken, user.id);
+      if (!user || !currentWorkspace) throw new Error('Not authenticated');
+      const restoredCounts = await restoreFromSnapshot(
+        snapshotId,
+        confirmationToken,
+        user.id,
+        currentWorkspace.id,
+      );
       return { success: true, restored_counts: restoredCounts };
     },
     onSuccess: (data) => {

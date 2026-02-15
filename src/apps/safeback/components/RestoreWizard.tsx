@@ -69,16 +69,7 @@ export default function RestoreWizard({
                             <span>{p.entity_count} entities</span>
                           </div>
                         ))
-                      ) : (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <p className="font-medium">Will restore:</p>
-                            {Object.entries(previewData.summary.will_restore).map(([k, v]) => (
-                              <p key={k}>{k}: {v}</p>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                   </AlertDescription>
                 </Alert>
