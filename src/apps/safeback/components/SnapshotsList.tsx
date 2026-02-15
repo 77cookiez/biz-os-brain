@@ -3,22 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, Download, RotateCcw, HardDrive } from 'lucide-react';
+import { Clock, Download, RotateCcw } from 'lucide-react';
 import type { Snapshot } from '@/hooks/useRecovery';
 
-const REASON_LABELS: Record<string, string> = {
+const TYPE_LABELS: Record<string, string> = {
   manual: 'Manual',
   scheduled: 'Scheduled',
   pre_restore: 'Pre-Restore',
   pre_upgrade: 'Pre-Upgrade',
 };
-
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -62,18 +55,14 @@ export default function SnapshotsList({
             {snapshots.map((snap) => (
               <div key={snap.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{formatDate(snap.created_at)}</span>
-                      <Badge variant="outline" className="text-[10px]">
-                        {REASON_LABELS[snap.created_reason] || snap.created_reason}
-                      </Badge>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-foreground">{formatDate(snap.created_at)}</span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {TYPE_LABELS[snap.snapshot_type] || snap.snapshot_type}
+                        </Badge>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {snap.storage_path && <span className="flex items-center gap-0.5"><HardDrive className="h-3 w-3" /> Stored</span>}
-                      <span>{formatBytes(snap.size_bytes)}</span>
-                    </div>
-                  </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <Button variant="ghost" size="sm" onClick={() => onExport(snap.id)} disabled={exportPending} title="Download">

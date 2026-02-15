@@ -37,7 +37,7 @@ export default function ExportsPanel({ snapshots, onExport, exportPending }: Exp
               <div key={snap.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <span className="text-sm font-medium text-foreground">{formatDate(snap.created_at)}</span>
-                  <Badge variant="outline" className="ml-2 text-[10px]">{snap.created_reason}</Badge>
+                  <Badge variant="outline" className="ml-2 text-[10px]">{snap.snapshot_type}</Badge>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => onExport(snap.id)} disabled={exportPending}>
                   {exportPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 me-1" />}

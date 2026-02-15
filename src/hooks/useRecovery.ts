@@ -23,10 +23,6 @@ export interface Snapshot {
   id: string;
   workspace_id: string;
   snapshot_type: string;
-  created_reason: string;
-  size_bytes: number | null;
-  storage_path: string | null;
-  checksum: string | null;
   created_by: string;
   created_at: string;
 }
@@ -96,7 +92,7 @@ export function useSnapshots() {
       if (!workspaceId) return [];
       const { data, error } = await (supabase as any)
         .from('workspace_snapshots')
-        .select('id, workspace_id, snapshot_type, created_reason, size_bytes, storage_path, checksum, created_by, created_at')
+        .select('id, workspace_id, snapshot_type, created_by, created_at')
         .eq('workspace_id', workspaceId)
         .order('created_at', { ascending: false })
         .limit(50);
