@@ -61,12 +61,13 @@ export default function Marketplace() {
   }, [searchParams, apps]);
 
   const fetchApps = async () => {
+    const hidden = HIDDEN_FROM_MARKETPLACE.map(id => `"${id}"`).join(',');
     const { data } = await supabase
       .from('app_registry')
       .select('*')
-      .not('id', 'in', `(${HIDDEN_FROM_MARKETPLACE.join(',')})`)
-      .in('status', ['available', 'active'])
-      .order('name');
+      .not('id', 'in', `(${hidden})`)
+      .eq('status', 'available')
+      .order('name', { ascending: true });
     setApps((data as AppItem[]) || []);
   };
 
