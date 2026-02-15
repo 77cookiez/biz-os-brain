@@ -1647,6 +1647,75 @@
     "previewDesc": "مراجعة ما سيتغير قبل الاستعادة.",
     "confirmDesc": "هذا الإجراء لا رجعة فيه. سيتم إنشاء نسخة احتياطية تلقائياً قبل الاستعادة.",
     "willReplace": "سيتم استبدال البيانات الحالية",
-    "typeToConfirm": "اكتب التالي للتأكيد:"
+    "typeToConfirm": "اكتب التالي للتأكيد:",
+    "openSafebackCta": {
+      "title": "سيف باك متاح",
+      "body": "لإدارة النسخ الاحتياطي المتقدمة، افتح سيف باك",
+      "button": "فتح سيف باك"
+    }
+  },
+  "apps": {
+    "safeback": {
+    "title": "سيف باك",
+    "subtitle": "لقطات مساحة العمل، النسخ الاحتياطي المجدول، والاستعادة الآمنة",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "snapshots": "اللقطات",
+      "schedules": "الجداول",
+      "exports": "التصدير",
+      "policies": "السياسات",
+      "audit": "سجل المراجعة",
+      "settings": "الإعدادات"
+    },
+    "overview": {
+      "status": "حالة النسخ الاحتياطي",
+      "lastSnapshot": "آخر لقطة",
+      "backupStatus": "النسخ التلقائي",
+      "retention": "الاحتفاظ",
+      "totalSnapshots": "إجمالي اللقطات",
+      "createSnapshot": "إنشاء لقطة",
+      "viewSchedules": "عرض الجداول",
+      "exportLatest": "تصدير الأحدث"
+    },
+    "onboarding": {
+      "title": "البدء",
+      "completed": "مكتمل",
+      "enableBackups": "تفعيل النسخ الاحتياطي التلقائي",
+      "setRetention": "تعيين سياسة الاحتفاظ",
+      "createSnapshot": "إنشاء أول لقطة يدوية",
+      "testRestore": "اختبار معاينة الاستعادة",
+      "exportSnapshot": "تصدير لقطة"
+    },
+    "plans": {
+      "title": "خطط سيف باك",
+      "feature": "الميزة",
+      "manualSnapshots": "اللقطات اليدوية",
+      "restoreWithToken": "الاستعادة مع عبارة التأكيد",
+      "preRestoreSafety": "لقطة أمان قبل الاستعادة",
+      "scheduledBackups": "النسخ الاحتياطي المجدول",
+      "higherRetention": "احتفاظ أعلى (60+)",
+      "storageExport": "تصدير التخزين",
+      "complianceReports": "تقارير الامتثال",
+      "drDrills": "تدريبات التعافي",
+      "immutableBackups": "نسخ احتياطي غير قابل للتغيير"
+    },
+    "audit": {
+      "title": "سجل المراجعة",
+      "empty": "لا توجد إدخالات مراجعة بعد."
+    },
+    "exports": {
+      "noSnapshots": "لا توجد لقطات متاحة للتصدير.",
+      "download": "تصدير"
+    },
+    "policies": {
+      "title": "سياسات الاحتفاظ",
+      "retainCount": "الحد الأقصى للقطات المحتفظ بها",
+      "retainDesc": "تتم إزالة اللقطات الأقدم التي تتجاوز هذا الحد تلقائياً."
+    },
+    "settings": {
+      "title": "إعدادات سيف باك",
+      "subtitle": "تكوين جداول النسخ الاحتياطي وسياسات الاحتفاظ."
+    }
+    }
   }
 }

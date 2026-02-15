@@ -13,41 +13,15 @@ import {
   useExportSnapshot,
   type RestorePreview,
 } from '@/hooks/useRecovery';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Separator } from '@/components/ui/separator';
-import {
-  Database, Download, RotateCcw, Plus, Clock, Shield, AlertTriangle,
-  Loader2, CheckCircle, HardDrive,
-} from 'lucide-react';
-
-function formatBytes(bytes: number | null): string {
-  if (!bytes) return '—';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-  });
-}
-
-const REASON_LABELS: Record<string, string> = {
-  manual: 'Manual',
-  scheduled: 'Scheduled',
-  pre_restore: 'Pre-Restore',
-  pre_upgrade: 'Pre-Upgrade',
-};
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Shield, Loader2, Plus, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import ScheduleSettings from '@/apps/safeback/components/ScheduleSettings';
+import SnapshotsList from '@/apps/safeback/components/SnapshotsList';
+import RestoreWizard from '@/apps/safeback/components/RestoreWizard';
 
 export default function RecoverySettingsPage() {
   const { t } = useTranslation();
@@ -55,7 +29,6 @@ export default function RecoverySettingsPage() {
   const { user } = useAuth();
   const workspaceId = currentWorkspace?.id;
 
-  // Admin check
   const { data: isAdmin, isLoading: adminLoading } = useQuery({
     queryKey: ['is-workspace-admin', workspaceId, user?.id],
     queryFn: async () => {
@@ -76,12 +49,9 @@ export default function RecoverySettingsPage() {
   const restoreSnapshot = useRestoreSnapshot();
   const exportSnapshot = useExportSnapshot();
 
-  // Restore wizard state
   const [restoreDialog, setRestoreDialog] = useState(false);
-  const [restoreStep, setRestoreStep] = useState<1 | 2>(1);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
   const [restorePreviewData, setRestorePreviewData] = useState<RestorePreview | null>(null);
-  const [confirmPhrase, setConfirmPhrase] = useState('');
 
   const requiredPhrase = `RESTORE ${currentWorkspace?.name || ''}`;
 
@@ -112,11 +82,8 @@ export default function RecoverySettingsPage() {
 
   const openRestoreWizard = async (snapshotId: string) => {
     setSelectedSnapshotId(snapshotId);
-    setRestoreStep(1);
-    setConfirmPhrase('');
     setRestorePreviewData(null);
     setRestoreDialog(true);
-
     const result = await previewRestore.mutateAsync(snapshotId);
     setRestorePreviewData(result);
   };
@@ -132,69 +99,29 @@ export default function RecoverySettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      {/* SafeBack CTA Banner */}
+      <Alert>
+        <AlertDescription className="flex items-center justify-between">
+          <span className="text-sm">{t('recovery.openSafebackCta.body', 'For advanced backup management, open SafeBack')}</span>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/apps/safeback">
+              <ExternalLink className="h-4 w-4 me-1" />
+              {t('recovery.openSafebackCta.button', 'Open SafeBack')}
+            </Link>
+          </Button>
+        </AlertDescription>
+      </Alert>
+
       <div>
         <h1 className="text-2xl font-bold text-foreground">{t('recovery.title', 'Recovery & Backup')}</h1>
         <p className="text-sm text-muted-foreground mt-1">{t('recovery.subtitle', 'Manage workspace snapshots and restore points')}</p>
       </div>
 
-      {/* Backup Settings */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            {t('recovery.settings', 'Backup Settings')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>{t('recovery.autoBackup', 'Automatic Backups')}</Label>
-              <p className="text-xs text-muted-foreground">{t('recovery.autoBackupDesc', 'Create snapshots on a schedule')}</p>
-            </div>
-            <Switch
-              checked={settings?.is_enabled ?? false}
-              onCheckedChange={(checked) => updateSettings.mutate({ is_enabled: checked })}
-              disabled={updateSettings.isPending}
-            />
-          </div>
-
-          {settings?.is_enabled && (
-            <>
-              <Separator />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>{t('recovery.cadence', 'Frequency')}</Label>
-                  <Select
-                    value={settings?.cadence || 'daily'}
-                    onValueChange={(v) => updateSettings.mutate({ cadence: v })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>{t('recovery.retention', 'Keep latest')}</Label>
-                  <Select
-                    value={String(settings?.retain_count || 30)}
-                    onValueChange={(v) => updateSettings.mutate({ retain_count: parseInt(v) })}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="7">7 snapshots</SelectItem>
-                      <SelectItem value="14">14 snapshots</SelectItem>
-                      <SelectItem value="30">30 snapshots</SelectItem>
-                      <SelectItem value="60">60 snapshots</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <ScheduleSettings
+        settings={settings}
+        onUpdate={(updates) => updateSettings.mutate(updates)}
+        updatePending={updateSettings.isPending}
+      />
 
       {/* Manual Snapshot */}
       <Card>
@@ -204,11 +131,7 @@ export default function RecoverySettingsPage() {
               <p className="text-sm font-medium text-foreground">{t('recovery.createManual', 'Create Manual Snapshot')}</p>
               <p className="text-xs text-muted-foreground">{t('recovery.createManualDesc', 'Save the current state of all workspace data')}</p>
             </div>
-            <Button
-              onClick={() => createSnapshot.mutate()}
-              disabled={createSnapshot.isPending}
-              size="sm"
-            >
+            <Button onClick={() => createSnapshot.mutate()} disabled={createSnapshot.isPending} size="sm">
               {createSnapshot.isPending ? <Loader2 className="h-4 w-4 animate-spin me-1" /> : <Plus className="h-4 w-4 me-1" />}
               {t('recovery.snapshot', 'Snapshot')}
             </Button>
@@ -216,158 +139,25 @@ export default function RecoverySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Snapshots List */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            {t('recovery.snapshots', 'Snapshots')}
-            {!snapshotsLoading && <Badge variant="secondary">{snapshots.length}</Badge>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {snapshotsLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : snapshots.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">{t('recovery.noSnapshots', 'No snapshots yet')}</p>
-          ) : (
-            <div className="space-y-2">
-              {snapshots.map((snap) => (
-                <div key={snap.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground">{formatDate(snap.created_at)}</span>
-                        <Badge variant="outline" className="text-[10px]">
-                          {REASON_LABELS[snap.created_reason] || snap.created_reason}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {snap.storage_path && <span className="flex items-center gap-0.5"><HardDrive className="h-3 w-3" /> Stored</span>}
-                        <span>{formatBytes(snap.size_bytes)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => exportSnapshot.mutate(snap.id)}
-                      disabled={exportSnapshot.isPending}
-                      title="Download"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openRestoreWizard(snap.id)}
-                      disabled={previewRestore.isPending}
-                      title="Restore"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SnapshotsList
+        snapshots={snapshots}
+        isLoading={snapshotsLoading}
+        onExport={(id) => exportSnapshot.mutate(id)}
+        onRestore={openRestoreWizard}
+        exportPending={exportSnapshot.isPending}
+        restorePending={previewRestore.isPending}
+      />
 
-      {/* Restore Wizard Dialog */}
-      <Dialog open={restoreDialog} onOpenChange={setRestoreDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5" />
-              {restoreStep === 1 ? t('recovery.previewRestore', 'Preview Restore') : t('recovery.confirmRestore', 'Confirm Restore')}
-            </DialogTitle>
-            <DialogDescription>
-              {restoreStep === 1
-                ? t('recovery.previewDesc', 'Review what will change before restoring.')
-                : t('recovery.confirmDesc', 'This action is irreversible. A pre-restore backup will be created automatically.')}
-            </DialogDescription>
-          </DialogHeader>
-
-          {restoreStep === 1 && (
-            <div className="space-y-4">
-              {previewRestore.isPending ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : restorePreviewData ? (
-                <>
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>{t('recovery.willReplace', 'Current data will be replaced')}</AlertTitle>
-                    <AlertDescription>
-                      <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
-                        <div>
-                          <p className="font-medium">Will remove:</p>
-                          {Object.entries(restorePreviewData.summary.will_replace).map(([k, v]) => (
-                            <p key={k}>{k}: {v}</p>
-                          ))}
-                        </div>
-                        <div>
-                          <p className="font-medium">Will restore:</p>
-                          {Object.entries(restorePreviewData.summary.will_restore).map(([k, v]) => (
-                            <p key={k}>{k}: {v}</p>
-                          ))}
-                        </div>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setRestoreDialog(false)}>Cancel</Button>
-                    <Button variant="destructive" onClick={() => setRestoreStep(2)}>
-                      Continue
-                    </Button>
-                  </DialogFooter>
-                </>
-              ) : null}
-            </div>
-          )}
-
-          {restoreStep === 2 && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t('recovery.typeToConfirm', 'Type the following to confirm:')}</Label>
-                <code className="block text-sm bg-muted px-3 py-2 rounded font-mono">{requiredPhrase}</code>
-                <Input
-                  value={confirmPhrase}
-                  onChange={(e) => setConfirmPhrase(e.target.value)}
-                  placeholder={requiredPhrase}
-                />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setRestoreStep(1)}>Back</Button>
-                <Button
-                  variant="destructive"
-                  disabled={confirmPhrase !== requiredPhrase || restoreSnapshot.isPending}
-                  onClick={executeRestore}
-                >
-                  {restoreSnapshot.isPending ? (
-                    <><Loader2 className="h-4 w-4 animate-spin me-1" /> Restoring...</>
-                  ) : (
-                    <><RotateCcw className="h-4 w-4 me-1" /> Restore Now</>
-                  )}
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-
-          {restoreSnapshot.isSuccess && (
-            <div className="flex items-center gap-2 text-sm text-primary">
-              <CheckCircle className="h-4 w-4" />
-              Restore completed successfully!
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <RestoreWizard
+        open={restoreDialog}
+        onOpenChange={setRestoreDialog}
+        previewData={restorePreviewData}
+        previewPending={previewRestore.isPending}
+        restorePending={restoreSnapshot.isPending}
+        restoreSuccess={restoreSnapshot.isSuccess}
+        requiredPhrase={requiredPhrase}
+        onConfirmRestore={executeRestore}
+      />
     </div>
   );
 }
