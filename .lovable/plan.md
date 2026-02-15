@@ -1,369 +1,233 @@
-Act as a senior staff full-stack engineer.
+# Owner Console: Full Platform Control
 
-TASK
+## Overview
 
-Implement “SafeBack” as a standalone Marketplace app module, reusing the existing Recovery & Backup backend with ZERO duplication. Keep /settings/recovery working exactly as-is (deep-link stays). SafeBack is a normal marketplace app (installed like any other app). The settings page is NOT gated by install.
+Expand the Owner Console to give the platform owner complete control over all workspaces, apps, subscriptions (both OS-level billing and app-level like Bookivo), and user access. Every action is server-side authorized, audited, and reflected immediately for end users.
 
-HARD RULES
+## What the Owner Will Be Able To Do
 
-- Do NOT change backend tables/RPCs/edge functions (reuse existing recovery backend).
+1. **View workspace details** -- see installed apps, current OS plan, app subscriptions (e.g. Bookivo plan), member count
+2. **Override OS billing plans** -- assign any workspace to Free/Pro/Business instantly
+3. **Override app subscriptions** -- e.g. give a workspace Bookivo "monthly" subscription or extend expiry
+4. **Install/uninstall apps** for any workspace remotely
+5. **Grant/revoke full access** (existing) with more grant types: `os_plan_override`, `app_plan_override`, `feature_flag`, `app_install`
+6. **All changes reflect immediately** -- when a user or admin opens their workspace, they see the updated plan/apps
 
-- Do NOT modify AppInstalledGate component.
+## Architecture
 
-- Do NOT duplicate hooks: keep src/hooks/useRecovery.ts as the single source of truth.
+The `platform-admin` edge function gets new routes. No client-side trust -- all mutations go through the edge function which validates platform role and writes audit logs.
 
-- All state-changing actions must preserve current behavior.
+```text
+Owner Console UI
+      |
+      v
+platform-admin edge function (server-side role check)
+      |
+      v
+  Direct DB writes via service role client
+      |
+      v
+  platform_audit_log (append-only)
+```
 
-- Must compile, fully responsive, dark-mode-first.
+## Technical Plan
 
-- Use ULL meaning-first where applicable (don’t render meaning-protected text directly).
+### 1. Edge Function: New Routes in `platform-admin`
 
-- Admin-only access: SafeBack pages check is_workspace_admin (same behavior as RecoverySettingsPage).
+Add these endpoints:
 
-- member_readonly is Phase 2 (no RLS migrations now).
 
-DESIGN / BRANDING (SafeBack)
+| Method | Path                   | Description                                                                 |
+| ------ | ---------------------- | --------------------------------------------------------------------------- |
+| GET    | `workspace-detail`     | Full workspace info: apps, OS subscription, app subscriptions, member count |
+| POST   | `set-os-plan`          | Override OS billing_subscriptions for a workspace                           |
+| POST   | `set-app-subscription` | Override app-level subscription (e.g. booking_subscriptions)                |
+| POST   | `install-app`          | Install/activate an app for a workspace                                     |
+| POST   | `uninstall-app`        | Deactivate an app for a workspace                                           |
 
-- App ID: safeback
 
-- Name: SafeBack
+Each route:
 
-- Icon: Lucide ShieldCheck
+- Requires `owner` or `admin` platform role
+- Writes to `platform_audit_log` with reason
+- Returns updated data
 
-- Primary: #3B82F6 (Electric Blue)
+`**workspace-detail**` queries:
 
-- Accent: #10B981 (Emerald)
+- `workspaces` (name, company_id)
+- `workspace_apps` (installed apps)
+- `billing_subscriptions` (OS plan)
+- `booking_subscriptions` (Bookivo plan, if exists)
+- `workspace_members` count
 
-- Scope branding to .safeback-app wrapper using CSS custom properties:
+`**set-os-plan**` body: `{ workspace_id, plan_id, billing_cycle?, reason }`
 
-  --safeback-primary, --safeback-accent
+- Upserts `billing_subscriptions` with given plan_id
+- Audit: `os_plan_override`
 
-No global theme changes.
+`**set-app-subscription**` body: `{ workspace_id, app_id, plan, status?, expires_at?, reason }`
 
-DATABASE (ONE MIGRATION, IDEMPOTENT)
+- For Bookivo: upserts `booking_subscriptions`
+- Extensible for future apps
+- Audit: `app_subscription_override`
 
-Create a single migration that is safe to run multiple times:
+`**install-app**` body: `{ workspace_id, app_id, reason }`
 
-1) Upsert app_registry row:
+- Upserts into `workspace_apps` with `is_active=true`, `installed_by=owner_user_id`
+- Audit: `app_installed`
 
-   id='safeback'
+`**uninstall-app**` body: `{ workspace_id, app_id, reason }`
 
-   name='SafeBack'
+- Sets `workspace_apps.is_active=false`
+- Audit: `app_uninstalled`
 
-   description='Workspace snapshots, scheduled backups, and safe point-in-time restore'
+### 2. UI: Enhanced Workspace Detail Page
 
-   icon='shield-check'
+When the owner clicks a workspace in the list, a detail view opens with:
 
-   pricing='free'
+**Workspace Info Card**
 
-   status='available'
+- Name, ID, created date, member count
 
-   capabilities=['snapshot','restore','scheduled_backup','export','retention','compliance']
+**Installed Apps Section**
 
-2) Deprecate old row safely:
+- List of apps with active/inactive status
+- "Install App" button (dropdown of available apps from `app_registry`)
+- "Deactivate" button per app
 
-   UPDATE app_registry SET status='deprecated'
+**OS Plan Section**
 
-   WHERE id='recovery' AND status <> 'deprecated';
+- Current plan (Free/Pro/Business) and billing cycle
+- "Change Plan" dropdown with all active plans
+- Reason input required
 
-If your SQL dialect supports ON CONFLICT, use it. Otherwise do a “INSERT if not exists” pattern.
+**App Subscriptions Section** (per app that has subscriptions)
 
-ROUTES (UNDER PROTECTED <OSLayout/>)
+- Bookivo: current plan (monthly/yearly/etc), status, expiry
+- "Change" button to override plan/status/expiry
 
-Add:
+All actions open a confirmation dialog requiring a reason (for audit).
 
- /apps/safeback -> AppInstalledGate('safeback') -> SafeBackLayout -> Outlet routes:
+### 3. UI: Updated Owner Overview
 
-   index        -> SafeBackOverview
+Add new quick links:
 
-   snapshots    -> SafeBackSnapshots
+- "Subscriptions" overview (later, if needed)
 
-   schedules    -> SafeBackSchedules
+Update audit log filter options with new action types.
 
-   exports      -> SafeBackExports
+### 4. Files to Create/Modify
 
-   policies     -> SafeBackPolicies
 
-   audit        -> SafeBackAudit
+| File                                         | Action                                       |
+| -------------------------------------------- | -------------------------------------------- |
+| `supabase/functions/platform-admin/index.ts` | Add 5 new route handlers                     |
+| `src/hooks/usePlatformAdmin.ts`              | Add hooks for new endpoints                  |
+| `src/pages/owner/OwnerWorkspaces.tsx`        | Add workspace detail view with full controls |
+| `src/pages/owner/OwnerAudit.tsx`             | Add new action types to filter               |
 
-   settings     -> SafeBackSettings
 
-IMPORTANT GATING BEHAVIOR
+### 5. Immediate Reflection for Users
 
-- /apps/safeback/* is gated by app install.
+No extra work needed -- the existing `useBilling`, `useBookingSubscription`, and `WorkspaceContext.refreshInstalledApps` hooks already query the database on each page load. When the owner changes a plan or installs an app via the edge function (service role), the data is written directly to the same tables the user reads from. The next time the user loads a page, they see the updated state.
 
-- /settings/recovery remains accessible to workspace admins regardless of safeback installation.
+### 6. Security
 
-- For safeback install gate message, if possible via existing props/slots, display:
+- All new routes require `owner` or `admin` platform role (server-side)
+- Every mutation writes to `platform_audit_log` with actor, target, reason
+- Service role client used only in edge function (never exposed to client)
+- No new RLS policies needed (edge function bypasses RLS via service role)
 
-  “Install SafeBack to access advanced backup console. Basic recovery settings are available in Settings.”
+## أهم تعديلين أنصح فيهم (High impact)
 
-FILES TO CREATE (22)
+### 1) لا “تكتب فوق” حقيقة Stripe مباشرة — افصل *Override* عن *Billing Truth*
 
-A) Manifest / Lib
+أنت كاتب: `set-os-plan` يعمل upsert على `billing_subscriptions` مباشرة.  
+هذا قد يسبب مشكلة لاحقًا لما تفعل Stripe webhooks لأن Stripe هو “مصدر الحقيقة”، وبيصير عندك صراع: override vs webhook.
 
-1) src/apps/safeback/manifest.ts
+**أفضل ممارسة عالمية:**
 
-   - appId='safeback'
+- خلي Stripe/webhooks تحدّث جداول “truth” (مثل `billing_subscriptions`)
+- وخلي OwnerConsole يعمل “Overrides” في جدول منفصل مثل:
+  - `platform_grants` (موجود عندكم) باستخدام:
+    - `grant_type = os_plan_override`
+    - `value_json = { plan_id, billing_cycle }`
+    - `ends_at` (مستحسن)
+- ثم entitlement resolution يكون بالأولوية:
+  1. grants (override)
+  2. subscriptions (Stripe / truth)
+  3. free/default
 
-   - route base '/apps/safeback'
+✅ النتيجة: تقدر “تعطي Pro فورًا” للتجربة بدون ما تلخبط Stripe.
 
-   - tabs config
+> لو تبغى تبقي على نفس جدول `billing_subscriptions` لأسباب سرعة، على الأقل ضيف حقول/metadata واضحة:
+>
+> - `source = 'stripe' | 'override'`
+> - `overridden_by`, `override_reason`, `override_ends_at`  
+> لكن الأفضل فصلها.
 
-   - branding constants
+---
 
-B) Components (extracted from RecoverySettingsPage and new panels)
+### 2) “install/uninstall” ممتاز… لكن لا تحذف ولا تغيّر history
 
-2)  src/apps/safeback/components/SafeBackLayout.tsx
+لازم يكون **soft toggle** فقط (زي ما كتبت `is_active=false`) مع:
 
-3)  src/apps/safeback/components/OverviewPanel.tsx
+- `installed_at`, `uninstalled_at`
+- `installed_by`, `uninstalled_by`
+- `reason_last_changed` (أو في audit فقط)
 
-4)  src/apps/safeback/components/OnboardingChecklist.tsx
+وبالنسبة للـ uninstall:  
+**لا تمسح أي data** تخص التطبيق داخل workspace (حجوزات Bookivo مثلًا)، فقط اعطل الوصول.
 
-5)  src/apps/safeback/components/PlansUpsell.tsx
+---
 
-6)  src/apps/safeback/components/SnapshotsList.tsx
+## تحسينات أمنية مهمة (سريعة وقوية)
 
-7)  src/apps/safeback/components/RestoreWizard.tsx
+### A) Auth على edge function لازم يكون strict
 
-8)  src/apps/safeback/components/ScheduleSettings.tsx
+- تحقق JWT من Supabase Auth من الهيدر (واضح عندكم)
+- لا تعتمد فقط على وجود session في العميل
+- واكتب في audit: request_id + ip/user_agent إن أمكن
 
-9)  src/apps/safeback/components/ExportsPanel.tsx
+### B) Rate limiting للـ owner routes
 
-10) src/apps/safeback/components/PoliciesPanel.tsx
+مو لازم نظام معقد، بس “basic throttle” يقلل المخاطر.
 
-11) src/apps/safeback/components/AuditLogPanel.tsx
+### C) Idempotency للعمليات الحساسة
 
-12) src/apps/safeback/components/AppSettingsPanel.tsx
+لـ set plan / install app:
 
-C) Pages
+- دعم `idempotency_key` (اختياري) أو منع تكرار نفس العملية خلال ثواني  
+هذا يقلل الأخطاء لو المستخدم ضغط مرتين.
 
-13) src/apps/safeback/pages/SafeBackOverview.tsx
+### D) Scope check
 
-14) src/apps/safeback/pages/SafeBackSnapshots.tsx
+لما تنفذ `workspace-detail` أو تغييرات:
 
-15) src/apps/safeback/pages/SafeBackSchedules.tsx
+- تحقق workspace_id موجود
+- وتحقق app_id موجود في `app_registry` وغير `deprecated/disabled`
 
-16) src/apps/safeback/pages/SafeBackExports.tsx
+---
 
-17) src/apps/safeback/pages/SafeBackPolicies.tsx
+## ملاحظات تصميمية على الـ UI
 
-18) src/apps/safeback/pages/SafeBackAudit.tsx
+- ممتاز إضافة “Reason required” في كل dialog.
+- أنصح تضيف “Preview” بسيط قبل التنفيذ (حتى لو مو Draft/Confirm كاملة):
+  - “This will: set plan to Pro, enable Bookivo, grant full access for 30 days…”
+- وضروري تحط “Danger badge” للأشياء اللي تكسر الفوترة:
+  - override plan
+  - extend expiry
 
-19) src/apps/safeback/pages/SafeBackSettings.tsx
+---
 
-D) Hooks
+## نقطة مهمة جدًا: “App subscriptions” (Bookivo) لازم تكون عامة وقابلة للتوسع
 
-20) src/apps/safeback/lib/hooks.ts
+بدل handler مخصوص `booking_subscriptions` فقط، الأفضل من البداية:
 
-   - re-export everything from src/hooks/useRecovery.ts
+- `app_subscriptions` جدول عام:
+  - workspace_id, app_id, plan_key, status, expires_at, source, metadata
+- ثم Bookivo يكون مجرد `app_id='bookivo'`
 
-   - add new hook useAuditLogs (see below)
+إذا ما تبغون تغييرات DB الآن، اوكي خلي Bookivo خاص مؤقتًا، لكن صمّم endpoint بحيث:
 
-E) Styling (if needed)
-
-21) src/apps/safeback/styles.css (optional; only if your project uses per-app css import)
-
-22) src/apps/safeback/index.ts (optional barrel export)
-
-FILES TO MODIFY (5)
-
-1) src/App.tsx
-
-   - add the SafeBack route group under existing protected routes
-
-   - ensure it uses AppInstalledGate('safeback') and SafeBackLayout with nested routes above
-
-2) src/pages/settings/RecoverySettingsPage.tsx
-
-   - Extract these blocks into components imported from src/apps/safeback/components:
-
-     a) ScheduleSettings (previous lines ~140–197)
-
-     b) SnapshotsList     (previous lines ~219–278)
-
-     c) RestoreWizard     (previous lines ~282–370)
-
-   - Keep ALL logic identical; only refactor UI into components.
-
-   - Add a top banner CTA:
-
-     Text: “For advanced backup management, open SafeBack”
-
-     Button: “Open SafeBack”
-
-     Link to: /apps/safeback
-
-   - Do not gate this page by safeback install.
-
-3) src/i18n/translations/en.json
-
-   - Add keys under:
-
-     apps.safeback.*
-
-     settings.recovery.openSafebackCta.*
-
-   Include: tabs labels, overview labels, onboarding steps, plans table headings, audit labels, CTA text.
-
-4) src/i18n/translations/ar.json
-
-   - Arabic equivalents for the same keys (proper Arabic).
-
-5) src/test/recovery.test.ts
-
-   Add test groups:
-
-   - Manifest exports correct constants (appId, route base, tab ids)
-
-   - Admin access gate: non-admin mock sees locked UI on /apps/safeback/*
-
-   - Onboarding localStorage key: 'safeback:onboarding:v1:<workspaceId>'
-
-   - Audit log filter: uses action namespace strings snapshot/restore/backup
-
-   - Deep-link preservation: /settings/recovery works for admins even if safeback not installed
-
-   - Install gating: /apps/safeback blocked if not installed; allowed when installed mock
-
-SAFE BACK LAYOUT (TABS)
-
-Follow BookingLayout pattern: horizontal NavLink tabs + Outlet. 7 tabs:
-
-- Overview  (LayoutDashboard) route: /apps/safeback
-
-- Snapshots (Database)        route: /apps/safeback/snapshots
-
-- Schedules (Clock)          route: /apps/safeback/schedules
-
-- Exports   (Download)       route: /apps/safeback/exports
-
-- Policies  (Shield)         route: /apps/safeback/policies
-
-- Audit     (FileText)       route: /apps/safeback/audit
-
-- Settings  (Settings)       route: /apps/safeback/settings
-
-OVERVIEW PAGE CONTENT
-
-- OverviewPanel: Status card with:
-
-  last snapshot timestamp, backup enabled badge, retention count, total snapshots
-
-- Quick Actions:
-
-  Create Snapshot, View Schedules, Export Latest (use existing recovery hooks/actions)
-
-- OnboardingChecklist (collapsible + dismissible)
-
-- PlansUpsell (UI only) at bottom
-
-ONBOARDING CHECKLIST
-
-- Stored in localStorage key: safeback:onboarding:v1:<workspaceId>
-
-- Steps:
-
-  1 Enable automatic backups -> link to /schedules
-
-  2 Set retention policy     -> link to /policies
-
-  3 Create first snapshot    -> link to /snapshots
-
-  4 Test restore preview     -> link to /snapshots (open RestoreWizard preview)
-
-  5 Export a snapshot        -> link to /exports
-
-- Each completed step shows check.
-
-- “Don’t show again” persists.
-
-PLANS UPSELL (UI ONLY, NO BILLING)
-
-3-column comparison (Free/Pro/Enterprise) exactly:
-
-- Manual snapshots: Yes/Yes/Yes
-
-- Restore with confirmation phrase: Yes/Yes/Yes
-
-- Pre-restore safety snapshot: Yes/Yes/Yes
-
-- Scheduled backups: —/Yes/Yes
-
-- Higher retention (60+): —/Yes/Yes
-
-- Storage export: —/Yes/Yes
-
-- Compliance reports: —/—/Yes
-
-- DR drills: —/—/Yes
-
-- Immutable backups: —/—/Yes
-
-RESTORE WIZARD (CRITICAL UX + SAFETY)
-
-- 2-step flow: Preview -> Confirm
-
-- Require confirmation phrase (same as existing recovery UI)
-
-- BEFORE restore execution, automatically create a “safety snapshot” (if backend supports; otherwise keep UI-only note and ensure audit logs reflect safety snapshot when available).
-
-- Write/Show audit entries in Audit tab.
-
-AUDIT LOG PANEL
-
-- Create useAuditLogs hook that queries existing audit_logs table (or equivalent):
-
-  Filters:
-
-    workspace_id = current workspace
-
-    action LIKE 'workspace.snapshot_%'
-
-    OR action LIKE 'workspace.restore_%'
-
-    OR action LIKE 'workspace.backup_%'
-
-  (If entity_type exists and is reliable, also allow entity_type IN (...))
-
-- Render: timestamp, action, actor (name/email if exists else user_id with copy), entity_id, metadata summary
-
-- Newest first + pagination
-
-I18N KEYING BEST PRACTICE
-
-Use keys:
-
-- apps.safeback.title/subtitle
-
-- apps.safeback.tabs.overview/snapshots/schedules/exports/policies/audit/settings
-
-- apps.safeback.overview.*
-
-- apps.safeback.onboarding.*
-
-- apps.safeback.plans.*
-
-- apps.safeback.audit.*
-
-- settings.recovery.openSafebackCta.title/body/button
-
-DO NOT BREAK EXISTING RECOVERY SETTINGS PAGE
-
-- Preserve behavior 1:1
-
-- Only refactor into imported components + add CTA banner
-
-FINAL OUTPUT
-
-- Implement all file changes with exact paths.
-
-- Ensure migration is included.
-
-- Ensure tests pass.
-
-- Ensure compile succeeds.
-
-Proceed now with the implementation.
-
-&nbsp;
+- `set-app-subscription` يمر عبر adapter حسب app_id (حتى ما تعيد هندسة لاحقًا).
