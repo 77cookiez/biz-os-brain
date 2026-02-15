@@ -2035,6 +2035,47 @@ export type Database = {
           },
         ]
       }
+      execution_policies: {
+        Row: {
+          created_at: string
+          enabled_modules: string[]
+          id: string
+          max_daily_executions: number | null
+          require_owner_approval: boolean
+          restrict_ai_updates: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled_modules?: string[]
+          id?: string
+          max_daily_executions?: number | null
+          require_owner_approval?: boolean
+          restrict_ai_updates?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled_modules?: string[]
+          id?: string
+          max_daily_executions?: number | null
+          require_owner_approval?: boolean
+          restrict_ai_updates?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_policies_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goals: {
         Row: {
           created_at: string
@@ -2438,6 +2479,53 @@ export type Database = {
           },
         ]
       }
+      pending_executions: {
+        Row: {
+          confirmation_hash: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          draft_id: string
+          draft_json: Json
+          id: string
+          requested_by: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          confirmation_hash: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          draft_id: string
+          draft_json: Json
+          id?: string
+          requested_by: string
+          status?: string
+          workspace_id: string
+        }
+        Update: {
+          confirmation_hash?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          draft_id?: string
+          draft_json?: Json
+          id?: string
+          requested_by?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_executions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           ai_generated: boolean | null
@@ -2792,6 +2880,44 @@ export type Database = {
           },
         ]
       }
+      usage_counters: {
+        Row: {
+          counter_key: string
+          counter_value: number
+          created_at: string
+          id: string
+          updated_at: string
+          window_start: string
+          workspace_id: string
+        }
+        Insert: {
+          counter_key: string
+          counter_value?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          window_start?: string
+          workspace_id: string
+        }
+        Update: {
+          counter_key?: string
+          counter_value?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          window_start?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_counters_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           company_id: string
@@ -3085,6 +3211,41 @@ export type Database = {
           },
         ]
       }
+      workspace_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          snapshot_json: Json
+          snapshot_type: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          snapshot_json?: Json
+          snapshot_type?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          snapshot_json?: Json
+          snapshot_type?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_snapshots_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           company_id: string
@@ -3146,6 +3307,10 @@ export type Database = {
         Returns: boolean
       }
       check_booking_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      check_limit: {
+        Args: { _limit_key: string; _workspace_id: string }
+        Returns: Json
+      }
       check_quotes_limit: { Args: { _workspace_id: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
@@ -3163,6 +3328,10 @@ export type Database = {
         Returns: boolean
       }
       check_vendor_limit: { Args: { _workspace_id: string }; Returns: boolean }
+      cleanup_decided_executions: {
+        Args: { _batch?: number; _older_than_days?: number }
+        Returns: number
+      }
       cleanup_expired_draft_confirmations: {
         Args: { _batch?: number; _now?: string }
         Returns: number
@@ -3181,6 +3350,14 @@ export type Database = {
         Returns: number
       }
       cleanup_stale_memory: { Args: never; Returns: undefined }
+      cleanup_usage_counters: {
+        Args: { _batch?: number; _older_than_hours?: number }
+        Returns: number
+      }
+      create_workspace_snapshot: {
+        Args: { _snapshot_type?: string; _workspace_id: string }
+        Returns: string
+      }
       decide_upgrade: {
         Args: { _decision: string; _notes?: string; _request_id: string }
         Returns: Json
@@ -3218,6 +3395,7 @@ export type Database = {
             }
             Returns: Json
           }
+      get_execution_policy: { Args: { _workspace_id: string }; Returns: Json }
       get_live_booking_tenant_by_slug: {
         Args: { p_slug: string }
         Returns: Json
@@ -3239,6 +3417,19 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      has_feature: {
+        Args: { _feature_key: string; _workspace_id: string }
+        Returns: boolean
+      }
+      increment_usage: {
+        Args: {
+          _counter_key: string
+          _limit?: number
+          _window_seconds?: number
+          _workspace_id: string
+        }
+        Returns: Json
       }
       is_booking_subscription_active: {
         Args: { _workspace_id: string }
@@ -3275,6 +3466,10 @@ export type Database = {
       request_upgrade: {
         Args: { _notes?: string; _plan_id: string; _workspace_id: string }
         Returns: string
+      }
+      restore_workspace_snapshot: {
+        Args: { _snapshot_id: string }
+        Returns: Json
       }
       workspace_id_from_path: { Args: { path: string }; Returns: string }
     }

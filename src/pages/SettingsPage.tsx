@@ -1,4 +1,4 @@
-import { User, Building, FolderOpen, Globe, Users, Bell, Palette, Package, Brain, Shield, ChevronRight } from "lucide-react";
+import { User, Building, FolderOpen, Globe, Users, Bell, Palette, Package, Brain, Shield, CreditCard, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +17,7 @@ export default function SettingsPage() {
     { icon: Package, titleKey: "settings.apps.title", descKey: "settings.apps.description", path: "/settings/apps" },
     { icon: Brain, titleKey: "settings.intelligence.title", descKey: "settings.intelligence.description", path: "/settings/intelligence" },
     { icon: Shield, titleKey: "privacy.title", descKey: "privacy.subtitle", path: "/settings/privacy" },
+    { icon: CreditCard, titleKey: "billing.title", descKey: "billing.subtitle", path: "/settings/billing" },
   ];
 
   return (
