@@ -11,7 +11,32 @@ const corsHeaders = {
 const SIGNING_SECRET = () => Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PROPOSAL_TTL_MS = 10 * 60 * 1000; // 10 minutes
 const DRAFT_CONFIRM_TTL_MS = 20 * 60 * 1000; // 20 minutes
-const IS_TEST_MODE = () => Deno.env.get("TEST_MODE") === "true";
+
+// ─── Environment / Prod Lock ───
+const APP_ENV = () => Deno.env.get("APP_ENV") || "dev";
+const ALLOW_TEST_HEADERS = () => Deno.env.get("ALLOW_TEST_HEADERS") === "true";
+
+function isTestModeAllowed(): boolean {
+  const env = APP_ENV();
+  if (env === "prod") return false;
+  return ALLOW_TEST_HEADERS();
+}
+
+// ─── Rate limit config per mode ───
+const RATE_LIMITS: Record<string, number> = {
+  dry_run: 30,
+  confirm: 20,
+  execute: 10,
+};
+
+// ─── Structured Logger ───
+function structuredLog(fields: Record<string, unknown>): void {
+  console.log(JSON.stringify({
+    ts: new Date().toISOString(),
+    function: "brain-execute-action",
+    ...fields,
+  }));
+}
 
 // ─── Types ───
 
@@ -778,6 +803,56 @@ async function storeConfirmation(
   }, { onConflict: "draft_id", ignoreDuplicates: true });
 }
 
+// ─── Rate Limit Helper ───
+
+async function checkRateLimit(
+  sb: ReturnType<typeof createClient>,
+  action: string,
+  workspaceId: string,
+  userId: string,
+): Promise<{ allowed: boolean; remaining: number; reset_at: string } | null> {
+  const limit = RATE_LIMITS[action];
+  if (!limit) return null; // no limit for this action
+
+  const { data, error } = await sb.rpc("check_rate_limit", {
+    _action: action,
+    _workspace_id: workspaceId,
+    _user_id: userId,
+    _limit: limit,
+    _window_seconds: 60,
+  });
+
+  if (error) {
+    console.warn("[brain-execute] rate limit check failed:", error.message);
+    return null; // fail open
+  }
+
+  return data as { allowed: boolean; remaining: number; reset_at: string };
+}
+
+// ─── Request Dedupe Helper ───
+
+async function insertRequestDedupe(
+  sb: ReturnType<typeof createClient>,
+  requestId: string,
+  workspaceId: string,
+  userId: string,
+  mode: string,
+): Promise<boolean> {
+  const { error } = await sb.from("request_dedupes").insert({
+    request_id: requestId,
+    workspace_id: workspaceId,
+    user_id: userId,
+    mode,
+  });
+
+  if (error) {
+    const isDuplicate = error.code === "23505" || error.message?.includes("duplicate");
+    return !isDuplicate; // false = duplicate
+  }
+  return true; // inserted OK
+}
+
 // ─── Main Handler ───
 
 serve(async (req) => {
@@ -785,24 +860,28 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startMs = Date.now();
+  const requestId = crypto.randomUUID();
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sbService = createClient(supabaseUrl, serviceKey);
 
-    // ─── Auth (with TEST_MODE bypass) ───
+    // ─── Auth (with prod-lock gated TEST_MODE bypass) ───
     let userId: string;
     let authHeader: string;
 
-    if (IS_TEST_MODE() && req.headers.get("x-test-user-id")) {
+    if (isTestModeAllowed() && req.headers.get("x-test-user-id")) {
       userId = req.headers.get("x-test-user-id")!;
       authHeader = `Bearer test-token-${userId}`;
     } else {
       authHeader = req.headers.get("Authorization") || "";
       if (!authHeader.startsWith("Bearer ")) {
+        structuredLog({ mode: "auth", status_code: 401, code: "EXECUTION_DENIED", request_id: requestId, runtime_ms: Date.now() - startMs });
         return new Response(
-          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing authorization", suggested_action: "login" }),
+          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing authorization", suggested_action: "login", request_id: requestId }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -814,8 +893,9 @@ serve(async (req) => {
       const token = authHeader.replace("Bearer ", "");
       const { data: { user }, error: userError } = await authClient.auth.getUser(token);
       if (userError || !user) {
+        structuredLog({ mode: "auth", status_code: 401, code: "EXECUTION_DENIED", request_id: requestId, runtime_ms: Date.now() - startMs });
         return new Response(
-          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Invalid token", suggested_action: "login" }),
+          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Invalid token", suggested_action: "login", request_id: requestId }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -824,9 +904,13 @@ serve(async (req) => {
 
     const body = await req.json();
 
+    // Accept client request_id or use server-generated
+    const finalRequestId = (body.request_id as string) || requestId;
+
     if (!body.workspace_id) {
+      structuredLog({ mode: "validation", user_id: userId, status_code: 400, code: "EXECUTION_DENIED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
       return new Response(
-        JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing workspace_id", suggested_action: "regenerate proposal" }),
+        JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing workspace_id", suggested_action: "regenerate proposal", request_id: finalRequestId }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -840,27 +924,49 @@ serve(async (req) => {
       const mode = body.mode as string;
       const workspaceId = body.workspace_id as string;
 
+      // ── Rate Limiting (M8) ──
+      const rateResult = await checkRateLimit(sbService, mode, workspaceId, userId);
+      if (rateResult && !rateResult.allowed) {
+        structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 429, code: "RATE_LIMITED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
+        return new Response(
+          JSON.stringify({ code: "RATE_LIMITED", reason: `Rate limit exceeded for ${mode}`, reset_at: rateResult.reset_at, remaining: 0, request_id: finalRequestId }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // ── Request Dedupe (M8) ──
+      const isNew = await insertRequestDedupe(sbService, finalRequestId, workspaceId, userId, mode);
+      if (!isNew) {
+        structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 200, code: "REQUEST_REPLAYED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
+        return new Response(
+          JSON.stringify({ code: "REQUEST_REPLAYED", reason: "Duplicate request_id", replayed: true, request_id: finalRequestId }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       // Validate draft
       const validation = validateDraft(body.draft);
       if (!validation.valid) {
+        structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 400, code: "VALIDATION_ERROR", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
         return new Response(
-          JSON.stringify({ code: "VALIDATION_ERROR", reason: validation.error }),
+          JSON.stringify({ code: "VALIDATION_ERROR", reason: validation.error, request_id: finalRequestId }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
       const draft = validation.draft;
 
-      // Check workspace membership (TEST_MODE can use x-test-role header)
+      // Check workspace membership (prod-lock gated TEST_MODE)
       let userRole: WorkspaceRole | null;
-      if (IS_TEST_MODE() && req.headers.get("x-test-role")) {
+      if (isTestModeAllowed() && req.headers.get("x-test-role")) {
         userRole = req.headers.get("x-test-role") as WorkspaceRole;
       } else {
         userRole = await getUserWorkspaceRole(sbService, userId, workspaceId);
       }
 
       if (!userRole) {
+        structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 403, code: "EXECUTION_DENIED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
         return new Response(
-          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Not a workspace member", suggested_action: "request access" }),
+          JSON.stringify({ code: "EXECUTION_DENIED", reason: "Not a workspace member", suggested_action: "request access", request_id: finalRequestId }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -870,7 +976,7 @@ serve(async (req) => {
       const agent = AGENTS[agentType];
       if (!agent) {
         return new Response(
-          JSON.stringify({ code: "AGENT_NOT_FOUND", reason: `No agent for type: ${agentType}` }),
+          JSON.stringify({ code: "AGENT_NOT_FOUND", reason: `No agent for type: ${agentType}`, request_id: finalRequestId }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
@@ -879,11 +985,10 @@ serve(async (req) => {
       const { data: profile } = await sbService.from("profiles").select("preferred_locale").eq("user_id", userId).maybeSingle();
       const sourceLang = profile?.preferred_locale || "en";
 
-      const userClient = IS_TEST_MODE()
-        ? sbService // In test mode, use service client as user client
+      const userClient = isTestModeAllowed()
+        ? sbService
         : createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: authHeader } } });
 
-      const requestId = (body.request_id as string) || crypto.randomUUID();
       const ctx: AgentContext = {
         sbService,
         sbUser: userClient,
@@ -891,14 +996,15 @@ serve(async (req) => {
         user_id: userId,
         role: userRole,
         nowISO: new Date().toISOString(),
-        request_id: requestId,
+        request_id: finalRequestId,
         source_lang: sourceLang,
       };
 
       // ─── MODE: dry_run ───
       if (mode === "dry_run") {
         const result = await agent.dryRun(draft, ctx);
-        return new Response(JSON.stringify({ ...result, request_id: requestId }), {
+        structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 200, code: "OK", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
+        return new Response(JSON.stringify({ ...result, request_id: finalRequestId }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -910,7 +1016,6 @@ serve(async (req) => {
         // If meaning_object_id already present, skip minting entirely
         if ("meaning_object_id" in draft.meaning) {
           const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, expiresAt, draft.payload);
-          // Store confirmation for binding check at execute time
           await storeConfirmation(sbService, {
             draft_id: draft.id,
             workspace_id: workspaceId,
@@ -919,8 +1024,9 @@ serve(async (req) => {
             confirmation_hash: hash,
             expires_at: expiresAt,
           });
+          structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 200, code: "OK", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
           return new Response(
-            JSON.stringify({ confirmation_hash: hash, expires_at: expiresAt }),
+            JSON.stringify({ confirmation_hash: hash, expires_at: expiresAt, request_id: finalRequestId }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -928,13 +1034,14 @@ serve(async (req) => {
         // meaning_payload path: idempotent minting
         const existing = await getConfirmation(sbService, draft.id);
         if (existing) {
-          // Already confirmed — replay same response (idempotent)
           const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, existing.expires_at, draft.payload);
+          structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 200, code: "OK_REPLAYED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
           return new Response(
             JSON.stringify({
               confirmation_hash: hash,
               expires_at: existing.expires_at,
               meaning_object_id: existing.confirmed_meaning_object_id,
+              request_id: finalRequestId,
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
@@ -950,14 +1057,13 @@ serve(async (req) => {
         });
         if ("error" in mintResult) {
           return new Response(
-            JSON.stringify({ code: "MEANING_MINT_FAILED", reason: mintResult.error }),
+            JSON.stringify({ code: "MEANING_MINT_FAILED", reason: mintResult.error, request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
         const hash = await signDraftConfirmation(hmacKey, draft.id, workspaceId, userId, expiresAt, draft.payload);
 
-        // Store confirmation for idempotency + binding
         await storeConfirmation(sbService, {
           draft_id: draft.id,
           workspace_id: workspaceId,
@@ -967,11 +1073,13 @@ serve(async (req) => {
           expires_at: expiresAt,
         });
 
+        structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 200, code: "OK", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
         return new Response(
           JSON.stringify({
             confirmation_hash: hash,
             expires_at: expiresAt,
             meaning_object_id: mintResult.meaning_object_id,
+            request_id: finalRequestId,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
@@ -982,7 +1090,7 @@ serve(async (req) => {
         const confirmationHash = (body as { confirmation_hash?: string }).confirmation_hash;
         if (!confirmationHash) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing confirmation_hash", suggested_action: "call confirm first" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing confirmation_hash", suggested_action: "call confirm first", request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -990,22 +1098,22 @@ serve(async (req) => {
         // Enforce: execute requires meaning_object_id (not meaning_payload)
         if (!("meaning_object_id" in draft.meaning)) {
           return new Response(
-            JSON.stringify({ code: "VALIDATION_ERROR", reason: "Execute requires meaning_object_id. Call confirm first to mint meaning." }),
+            JSON.stringify({ code: "VALIDATION_ERROR", reason: "Execute requires meaning_object_id. Call confirm first to mint meaning.", request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
-        // ── Meaning binding check: server verifies client-sent meaning_object_id ──
+        // ── Meaning binding check ──
         const confirmation = await getConfirmation(sbService, draft.id);
         if (!confirmation) {
           return new Response(
-            JSON.stringify({ code: "VALIDATION_ERROR", reason: "Draft must be confirmed before execute", suggested_action: "call confirm" }),
+            JSON.stringify({ code: "VALIDATION_ERROR", reason: "Draft must be confirmed before execute", suggested_action: "call confirm", request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
         if (confirmation.confirmed_meaning_object_id !== (draft.meaning as { meaning_object_id: string }).meaning_object_id) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Meaning mismatch — draft tampered", suggested_action: "reconfirm" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Meaning mismatch — draft tampered", suggested_action: "reconfirm", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1013,7 +1121,7 @@ serve(async (req) => {
         // Expiry
         if (draft.expires_at && Date.now() > draft.expires_at) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Draft expired", suggested_action: "regenerate draft" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Draft expired", suggested_action: "regenerate draft", request_id: finalRequestId }),
             { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1023,7 +1131,7 @@ serve(async (req) => {
         const isValid = await verifyDraftConfirmation(hmacKey, draft.id, workspaceId, userId, expiresAt, draft.payload, confirmationHash);
         if (!isValid) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Hash mismatch — draft tampered or user changed", suggested_action: "regenerate draft" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Hash mismatch — draft tampered or user changed", suggested_action: "regenerate draft", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1031,66 +1139,63 @@ serve(async (req) => {
         // RBAC
         if (!hasRequiredRole(userRole, draft.required_role)) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: `Requires ${draft.required_role}, you have ${userRole}`, suggested_action: "request elevated permission" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: `Requires ${draft.required_role}, you have ${userRole}`, suggested_action: "request elevated permission", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
         // ── Atomic execution via RPC (Milestone 5) ──
+        const rpcStartMs = Date.now();
         const { data: rpcResult, error: rpcError } = await sbService.rpc("execute_draft_atomic", {
           _workspace_id: workspaceId,
           _draft_id: draft.id,
           _draft_type: draft.type,
           _agent_type: agentType,
           _user_id: userId,
-          _request_id: requestId,
+          _request_id: finalRequestId,
           _meaning_object_id: (draft.meaning as { meaning_object_id: string }).meaning_object_id,
           _payload: draft.payload,
           _source_lang: sourceLang,
           _draft_title: draft.title,
           _draft_intent: draft.intent,
         });
+        const rpcMs = Date.now() - rpcStartMs;
 
         if (rpcError) {
-          console.error("[brain-execute] RPC error:", rpcError.message, "request_id:", requestId);
-          // RPC raised an exception — entire transaction was rolled back (true atomicity).
-          // No partial writes exist. Return error to client.
+          structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 400, code: "EXECUTION_FAILED", request_id: finalRequestId, runtime_ms: Date.now() - startMs, rpc_ms: rpcMs });
           return new Response(
-            JSON.stringify({ code: "EXECUTION_FAILED", reason: rpcError.message, request_id: requestId }),
+            JSON.stringify({ code: "EXECUTION_FAILED", reason: rpcError.message, request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
         const result = rpcResult as Record<string, unknown>;
 
-        // RPC returns structured jsonb — map to HTTP
         if (result.success === true) {
+          structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 200, code: "OK", request_id: finalRequestId, runtime_ms: Date.now() - startMs, rpc_ms: rpcMs, replayed: result.replayed });
           return new Response(
             JSON.stringify({
               success: true,
               entities: result.entities,
               audit_log_id: result.audit_log_id,
               replayed: result.replayed || false,
-              request_id: requestId,
+              request_id: finalRequestId,
             }),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
-        // Failure responses from RPC (idempotency: replay failed/in-progress)
+        // Failure responses from RPC
         const code = (result.code as string) || "EXECUTION_FAILED";
         const reason = (result.reason as string) || "Unknown error";
-        const httpStatus = code === "ALREADY_EXECUTED"
-          ? 409
-          : code === "EXECUTION_DENIED"
-          ? 403
-          : 400;
+        const httpStatus = code === "ALREADY_EXECUTED" ? 409 : code === "EXECUTION_DENIED" ? 403 : 400;
 
+        structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: httpStatus, code, request_id: finalRequestId, runtime_ms: Date.now() - startMs, rpc_ms: rpcMs });
         return new Response(
           JSON.stringify({
             code,
             reason,
-            request_id: requestId,
+            request_id: finalRequestId,
             ...(result.previous_error ? { previous_error: result.previous_error } : {}),
             ...(result.status ? { status: result.status } : {}),
           }),
@@ -1099,7 +1204,7 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ error: "Invalid mode. Use dry_run, confirm, or execute." }),
+        JSON.stringify({ error: "Invalid mode. Use dry_run, confirm, or execute.", request_id: finalRequestId }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -1115,7 +1220,7 @@ serve(async (req) => {
         const { proposals, workspace_id } = legacyBody;
         if (!Array.isArray(proposals) || proposals!.length === 0 || proposals!.length > 20) {
           return new Response(
-            JSON.stringify({ error: "proposals must be 1-20 items" }),
+            JSON.stringify({ error: "proposals must be 1-20 items", request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1123,7 +1228,7 @@ serve(async (req) => {
         const role = await getUserWorkspaceRole(sbService, userId, workspace_id);
         if (!role) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Not a workspace member", suggested_action: "request elevated permission" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Not a workspace member", suggested_action: "request elevated permission", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1137,7 +1242,7 @@ serve(async (req) => {
           signedProposals.push({ ...p, id: proposalId, confirmation_hash: hash, expires_at: expiresAt });
         }
 
-        return new Response(JSON.stringify({ proposals: signedProposals }), {
+        return new Response(JSON.stringify({ proposals: signedProposals, request_id: finalRequestId }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -1147,14 +1252,14 @@ serve(async (req) => {
         const { proposal, workspace_id } = legacyBody;
         if (!proposal || !proposal!.id || !proposal!.confirmation_hash || !proposal!.expires_at) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Invalid proposal structure", suggested_action: "regenerate proposal" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Invalid proposal structure", suggested_action: "regenerate proposal", request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
         if (Date.now() > proposal!.expires_at!) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Proposal expired", suggested_action: "regenerate proposal" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Proposal expired", suggested_action: "regenerate proposal", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1162,7 +1267,7 @@ serve(async (req) => {
         const isValid = await verifyProposal(hmacKey, { userId, workspaceId: workspace_id, proposalId: proposal!.id, expiresAt: proposal!.expires_at! }, proposal!.confirmation_hash!);
         if (!isValid) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Hash mismatch — proposal tampered or user changed", suggested_action: "regenerate proposal" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Hash mismatch — proposal tampered or user changed", suggested_action: "regenerate proposal", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1170,14 +1275,14 @@ serve(async (req) => {
         const userRole = await getUserWorkspaceRole(sbService, userId, workspace_id);
         if (!userRole) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Not a workspace member", suggested_action: "request elevated permission" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Not a workspace member", suggested_action: "request elevated permission", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
         if (!hasRequiredRole(userRole, proposal!.required_role)) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: `Requires ${proposal!.required_role} role, you have ${userRole}`, suggested_action: "request elevated permission" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: `Requires ${proposal!.required_role} role, you have ${userRole}`, suggested_action: "request elevated permission", request_id: finalRequestId }),
             { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1194,13 +1299,13 @@ serve(async (req) => {
           const isDuplicate = reserveErr.code === "23505" || reserveErr.message?.includes("duplicate");
           if (isDuplicate) {
             return new Response(
-              JSON.stringify({ code: "ALREADY_EXECUTED", reason: "This proposal has already been executed", suggested_action: "none" }),
+              JSON.stringify({ code: "ALREADY_EXECUTED", reason: "This proposal has already been executed", suggested_action: "none", request_id: finalRequestId }),
               { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
             );
           }
           console.error("[brain-execute] reservation error:", reserveErr.message);
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "regenerate proposal" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "regenerate proposal", request_id: finalRequestId }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
@@ -1235,25 +1340,26 @@ serve(async (req) => {
 
         if (!result.success) {
           return new Response(
-            JSON.stringify({ code: "EXECUTION_DENIED", reason: result.error, suggested_action: "regenerate proposal" }),
+            JSON.stringify({ code: "EXECUTION_DENIED", reason: result.error, suggested_action: "regenerate proposal", request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
-        return new Response(JSON.stringify({ success: true, result: result.result }), {
+        return new Response(JSON.stringify({ success: true, result: result.result, request_id: finalRequestId }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
 
     return new Response(
-      JSON.stringify({ error: 'Invalid request. Use action:"sign"|"execute" or mode:"dry_run"|"confirm"|"execute".' }),
+      JSON.stringify({ error: 'Invalid request. Use action:"sign"|"execute" or mode:"dry_run"|"confirm"|"execute".', request_id: finalRequestId }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
+    structuredLog({ mode: "error", status_code: 500, code: "INTERNAL_ERROR", request_id: requestId, runtime_ms: Date.now() - startMs });
     console.error("brain-execute-action error:", error);
     return new Response(
-      JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "regenerate proposal" }),
+      JSON.stringify({ code: "EXECUTION_DENIED", reason: "Internal server error", suggested_action: "regenerate proposal", request_id: requestId }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
