@@ -1824,5 +1824,27 @@
         "poweredBy": "A Product by AiBizOS."
       }
     }
+  },
+  "recovery": {
+    "title": "Recovery & Backup",
+    "subtitle": "Manage workspace snapshots and restore points",
+    "locked": "Access Restricted",
+    "lockedDesc": "Only workspace administrators can access the Recovery Center.",
+    "settings": "Backup Settings",
+    "autoBackup": "Automatic Backups",
+    "autoBackupDesc": "Create snapshots on a schedule",
+    "cadence": "Frequency",
+    "retention": "Keep latest",
+    "createManual": "Create Manual Snapshot",
+    "createManualDesc": "Save the current state of all workspace data",
+    "snapshot": "Snapshot",
+    "snapshots": "Snapshots",
+    "noSnapshots": "No snapshots yet",
+    "previewRestore": "Preview Restore",
+    "confirmRestore": "Confirm Restore",
+    "previewDesc": "Review what will change before restoring.",
+    "confirmDesc": "This action is irreversible. A pre-restore backup will be created automatically.",
+    "willReplace": "Current data will be replaced",
+    "typeToConfirm": "Type the following to confirm:"
   }
 }
