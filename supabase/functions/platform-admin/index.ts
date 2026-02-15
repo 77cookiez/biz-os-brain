@@ -472,6 +472,68 @@ async function handleAvailableApps(user: { id: string }) {
   return json({ apps: data || [] });
 }
 
+// (E) Remove Override — deactivate latest active grant
+async function handleRemoveOverride(user: { id: string }, body: Record<string, unknown>) {
+  await requirePlatformRole(user.id, ["owner", "admin"]);
+
+  const { workspace_id, override_type, app_id, reason } = body;
+  if (!workspace_id || !override_type || !reason) return err("workspace_id, override_type, reason are required");
+  if (override_type !== "os_plan_override" && override_type !== "app_plan_override") {
+    return err("override_type must be os_plan_override or app_plan_override");
+  }
+  if (override_type === "app_plan_override" && !app_id) return err("app_id is required for app_plan_override");
+
+  const sb = getServiceClient();
+
+  // Find the most recent active grant of this type
+  let query = sb
+    .from("platform_grants")
+    .select("*")
+    .eq("scope", "workspace")
+    .eq("scope_id", workspace_id as string)
+    .eq("grant_type", override_type as string)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const { data: grants, error: qErr } = await query;
+  if (qErr) return err(qErr.message, 500);
+
+  // For app_plan_override, filter by app_id in value_json
+  let target = grants?.[0];
+  if (override_type === "app_plan_override" && target) {
+    const grantAppId = (target.value_json as Record<string, unknown>)?.app_id;
+    if (grantAppId !== app_id) target = undefined;
+  }
+
+  if (!target) return err("No active override found", 404);
+
+  const { error: upErr } = await sb
+    .from("platform_grants")
+    .update({ is_active: false })
+    .eq("id", target.id);
+
+  if (upErr) return err(upErr.message, 500);
+
+  const actionType = override_type === "os_plan_override"
+    ? "os_plan_override_removed"
+    : "app_plan_override_removed";
+
+  await audit(user.id, actionType, {
+    targetType: "workspace",
+    targetId: workspace_id as string,
+    payload: {
+      grant_id: target.id,
+      override_type,
+      app_id: app_id || null,
+      previous_value_json: target.value_json,
+    },
+    reason: reason as string,
+  });
+
+  return json({ success: true, deactivated_grant: target });
+}
+
 // ─── Main handler ───
 
 Deno.serve(async (req) => {
@@ -505,6 +567,7 @@ Deno.serve(async (req) => {
         if (path === "set-app-subscription") return handleSetAppSubscription(user, body);
         if (path === "install-app") return handleInstallApp(user, body);
         if (path === "uninstall-app") return handleUninstallApp(user, body);
+        if (path === "remove-override") return handleRemoveOverride(user, body);
         return err("Not found", 404);
       }
       default:
