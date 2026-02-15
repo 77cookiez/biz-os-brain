@@ -3111,22 +3111,39 @@ export type Database = {
         Args: { _decision: string; _notes?: string; _request_id: string }
         Returns: Json
       }
-      execute_draft_atomic: {
-        Args: {
-          _agent_type: string
-          _draft_id: string
-          _draft_intent?: string
-          _draft_title?: string
-          _draft_type: string
-          _meaning_object_id: string
-          _payload: Json
-          _request_id: string
-          _source_lang?: string
-          _user_id: string
-          _workspace_id: string
-        }
-        Returns: Json
-      }
+      execute_draft_atomic:
+        | {
+            Args: {
+              _agent_type: string
+              _draft_id: string
+              _draft_intent?: string
+              _draft_title?: string
+              _draft_type: string
+              _meaning_object_id: string
+              _payload: Json
+              _request_id: string
+              _source_lang?: string
+              _user_id: string
+              _workspace_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _agent_type: string
+              _draft_id: string
+              _draft_intent?: string
+              _draft_title?: string
+              _draft_type: string
+              _meaning_object_id: string
+              _payload: Json
+              _request_id: string
+              _source_lang: string
+              _user_id: string
+              _workspace_id: string
+            }
+            Returns: Json
+          }
       get_live_booking_tenant_by_slug: {
         Args: { p_slug: string }
         Returns: Json
