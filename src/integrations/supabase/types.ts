@@ -3687,7 +3687,12 @@ export type Database = {
         Returns: number
       }
       restore_bookivo_fragment: {
-        Args: { _fragment: Json; _workspace_id: string }
+        Args: {
+          _actor: string
+          _fragment: Json
+          _snapshot_id: string
+          _workspace_id: string
+        }
         Returns: number
       }
       restore_teamchat_fragment: {
