@@ -111,13 +111,33 @@ serve(async (req) => {
       structuredLog({ step: "rate_limits", error: err4.message, request_id: requestId });
     }
 
+    // ── 5. Cleanup old usage counters (M9) ──
+    const { data: usageCountersDeleted, error: err5 } = await sb.rpc(
+      "cleanup_usage_counters",
+      { _older_than_hours: 48, _batch: 1000 },
+    );
+    if (err5) {
+      structuredLog({ step: "usage_counters", error: err5.message, request_id: requestId });
+    }
+
+    // ── 6. Cleanup decided pending executions (M9) ──
+    const { data: pendingExecsDeleted, error: err6 } = await sb.rpc(
+      "cleanup_decided_executions",
+      { _older_than_days: 7, _batch: 500 },
+    );
+    if (err6) {
+      structuredLog({ step: "pending_executions", error: err6.message, request_id: requestId });
+    }
+
     const runtimeMs = Date.now() - startMs;
     const confirmsCount = confirmationsDeleted ?? 0;
     const staleCount = staleDeleted ?? 0;
     const dedupesCount = dedupesDeleted ?? 0;
     const rateLimitsCount = rateLimitsDeleted ?? 0;
+    const usageCountersCount = usageCountersDeleted ?? 0;
+    const pendingExecsCount = pendingExecsDeleted ?? 0;
 
-    // ── 5. Structured log ──
+    // ── 7. Structured log ──
     structuredLog({
       status_code: 200,
       code: "OK",
@@ -126,6 +146,8 @@ serve(async (req) => {
       stale_deleted: staleCount,
       dedupes_deleted: dedupesCount,
       rate_limits_deleted: rateLimitsCount,
+      usage_counters_deleted: usageCountersCount,
+      pending_executions_deleted: pendingExecsCount,
       runtime_ms: runtimeMs,
     });
 
@@ -136,6 +158,8 @@ serve(async (req) => {
         stale_reservations_deleted: staleCount,
         dedupes_deleted: dedupesCount,
         rate_limits_deleted: rateLimitsCount,
+        usage_counters_deleted: usageCountersCount,
+        pending_executions_deleted: pendingExecsCount,
         runtime_ms: runtimeMs,
         request_id: requestId,
       }),

@@ -830,6 +830,48 @@ async function checkRateLimit(
   return data as { allowed: boolean; remaining: number; reset_at: string };
 }
 
+// ─── Execution Policy Helper (M9) ───
+
+interface ExecutionPolicy {
+  require_owner_approval: boolean;
+  restrict_ai_updates: boolean;
+  max_daily_executions: number | null;
+  enabled_modules: string[];
+}
+
+async function getExecutionPolicy(
+  sb: ReturnType<typeof createClient>,
+  workspaceId: string,
+): Promise<ExecutionPolicy> {
+  const { data, error } = await sb.rpc("get_execution_policy", { _workspace_id: workspaceId });
+  if (error || !data) {
+    return { require_owner_approval: false, restrict_ai_updates: false, max_daily_executions: null, enabled_modules: ["teamwork", "brain", "chat", "bookivo"] };
+  }
+  return data as ExecutionPolicy;
+}
+
+// ─── Usage Increment Helper (M9) ───
+
+async function incrementUsageCounter(
+  sb: ReturnType<typeof createClient>,
+  workspaceId: string,
+  counterKey: string,
+  limit: number | null,
+  windowSeconds: number = 86400,
+): Promise<{ allowed: boolean; current: number; remaining: number } | null> {
+  const { data, error } = await sb.rpc("increment_usage", {
+    _workspace_id: workspaceId,
+    _counter_key: counterKey,
+    _limit: limit,
+    _window_seconds: windowSeconds,
+  });
+  if (error) {
+    console.warn("[brain-execute] usage increment failed:", error.message);
+    return null;
+  }
+  return data as { allowed: boolean; current: number; remaining: number };
+}
+
 // ─── Request Dedupe Helper ───
 
 async function insertRequestDedupe(
@@ -1092,6 +1134,67 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ code: "EXECUTION_DENIED", reason: "Missing confirmation_hash", suggested_action: "call confirm first", request_id: finalRequestId }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // ── Execution Policy check (M9) ──
+        const policy = await getExecutionPolicy(sbService, workspaceId);
+
+        // Module restriction
+        const targetModule = draft.target_module || resolveAgentType(draft);
+        if (!policy.enabled_modules.includes(targetModule)) {
+          structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 403, code: "MODULE_DISABLED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
+          return new Response(
+            JSON.stringify({ code: "MODULE_DISABLED", reason: `Module '${targetModule}' is disabled by workspace policy`, request_id: finalRequestId }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // AI updates restriction
+        if (policy.restrict_ai_updates && draft.type.startsWith("draft_") && draft.scope?.affected_entities?.some((e: AffectedEntity) => e.action === "update")) {
+          structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 403, code: "AI_UPDATES_RESTRICTED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
+          return new Response(
+            JSON.stringify({ code: "AI_UPDATES_RESTRICTED", reason: "AI-driven updates are restricted by workspace policy", request_id: finalRequestId }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+
+        // Daily execution limit
+        if (policy.max_daily_executions !== null) {
+          const usageResult = await incrementUsageCounter(sbService, workspaceId, "ai_executions_per_day", policy.max_daily_executions, 86400);
+          if (usageResult && !usageResult.allowed) {
+            structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 403, code: "UPGRADE_REQUIRED", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
+            return new Response(
+              JSON.stringify({ code: "UPGRADE_REQUIRED", reason: `Daily AI execution limit reached (${policy.max_daily_executions}). Upgrade your plan.`, remaining: 0, request_id: finalRequestId }),
+              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+        }
+
+        // Owner approval policy
+        if (policy.require_owner_approval && userRole !== "owner") {
+          // Store as pending execution
+          await sbService.from("pending_executions").insert({
+            workspace_id: workspaceId,
+            draft_id: draft.id,
+            draft_json: draft as unknown as Record<string, unknown>,
+            confirmation_hash: confirmationHash,
+            requested_by: userId,
+          });
+
+          await writeAudit(sbService, {
+            workspace_id: workspaceId,
+            actor_user_id: userId,
+            action: "agent.execute.pending_approval",
+            entity_type: draft.type,
+            entity_id: draft.id,
+            metadata: { draft_id: draft.id, request_id: finalRequestId },
+          });
+
+          structuredLog({ mode, workspace_id: workspaceId, user_id: userId, status_code: 202, code: "PENDING_APPROVAL", request_id: finalRequestId, runtime_ms: Date.now() - startMs });
+          return new Response(
+            JSON.stringify({ status: "PENDING_APPROVAL", reason: "Workspace policy requires owner approval for AI executions", request_id: finalRequestId }),
+            { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
 
