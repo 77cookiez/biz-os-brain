@@ -62,3 +62,9 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.backup-scheduler]
+verify_jwt = false
+
+[functions.backup-export]
+verify_jwt = false
