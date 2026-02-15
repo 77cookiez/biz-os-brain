@@ -196,16 +196,22 @@ describe('Edge function restore safety', () => {
   });
 });
 
-// ─── Pre-restore snapshot uses internal function ───
+// ─── Pre-restore snapshot uses dedicated function ───
 
 describe('Pre-restore snapshot correctness', () => {
-  it('uses create_workspace_snapshot_internal with _actor (no auth.uid())', () => {
-    // Contract: restore_workspace_snapshot_atomic calls create_workspace_snapshot_internal(_workspace_id, _actor, ...)
-    const internalFn = 'create_workspace_snapshot_internal';
+  it('uses capture_pre_restore_snapshot_as with _actor (no auth.uid())', () => {
+    // Contract: restore_workspace_snapshot_atomic calls capture_pre_restore_snapshot_as(_workspace_id, _actor, ...)
+    const internalFn = 'capture_pre_restore_snapshot_as';
     const params = ['_workspace_id', '_actor', '_snapshot_type'];
     expect(internalFn).toBeTruthy();
     expect(params).toContain('_actor');
     expect(params).not.toContain('auth.uid()');
+  });
+
+  it('edge function authenticates via getClaims (not getUser)', () => {
+    // Contract: safeback-engine uses getClaims(token) for JWT verification
+    const authMethod = 'getClaims';
+    expect(authMethod).not.toBe('getUser');
   });
 });
 

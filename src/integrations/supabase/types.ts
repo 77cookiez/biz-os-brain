@@ -3398,6 +3398,10 @@ export type Database = {
         Args: { _feature: string; _workspace_id: string }
         Returns: boolean
       }
+      capture_pre_restore_snapshot_as: {
+        Args: { _actor: string; _snapshot_type?: string; _workspace_id: string }
+        Returns: string
+      }
       capture_workspace_snapshot_v2: {
         Args: {
           _reason?: string

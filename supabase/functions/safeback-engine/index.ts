@@ -13,23 +13,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-async function getAuthUser(req: Request) {
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return null;
-  const token = authHeader.replace("Bearer ", "");
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const anonClient = createClient(supabaseUrl, supabaseKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const {
-    data: { user },
-    error,
-  } = await anonClient.auth.getUser(token);
-  if (error || !user) return null;
-  return user;
-}
-
 function getServiceClient() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -39,12 +22,30 @@ function getServiceClient() {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const user = await getAuthUser(req);
-    if (!user) return json({ error: "Unauthorized" }, 401);
+    // ── Auth via getClaims ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: claimsData, error: claimsErr } =
+      await anonClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
+    const userId = claimsData.claims.sub as string;
 
     const url = new URL(req.url);
     const path = url.pathname.split("/").pop();
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
     // ── Verify workspace admin ──
     async function assertAdmin(workspaceId: string) {
       const { data } = await sb.rpc("is_workspace_admin", {
-        _user_id: user!.id,
+        _user_id: userId,
         _workspace_id: workspaceId,
       });
       if (!data)
@@ -82,7 +83,7 @@ Deno.serve(async (req) => {
       const { snapshot_id } = body;
       if (!snapshot_id) return json({ error: "snapshot_id required" }, 400);
 
-      // Need to read snapshot to get workspace_id for admin check
+      // Derive workspace_id from snapshot (never trust client)
       const { data: snap, error: snapErr } = await sb
         .from("workspace_snapshots")
         .select("workspace_id")
@@ -122,7 +123,7 @@ Deno.serve(async (req) => {
         {
           _workspace_id: snap.workspace_id,
           _snapshot_id: snapshot_id,
-          _actor: user.id,
+          _actor: userId,
           _confirmation_token: confirmation_token,
         }
       );
